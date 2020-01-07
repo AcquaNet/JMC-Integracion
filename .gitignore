@@ -1,0 +1,10 @@
+JDEConnectorWSService/target/
+/JDEConnectorServer/target/
+/JDEClient/target/
+jde-atila-connector/target/
+JDEConnectorServer/tmp/
+/JDEAtinaServer/target/
+JDEDockers/Microservice/docker_jdemicro/java64/j2re-image-x86_64-u232-b01-20190729.tar.bz2
+JDEDockers/Microservice/docker_jdemicro/images/JDEAtinaServer-1.0.0.jar
+JDEDockers/Microservice/tmp/
+/JDECreateToken/target/
