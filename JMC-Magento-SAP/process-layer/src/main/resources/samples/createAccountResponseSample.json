@@ -1,0 +1,31 @@
+{
+	"bioStarDetails": {
+		"user": {
+			"status_code": "CREATED",
+			"user_id": "13033",
+			"message": "Created successfully"
+		},
+		"card": {
+			"status_code": "SUCCESSFUL",
+			"cardId": 273,
+			"message": "Processed Successfully",
+			"userId": "13033"
+		}
+	},
+	"paperCutDetails": {
+		"id": "acquaprueba033"
+	},
+	"libertyaDetails": {
+		"locationID": "1012415",
+		"bPartnerID": "1012400"
+	},
+	"uniFiDetails": {
+		"data": [{
+			"site_id": "5a3906d2e4b0e87e9136e62f",
+			"_id": "5cb78662d22ad2048a9fb470"
+		}],
+		"meta": {
+			"rc": "ok"
+		}
+	}
+}

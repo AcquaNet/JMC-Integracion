@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:validation="http://www.mulesoft.org/schema/mule/validation"
+	xmlns:json="http://www.mulesoft.org/schema/mule/json" xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:spring="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mule/validation/current/mule-validation.xsd
+http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/json/current/mule-json.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd">
+	<sub-flow name="sapb1-magento-sync-get-items-details-subflow">
+        <expression-component doc:name="Expression"><![CDATA[flowVars.flowName="sapb1-magento-sync-process-and-send-items-subflow";]]></expression-component>
+		<component doc:name="GetItemIdsList">
+			<spring-object bean="GetItemIdsList" />
+		</component>
+		<enricher source="#[payload.result]" target="#[flowVars.itemStocks]"
+			doc:name="Get Items Stock Quanitity">
+			<processor-chain doc:name="Processor Chain">
+				<http:request config-ref="SAP_Request_Configuration"
+					path="/itemsStock" method="GET" doc:name="HTTP">
+					<http:request-builder>
+                        <http:query-param paramName="whsCode" value="${sapb1_magento_warehouses_codes}"/>
+                        <http:query-param paramName="sociedades" value="${sapb1_magento_sociedades}"/>
+                        <http:query-param paramName="itemCodes" value="#[flowVars.idList]"/>
+					</http:request-builder>
+					<http:success-status-code-validator
+						values="200..599" />
+				</http:request>
+				<validation:custom-validator config-ref="Validation_Configuration"
+					message="Error ocurred getting Stock Updates" class="com.acqua.common.pl.validator.PLExternalRestfulValidator"
+					doc:name="Validation" />
+
+				<json:json-to-object-transformer
+					returnClass="java.util.HashMap" doc:name="JSON to Object" />
+			</processor-chain>
+		</enricher>
+		<enricher source="#[payload.result]" target="#[flowVars.itemDetails]"
+			doc:name="Get items description">
+			<processor-chain doc:name="Processor Chain">
+				<http:request config-ref="SAP_Request_Configuration"
+					path="/itemsDesc" method="GET" doc:name="HTTP">
+					<http:request-builder>
+                        <http:query-param paramName="sociedades" value="${sapb1_magento_sociedad_principal}"/>
+                        <http:query-param paramName="itemCodes" value="#[flowVars.idList]"/>
+
+					</http:request-builder>
+					<http:success-status-code-validator
+						values="200..599" />
+				</http:request>
+				<validation:custom-validator config-ref="Validation_Configuration"
+					message="Error ocurred getting Stock Updates" class="com.acqua.common.pl.validator.PLExternalRestfulValidator"
+					doc:name="Validation" />
+
+				<json:json-to-object-transformer
+					returnClass="java.util.HashMap" doc:name="JSON to Object" />
+			</processor-chain>
+		</enricher>
+        <choice doc:name="Choice">
+            <when expression="#[flowVars.processType == &quot;STK&quot;]">
+                <enricher source="#[payload.result]" target="#[flowVars.itemPrices]" doc:name="Get items prices">
+                    <processor-chain doc:name="Processor Chain">
+                        <http:request config-ref="SAP_Request_Configuration" path="/eCommercePrices" method="GET" doc:name="HTTP">
+                            <http:request-builder>
+                                <http:query-param paramName="sociedades" value="${sapb1_magento_sociedad_principal}"/>
+                                <http:query-param paramName="listCode" value="${sapb1_magento_ecommerce_price_list}"/>
+                                <http:query-param paramName="itemCodes" value="#[flowVars.idList]"/>
+                            </http:request-builder>
+                            <http:success-status-code-validator values="200..599"/>
+                        </http:request>
+                        <validation:custom-validator config-ref="Validation_Configuration" message="Error ocurred getting Stock Updates" class="com.acqua.common.pl.validator.PLExternalRestfulValidator" doc:name="Validation"/>
+                        <json:json-to-object-transformer returnClass="java.util.HashMap" doc:name="JSON to Object"/>
+                    </processor-chain>
+                </enricher>
+            </when>
+            <otherwise>
+                <logger message="Already have prices on updatedItems var" level="INFO" doc:name="Logger"/>
+            </otherwise>
+        </choice>
+	</sub-flow>
+    <sub-flow name="sapb1-magento-sync-send-items-magento-subflow">
+        <expression-component doc:name="Expression"><![CDATA[flowVars.flowName="sapb1-magento-sync-send-items-magento-subflow";]]></expression-component>
+    
+                <logger message="Data to send to Magento: #[message.payloadAs(java.lang.String)]" level="INFO" doc:name="Logger"/>
+                <http:request config-ref="Magento_Request_Configuration" path="/Sync" method="POST" doc:name="Send data to Magento">
+                    <http:request-builder>
+                        <http:header headerName="transactionId" value="#[flowVars.errorCode]"/>
+                    </http:request-builder>
+                    <http:success-status-code-validator values="200..599"/>
+                </http:request>
+                <validation:custom-validator config-ref="Validation_Configuration" message="Error ocurred sending data to Magento" class="com.acqua.common.pl.validator.PLExternalRestfulValidator" doc:name="Validation"/>
+
+                
+    </sub-flow>
+</mule>

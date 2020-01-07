@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<mule-project xmlns="http://www.mulesoft.com/tooling/project" runtimeId="org.mule.tooling.server.3.9.0" schemaVersion="5.3.0.0">
+    <name>process-layer</name>
+    <description></description>
+    <muleExtension name="AcquaITMetrics" qualifier="org.mule.tooling.ui.contribution.acquait-metrics.3.8.0"/>
+    <muleExtension name="AcquaIT Metrics" qualifier="org.mule.tooling.ui.contribution.acquait-metrics.3.8.0"/>
+</mule-project>

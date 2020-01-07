@@ -1,0 +1,62 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:validation="http://www.mulesoft.org/schema/mule/validation"
+	xmlns:tls="http://www.mulesoft.org/schema/mule/tls" xmlns:acquait-metrics="http://www.mulesoft.org/schema/mule/acquait-metrics"
+	xmlns:metrics="http://www.mulesoft.org/schema/mule/metrics"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:spring="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xmlns:util="http://www.springframework.org/schema/util"
+	xsi:schemaLocation="http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mule/validation/current/mule-validation.xsd
+http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-current.xsd
+http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.springframework.org/schema/util http://www.springframework.org/schema/util/spring-util-4.1.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/metrics http://www.mulesoft.org/schema/mule/metrics/current/mule-metrics.xsd
+http://www.mulesoft.org/schema/mule/acquait-metrics http://www.mulesoft.org/schema/mule/acquait-metrics/current/mule-acquait-metrics.xsd
+http://www.mulesoft.org/schema/mule/tls http://www.mulesoft.org/schema/mule/tls/current/mule-tls.xsd">
+
+	
+	
+	<validation:config name="Validation_Configuration" doc:name="Validation Configuration">
+        <validation:exception-factory class="com.acqua.common.pl.exceptions.PLExeptionFactory"/>
+    </validation:config>
+	<spring:beans>
+		<context:property-placeholder location="classpath:${mule_env}.properties" />
+		<spring:bean id="Bean" name="JsonUtil" class="com.acqua.utils.JSONUtil" />
+		<spring:import resource="classpath:prc-global-exception.xml" />
+		<spring:import resource="classpath:common-send-error.xml" />
+		<spring:import resource="classpath:common-global-authentication.xml" />
+
+		<spring:bean id="graphiteConfig" scope="singleton"
+			class="org.mule.modules.acquaitmetrics.spring.GraphiteConfig">
+			<spring:constructor-arg index="0" type="java.lang.String" value="${metrics_graphite_server}"/>
+			<spring:constructor-arg index="1" type="java.lang.Integer" value="${metrics_graphite_port}"/>
+			<spring:constructor-arg index="2" type="java.lang.String" value="${metrics_graphite_applicaction}"/>
+			<spring:constructor-arg index="3" type="java.lang.String" value="${metrics_graphite_environment}"/>
+			<spring:constructor-arg index="4" type="java.lang.String" value="${metrics_graphite_prefix}"/>
+			<spring:constructor-arg index="5" type="java.lang.String" value="${metrics_graphite_enable}"/>
+		</spring:bean>
+		
+		<spring:bean id="metricConfig" scope="singleton"
+			class="org.mule.modules.acquaitmetrics.spring.MetricsConfig">
+			<spring:constructor-arg index="0" type="java.lang.String" value="${metrics_console_enable}"/>
+			<spring:constructor-arg index="1" ref="graphiteConfig"/>
+		</spring:bean>
+        <spring:bean id="GetItemIdsList" name="GetItemIdsList" class="com.acqua.utils.GetItemIdsList"/>
+        <spring:bean id="ConcatenateStock" name="ConcatenateStock" class="com.acqua.utils.ConcatenateStock"/>
+        <spring:bean id="ProcessStockData" name="ProcessStockData" class="com.acqua.utils.ProcessStockData"/>
+        <spring:bean id="ProcessPricesData" name="ProcessPricesData" class="com.acqua.utils.ProcessPricesData"/>
+	 
+	</spring:beans>
+ 
+	<acquait-metrics:config
+		name="AcquaIT_Metrics__AcquaIT_Metric_Connector_Configuration"
+		metricsConfig-ref="metricConfig" reporterInterval="${metrics_reporter_interval}"
+		doc:name="AcquaIT Metrics: AcquaIT Metric Connector Configuration" />
+	 <http:request-config name="SAP_Request_Configuration" host="${system_layer_ip}" port="${system_layer_port}" basePath="${system_layer_sapb1_base_path}" responseTimeout="180000" doc:name="HTTP Request Configuration"/> 
+	 <http:request-config name="Magento_Request_Configuration" host="${system_layer_ip}" port="${system_layer_port}" basePath="${system_layer_magento_base_path}" responseTimeout="180000" doc:name="HTTP Request Configuration"/> 
+	
+</mule>

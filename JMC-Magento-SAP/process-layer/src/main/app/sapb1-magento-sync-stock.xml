@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:validation="http://www.mulesoft.org/schema/mule/validation" xmlns:json="http://www.mulesoft.org/schema/mule/json" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:schedulers="http://www.mulesoft.org/schema/mule/schedulers" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:spring="http://www.springframework.org/schema/beans" 
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/schedulers http://www.mulesoft.org/schema/mule/schedulers/current/mule-schedulers.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/json/current/mule-json.xsd
+http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mule/validation/current/mule-validation.xsd">
+    <flow name="sapb1-magento-sync-stock-main-flow" processingStrategy="synchronous">
+        <poll doc:name="Poll">
+            <schedulers:cron-scheduler expression="${sapb1_magento_stock_poll_schedule}"/>
+            <logger message="Flow sapb1-magento-sync-stock-main-flow started..." level="INFO" doc:name="Logger"/>
+        </poll>
+        <expression-component doc:name="Set App Details"><![CDATA[flowVars.flowName="sapb1-magento-sync-stock-main-flow";
+flowVars.metricCategory="SapB1-Magento-Stock";
+flowVars.apiName="priceUpdates,itemsStock,itemsDesc,eCommercePrices";
+flowVars.errorCode=server.dateTime.format('yyyyMMddHHmmssSSS');
+flowVars.processType = "STK";
+]]></expression-component>
+        <expression-component doc:name="Get Last Update Date"><![CDATA[flowVars.update = com.acqua.utils.CurrentDateSaver.getUpdateTime("STOCK");
+flowVars.updateDate = flowVars.update.UpdateDate;
+flowVars.todayDate = server.dateTime.format('yyyy-MM-dd');
+]]></expression-component>
+        <expression-component doc:name="Get Last Update Time"><![CDATA[flowVars.update = com.acqua.utils.CurrentTimeSaver.getUpdateTime("STOCK");
+flowVars.updateTime = flowVars.update.UpdateTime;
+flowVars.nowTime = server.dateTime.format('HHmm');]]></expression-component>
+        <enricher source="#[payload.result]" target="#[flowVars.updatedItems]" doc:name="Message Enricher">
+            <processor-chain doc:name="Processor Chain">
+                <choice doc:name="Choice">
+                    <when expression="#[flowVars.updateDate == flowVars.todayDate]">
+                        <http:request config-ref="SAP_Request_Configuration" path="/stockUpdate" method="GET" doc:name="HTTP">
+                            <http:request-builder>
+                                <http:query-param paramName="updateDate" value="#[flowVars.updateDate]"/>
+                                <http:query-param paramName="fromTime" value="#[flowVars.updateTime]"/>
+                                <http:query-param paramName="toTime" value="#[flowVars.nowTime]"/>
+                                <http:query-param paramName="whsCode" value="${sapb1_magento_warehouses_codes}"/>
+                                <http:query-param paramName="sociedades" value="${sapb1_magento_sociedades}"/>
+
+
+
+                            </http:request-builder>
+                            <http:success-status-code-validator values="200..599"/>
+                        </http:request>
+
+                    </when>
+                    <otherwise>
+                        <http:request config-ref="SAP_Request_Configuration" path="/stockUpdate" method="GET" doc:name="HTTP">
+                            <http:request-builder>
+                                <http:query-param paramName="updateDate" value="#[flowVars.updateDate]"/>
+                                <http:query-param paramName="whsCode" value="${sapb1_magento_warehouses_codes}"/>
+                                <http:query-param paramName="sociedades" value="${sapb1_magento_sociedades}"/>
+
+                            </http:request-builder>
+                            <http:success-status-code-validator values="200..599"/>
+                        </http:request>
+                    
+                    </otherwise>
+                </choice>
+                <validation:custom-validator config-ref="Validation_Configuration" message="Error ocurred getting Stock Updates" class="com.acqua.common.pl.validator.PLExternalRestfulValidator" doc:name="Validation"/>
+                <json:json-to-object-transformer returnClass="java.util.HashMap" doc:name="JSON to Object"/>
+            </processor-chain>
+        </enricher>
+        <choice doc:name="Choice">
+            <when expression="#[flowVars.updatedItems.size() &gt; 0]">
+                <flow-ref name="sapb1-magento-sync-get-items-details-subflow" doc:name="get-items-details-subflow"/>
+                
+				<component doc:name="ConcatenateStock">
+                    <spring-object bean="ConcatenateStock"/>
+                </component>
+                <component doc:name="ProcessStockData">
+            <spring-object bean="ProcessStockData"/>
+
+                </component>
+                <flow-ref name="sapb1-magento-sync-send-items-magento-subflow" doc:name="send-items-magento-subflow"/>
+                <expression-component doc:name="Save run date and time"><![CDATA[com.acqua.utils.CurrentDateSaver.setUpdateTime("STOCK",flowVars.todayDate);
+com.acqua.utils.CurrentTimeSaver.setUpdateTime("STOCK",flowVars.nowTime);]]></expression-component>
+                <logger message="End of Process..." level="INFO" doc:name="Logger"/>
+            </when>
+            <otherwise>
+                <logger message="No items to sync" level="INFO" doc:name="Logger"/>
+            </otherwise>
+        </choice>
+        <exception-strategy ref="Process_Layer_Generic_Exception_Strategy" doc:name="Reference Exception Strategy"/>
+    </flow>
+    
+</mule>

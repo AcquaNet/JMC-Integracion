@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:validation="http://www.mulesoft.org/schema/mule/validation" xmlns:json="http://www.mulesoft.org/schema/mule/json" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:spring="http://www.springframework.org/schema/beans" 
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/json/current/mule-json.xsd
+http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mule/validation/current/mule-validation.xsd">
+    <flow name="magento-system-sync-info-flow">
+        <http:listener config-ref="System_Listener_Configuration" path="/Magento/Sync" allowedMethods="POST" doc:name="HTTP"/>
+        <logger message="Process Layer Transaction ID: #[message.inboundProperties.transactionId]" level="INFO" doc:name="Logger"/>
+        <expression-component doc:name="Set App Details"><![CDATA[flowVars.flowName="magento-system-sync-info-flow";
+flowVars.metricCategory="Magento";
+flowVars.apiName="gestionarStock";
+flowVars.errorCode="NONE";]]></expression-component>
+        <expression-component doc:name="Json to String"><![CDATA[payload = message.payloadAs(java.lang.String);]]></expression-component>
+        <component doc:name="Java">
+            <spring-object bean="Magento"/>
+        </component>
+        <set-payload value="#[message.payloadAs(java.lang.String)]" mimeType="application/json" doc:name="Prepare Response"/>
+        <validation:custom-validator config-ref="Validation_Configuration" message="Magento Sync Api Failed: #[flowVars.ExternalJavaErrorCode != null ? flowVars.ExternalJavaErrorCode.getErrorMessage() : &quot;None&quot;]" class="com.acqua.common.sl.validator.SLExternalJavaValidator" doc:name="Validation"/>
+        <logger level="INFO" doc:name="Logger" message="Magento Web Service Response: #['\n' + message.payloadAs(java.lang.String)] "/>
+        <exception-strategy ref="System_Layer_Generic_Exception_Strategy" doc:name="Reference Exception Strategy"/>
+    </flow>
+</mule>

@@ -1,0 +1,77 @@
+{
+	"bioStar2": {
+		"biostarEnabled": true,
+		"biostarCreds": {
+			"subdomain": "impresiones",
+			"pass": "oficina13",
+			"user": "srepetto"
+		},
+		"biostarUser": {
+			"name": "Acqua Prueba010",
+			"userId": 13010,
+			"email": "soporte010@acqua.net.ar",
+			"phoneNumber": "1130388952",
+			"status": "AC",
+			"startDateTime": "2016-05-01T00:05:32.000Z",
+			"endDateTime": "2030-05-01T00:05:32.000Z",
+			"userGroup": 1287,
+			"accessGroups": [48],
+			"cardIds": [122, 3223],
+			"cardFormat": 0
+		}
+	},
+	"libertya": {
+		"libertyaEnabled":true,
+		"libertyaUser": {
+			"id": "4563010",
+			"taxId": "23249472010",
+			"taxIdType": 80,
+			"taxCategory": 1,
+			"firstName": "Prueba Acqua 010",
+			"secondName": "Prueba Acqua 010",
+			"bpGroupId": 1010045,
+			"isOneTime": "N",
+			"isProspect": "Y",
+			"isVendor": "N",
+			"isCustomer": "N",
+			"isEmployee": "N",
+			"isSalesRep": "N",
+			"paymentTermId": 1010083,
+			"priceListId": 1010595,
+			"address": "direccion",
+			"phone": "123456",
+			"employeeNumber": 1
+		}
+	},
+	"paperCut": {
+		"papercutEnabled":true,
+		"papercutUser": {
+			"username": "acquaprueba010",
+			"password": "acqua2019",
+			"fullName": "Acqua010",
+			"cardNumber": 1122334010,
+			"pin": 1234,
+			"businessName": "Acqua",
+			"office": "Oficina 13",
+			"notes": "00004",
+			"initialBalance": 100,
+			"email": "acqua010@acqua.net.ar"
+		}
+	},
+	"uniFi": {
+		"unifiEnabled":true,
+		"unifiCreds": {
+			"username": "marcos",
+			"password": "i-RoksPWez0Tm"
+		},
+		"unifiUsers": {
+			"radius": {
+				"radiusUser": "wifiprueba1",
+				"radiusPass": "wifiprueba1",
+				"netId": 713,
+				"radiusTunnelType": 13,
+				"radiusMiddleType": 6
+			}
+		}
+	}
+}

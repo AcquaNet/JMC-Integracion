@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:json="http://www.mulesoft.org/schema/mule/json" xmlns:validation="http://www.mulesoft.org/schema/mule/validation"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:cluster="http://www.mulesoft.org/schema/mule/ee/cluster" xmlns:ws="http://www.mulesoft.org/schema/mule/ws" xmlns:tls="http://www.mulesoft.org/schema/mule/tls" xmlns:smtp="http://www.mulesoft.org/schema/mule/smtp" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:spring="http://www.springframework.org/schema/beans" 
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mule/validation/current/mule-validation.xsd
+http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-current.xsd
+http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/smtp http://www.mulesoft.org/schema/mule/smtp/current/mule-smtp.xsd
+http://www.mulesoft.org/schema/mule/tls http://www.mulesoft.org/schema/mule/tls/current/mule-tls.xsd
+http://www.mulesoft.org/schema/mule/ws http://www.mulesoft.org/schema/mule/ws/current/mule-ws.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/json/current/mule-json.xsd">
+	<validation:config name="Validation_Configuration" doc:name="Validation Configuration">
+        <validation:exception-factory class="com.acqua.common.sl.exceptions.SLExeptionFactory"/>
+    </validation:config>
+    <http:listener-config name="System_Listener_Configuration" host="0.0.0.0" port="${system_layer_port}" doc:name="HTTP Listener Configuration"/>
+    
+    <spring:beans>
+    
+		<context:property-placeholder location="classpath:${mule_env}.properties" />
+        <spring:import resource="classpath:sys-global-exception.xml"/>
+		<spring:import resource="classpath:common-send-error.xml"/>
+        <spring:bean id="Magento" name="Magento" class="com.acqua.magento.MagentoCallable"/>
+		
+	</spring:beans>
+    <db:generic-config name="Generic_Database_Configuration" url="jdbc:sap://sapb1.jmcgroup.com.ar:30015/?user=${sapb1_hana_db_user}&amp;password=${sapb1_hana_db_password}" driverClassName="com.sap.db.jdbc.Driver" doc:name="Generic Database Configuration"/>
+   
+</mule>

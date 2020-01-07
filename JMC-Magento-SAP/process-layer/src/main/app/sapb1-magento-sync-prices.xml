@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:json="http://www.mulesoft.org/schema/mule/json" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:validation="http://www.mulesoft.org/schema/mule/validation" xmlns:schedulers="http://www.mulesoft.org/schema/mule/schedulers" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:spring="http://www.springframework.org/schema/beans" 
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/schedulers http://www.mulesoft.org/schema/mule/schedulers/current/mule-schedulers.xsd
+http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/json/current/mule-json.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/validation http://www.mulesoft.org/schema/mule/validation/current/mule-validation.xsd">
+    <flow name="sapb1-magento-sync-prices-main-flow" processingStrategy="synchronous">
+        <poll doc:name="Poll">
+            <schedulers:cron-scheduler expression="${sapb1_magento_prices_poll_schedule}"/>
+            <logger message="Flow sapb1-magento-sync-stock-main-flow started..." level="INFO" doc:name="Logger"/>
+        </poll>
+        <expression-component doc:name="Set App Details"><![CDATA[flowVars.flowName="sapb1-magento-sync-prices-main-flow";
+flowVars.metricCategory="SapB1-Magento-Prices";
+flowVars.apiName="stockUpdate,itemsStock,itemsDesc,eCommercePrices";
+flowVars.errorCode=server.dateTime.format('yyyyMMddHHmmssSSS');
+flowVars.processType = "PRE";
+]]></expression-component>
+        <expression-component doc:name="Get Last Update Date"><![CDATA[flowVars.update = com.acqua.utils.CurrentDateSaver.getUpdateTime("PRICES");
+flowVars.updateDate = flowVars.update.UpdateDate;
+flowVars.todayDate = server.dateTime.format('yyyy-MM-dd');]]></expression-component>
+        <http:request config-ref="SAP_Request_Configuration" path="/priceUpdates" method="GET" doc:name="HTTP">
+            <http:request-builder>
+                <http:query-param paramName="updateDate" value="#[flowVars.updateDate]"/>
+                <http:query-param paramName="sociedades" value="${sapb1_magento_sociedad_principal}"/>
+            </http:request-builder>
+            <http:success-status-code-validator values="200..599"/>
+        </http:request>
+        <validation:custom-validator config-ref="Validation_Configuration" message="Error ocurred getting Price List Updates" class="com.acqua.common.pl.validator.PLExternalRestfulValidator" doc:name="Validation"/>
+        <choice doc:name="Choice">
+            <when expression="#[payload.update == true]">
+                <json:json-to-object-transformer returnClass="java.util.HashMap" doc:name="JSON to Object"/>
+                <expression-component doc:name="Get Update Date"><![CDATA[flowVars.updateDate = payload.updateDate;]]></expression-component>
+                <enricher doc:name="Get items prices" source="#[payload.result]"
+			target="#[flowVars.updatedItems]">
+			<processor-chain doc:name="Processor Chain">
+				<http:request config-ref="SAP_Request_Configuration"
+					path="/eCommercePrices" method="GET" doc:name="HTTP">
+					<http:request-builder>
+                                <http:query-param paramName="sociedades" value="${sapb1_magento_sociedad_principal}"/>
+                                <http:query-param paramName="listCode" value="${sapb1_magento_ecommerce_price_list}"/>
+                                <http:query-param paramName="whsCode" value="${sapb1_magento_warehouses_codes}"/>
+					</http:request-builder>
+					<http:success-status-code-validator
+						values="200..599" />
+				</http:request>
+				<validation:custom-validator config-ref="Validation_Configuration"
+					message="Error ocurred getting Updated Items" class="com.acqua.common.pl.validator.PLExternalRestfulValidator"
+					doc:name="Validation" />
+
+				<json:json-to-object-transformer
+					doc:name="JSON to Object" returnClass="java.util.HashMap" />
+			</processor-chain>
+		</enricher>
+                <choice doc:name="Choice">
+                    <when expression="#[flowVars.updatedItems.size() &gt; 0]">
+                        <flow-ref name="sapb1-magento-sync-get-items-details-subflow" doc:name="get-items-details-subflow"/>
+                        <component doc:name="ConcatenateStock">
+                            <spring-object bean="ConcatenateStock"/>
+                        </component>
+                        <component doc:name="ProcessPricesData">
+                            <spring-object bean="ProcessPricesData"/>
+                        </component>
+                        <flow-ref name="sapb1-magento-sync-send-items-magento-subflow" doc:name="send-items-magento-subflow"/>
+                        <expression-component doc:name="Save run date and time"><![CDATA[com.acqua.utils.CurrentDateSaver.setUpdateTime("PRICES",flowVars.todayDate);]]></expression-component>
+                        <logger message="End of Process..." level="INFO" doc:name="Logger"/>
+                    </when>
+                    <otherwise>
+                        <logger message="No items from List Price to update." level="INFO" doc:name="Logger"/>
+                    </otherwise>
+                </choice>
+            </when>
+            <otherwise>
+                <logger message="No changes on price list ${sapb1_magento_ecommerce_price_list}" level="INFO" doc:name="Logger"/>
+            </otherwise>
+        </choice>
+        <exception-strategy ref="Process_Layer_Generic_Exception_Strategy" doc:name="Reference Exception Strategy"/>
+    </flow>
+</mule>

@@ -1,0 +1,34 @@
+{
+	"bioStar2": {
+		"biostarEnabled":true,
+		"biostarCreds": {
+			"subdomain": "impresiones",
+			"pass": "oficina13",
+			"user": "srepetto"
+		},
+		"biostarSystem": {
+			"userId": 77
+		}
+	},
+	"libertya": {
+		"libertyaEnabled":false
+	},
+	"paperCut": {
+		"papercutEnabled":true,
+		"papercutSystem": {
+			"username": "acquaprueba4"
+		}
+	},
+	"uniFi": {
+		"unifiEnabled":true,
+		"unifiCreds": {
+			"username": "marcos",
+			"password": "i-RoksPWez0Tm"
+		},
+		"unifiSystem": {
+			
+				"radiusID": "_sd11s698gas31as54"
+			
+		}
+	}
+}

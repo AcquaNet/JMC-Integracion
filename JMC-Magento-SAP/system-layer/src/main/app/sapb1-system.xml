@@ -1,0 +1,257 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:json="http://www.mulesoft.org/schema/mule/json" xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:email="http://www.mulesoft.org/schema/mule/email" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:spring="http://www.springframework.org/schema/beans" 
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/email http://www.mulesoft.org/schema/mule/email/current/mule-email.xsd
+http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/json/current/mule-json.xsd">
+    <flow name="sapb1-system-get-stock-updates-flow">
+        <http:listener config-ref="System_Listener_Configuration" path="/Sap/stockUpdate" allowedMethods="GET" doc:name="HTTP"/>
+        <expression-component doc:name="Set App Details"><![CDATA[flowVars.flowName="sapb1-system-get-stock-updates-flow";
+flowVars.metricCategory="Sap";
+flowVars.apiName="WTR1";
+flowVars.errorCode="NONE";]]></expression-component>
+        <expression-component doc:name="Get Query Params"><![CDATA[flowVars.updateDate = message.inboundProperties.'http.query.params'.updateDate;
+flowVars.fromTime = message.inboundProperties.'http.query.params'.fromTime;
+flowVars.toTime = message.inboundProperties.'http.query.params'.toTime;
+flowVars.sociedades = message.inboundProperties.'http.query.params'.sociedades != null ? message.inboundProperties.'http.query.params'.sociedades : "${sapb1_sociedades}";
+flowVars.whsCode = message.inboundProperties.'http.query.params'.whsCode != null ? message.inboundProperties.'http.query.params'.whsCode  : "${sapb1_whsCode}";
+]]></expression-component>
+        <logger message="Getting stock updates for #[flowVars.sociedades] for date #[flowVars.updateDate] and warehouses #[flowVars.whsCode]" level="INFO" doc:name="Logger"/>
+        <expression-component doc:name="Split and Replace"><![CDATA[payload = flowVars.sociedades.split(",");
+flowVars.whsCode = flowVars.whsCode.replaceAll(",","','");]]></expression-component>
+        <foreach doc:name="For Each">
+            <choice doc:name="Choice">
+                <when expression="#[flowVars.fromTime != null &amp;&amp; flowVars.toTime != null]">
+                    <db:select config-ref="Generic_Database_Configuration" doc:name="Database">
+                        <db:dynamic-query><![CDATA[SELECT "ItemCode","DocNum","CreateDate","CreateTime"
+FROM #[payload + ".OITL"] 
+WHERE "CreateDate" >= '#[flowVars.updateDate]'
+AND "CreateTime" >= '#[flowVars.fromTime]'
+AND "CreateTime" < '#[flowVars.toTime]'
+AND "LocCode" in ('#[flowVars.whsCode]')
+ORDER BY 
+	"CreateDate" DESC, 
+	"CreateTime" DESC]]></db:dynamic-query>
+                    </db:select>
+                </when>
+                <otherwise>
+                    <db:select config-ref="Generic_Database_Configuration" doc:name="Database">
+                        <db:dynamic-query><![CDATA[SELECT "ItemCode","DocNum","CreateDate","CreateTime"
+FROM #[payload + ".OITL"] 
+WHERE "CreateDate" >= '#[flowVars.updateDate]'
+AND "LocCode" in ('#[flowVars.whsCode]')
+ORDER BY 
+	"CreateDate" DESC, 
+	"CreateTime" DESC]]></db:dynamic-query>
+                    </db:select>
+                </otherwise>
+            </choice>
+            <choice doc:name="Choice">
+                <when expression="#[flowVars.sqlResults == null]">
+                    <set-variable variableName="sqlResults" value="#[payload]" doc:name="Save sqlResults"/>
+                </when>
+                <otherwise>
+                    <set-variable variableName="sqlResults" value="#[flowVars.sqlResults + payload]" doc:name="Add sqlResults"/>
+                </otherwise>
+            </choice>
+        </foreach>
+        <expression-component doc:name="Remove Dupes"><![CDATA[payload = com.acqua.tools.RemoveResultDupes.removeDupes(flowVars.sqlResults);
+payload = "{\"result\":" + com.acqua.tools.JSONUtil.javaListToJSONToString(payload) + "}";]]></expression-component>
+        <logger message="Response: #[message.payloadAs(java.lang.String)]" level="INFO" doc:name="Logger"/>
+        <exception-strategy ref="System_Layer_Generic_Exception_Strategy" doc:name="Reference Exception Strategy"/>
+    </flow>
+    <flow name="sapb1-system-get-items-stock-flow">
+        <http:listener config-ref="System_Listener_Configuration" path="/Sap/itemsStock" allowedMethods="GET" doc:name="HTTP"/>
+        <expression-component doc:name="Set App Details"><![CDATA[flowVars.flowName="sapb1-system-get-items-stock-flow";
+flowVars.metricCategory="Sap";
+flowVars.apiName="OITW";
+flowVars.errorCode="NONE";]]></expression-component>
+        <expression-component doc:name="Get Query Params"><![CDATA[flowVars.sociedades = message.inboundProperties.'http.query.params'.sociedades != null ? message.inboundProperties.'http.query.params'.sociedades : "${sapb1_sociedades}";
+flowVars.whsCode = message.inboundProperties.'http.query.params'.whsCode != null ? message.inboundProperties.'http.query.params'.whsCode  : "${sapb1_whsCode}";
+flowVars.itemCodes = message.inboundProperties.'http.query.params'.itemCodes;
+]]></expression-component>
+        <logger message="Getting stock quantity for items #[flowVars.itemCodes] from #[flowVars.sociedades] in warehouses #[flowVars.whsCode]" level="INFO" doc:name="Logger"/>
+        <expression-component doc:name="Split and Replace"><![CDATA[payload = flowVars.sociedades.split(",");
+flowVars.itemCodes = flowVars.itemCodes.replaceAll(",","','");
+flowVars.whsCode = flowVars.whsCode.replaceAll(",","','");]]></expression-component>
+        <foreach doc:name="For Each">
+            <db:select config-ref="Generic_Database_Configuration" doc:name="Database">
+                <db:dynamic-query><![CDATA[SELECT "ItemCode", "OnHand", "OnOrder", "WhsCode","IsCommited"
+FROM #[payload + ".OITW"]  
+WHERE "WhsCode" in ('#[flowVars.whsCode]') 
+AND "ItemCode" in ('#[flowVars.itemCodes]')]]></db:dynamic-query>
+
+            </db:select>
+            <choice doc:name="Choice">
+                <when expression="#[flowVars.sqlResults == null]">
+                    <set-variable variableName="sqlResults" value="#[payload]" doc:name="Save sqlResults"/>
+                </when>
+                <otherwise>
+                    <set-variable variableName="sqlResults" value="#[flowVars.sqlResults + payload]" doc:name="Add sqlResults"/>
+                </otherwise>
+            </choice>
+        </foreach>
+        <set-payload value="#[flowVars.sqlResults]"  doc:name="Prepare Response"/>
+        <json:object-to-json-transformer mimeType="application/json" doc:name="Object to JSON"/>
+        <expression-component doc:name="Expression"><![CDATA[payload = "{\"result\":" + payload + "}";
+]]></expression-component>
+        <message-properties-transformer mimeType="application/json" doc:name="Message Properties"/>
+        <logger message="Response: #[message.payloadAs(java.lang.String)]" level="INFO" doc:name="Logger"/>
+        <exception-strategy ref="System_Layer_Generic_Exception_Strategy" doc:name="Reference Exception Strategy"/>
+    </flow>
+    <flow name="sapb1-system-check-price-list-update-flow">
+        <http:listener config-ref="System_Listener_Configuration" path="/Sap/priceUpdates" doc:name="HTTP" allowedMethods="GET"/>
+        <expression-component doc:name="Set App Details"><![CDATA[flowVars.flowName="sapb1-system-check-price-list-update-flow";
+flowVars.metricCategory="Sap";
+flowVars.apiName="OPLN";
+flowVars.errorCode="NONE";]]></expression-component>
+        <expression-component doc:name="Get Query Params and Split"><![CDATA[flowVars.updateDate = message.inboundProperties.'http.query.params'.updateDate;
+flowVars.sociedades = message.inboundProperties.'http.query.params'.sociedades != null ? message.inboundProperties.'http.query.params'.sociedades : "${sapb1_sociedades}";
+payload = flowVars.sociedades.split(",");]]></expression-component>
+        <logger message="Getting E-Commerce price list update from #[flowVars.sociedades] since date: #[flowVars.updateDate]" level="INFO" doc:name="Logger"/>
+        <foreach doc:name="For Each">
+            <db:select config-ref="Generic_Database_Configuration" doc:name="Database">
+                <db:dynamic-query><![CDATA[SELECT "UpdateDate" 
+FROM #[payload + ".OPLN"]
+WHERE "UpdateDate" >= '#[flowVars.updateDate]'
+AND "ListNum" = 15
+ORDER BY "UpdateDate" DESC]]></db:dynamic-query>
+
+
+            </db:select>
+            <choice doc:name="Choice">
+                <when expression="#[flowVars.sqlResults == null]">
+                    <set-variable variableName="sqlResults" value="#[payload]" doc:name="Save sqlResults"/>
+                </when>
+                <otherwise>
+                    <set-variable variableName="sqlResults" value="#[flowVars.sqlResults + payload]" doc:name="Add sqlResults"/>
+                </otherwise>
+            </choice>
+        </foreach>
+        <choice doc:name="Choice">
+            <when expression="#[flowVars.sqlResults.size() &gt; 0]">
+                <set-payload value="{  &quot;update&quot;: true,
+	&quot;updateDate&quot;: &quot;#[flowVars.sqlResults[0].UpdateDate]&quot; }" mimeType="application/json" doc:name="Set Payload"/>
+            </when>
+            <otherwise>
+                <set-payload value="{
+	&quot;update&quot;: false
+}" mimeType="application/json" doc:name="Set Payload"/>
+            </otherwise>
+        </choice>
+        <logger message="Response: #[message.payloadAs(java.lang.String)]" level="INFO" doc:name="Logger"/>
+        <exception-strategy ref="System_Layer_Generic_Exception_Strategy" doc:name="Reference Exception Strategy"/>
+    </flow>
+    <flow name="sapb1-system-get-items-list-price-flow">
+        <http:listener config-ref="System_Listener_Configuration" path="/Sap/eCommercePrices" allowedMethods="GET" doc:name="HTTP"/>
+        <expression-component doc:name="Set App Details"><![CDATA[flowVars.flowName="sapb1-system-check-price-list-update-flow";
+flowVars.metricCategory="Sap";
+flowVars.apiName="ITM1";
+flowVars.errorCode="NONE";]]></expression-component>
+        <expression-component doc:name="Get Query Params"><![CDATA[flowVars.sociedades = message.inboundProperties.'http.query.params'.sociedades != null ? message.inboundProperties.'http.query.params'.sociedades : "${sapb1_sociedades}";
+flowVars.listCode = message.inboundProperties.'http.query.params'.listCode;
+flowVars.itemCodes = message.inboundProperties.'http.query.params'.itemCodes;
+flowVars.whsCode = message.inboundProperties.'http.query.params'.whsCode;
+]]></expression-component>
+
+        <logger message="Getting E-Commerce items #[flowVars.itemCodes] from price list #[flowVars.listCode] from #[flowVars.sociedades]  and warehouses: #[flowVars.whsCodes]" level="INFO" doc:name="Logger"/>
+
+        <foreach doc:name="For Each" collection="#[flowVars.sociedades.split(&quot;,&quot;)]">
+            <choice doc:name="Choice">
+                <when expression="#[flowVars.itemCodes != null]">
+                    <expression-component doc:name="Prepare ItemCodes"><![CDATA[flowVars.itemCodes = flowVars.itemCodes.replaceAll(",","','");]]></expression-component>
+                    <db:select config-ref="Generic_Database_Configuration" doc:name="Database">
+                        <db:dynamic-query><![CDATA[SELECT "ItemCode","Price" 
+FROM #[payload + ".ITM1"]
+WHERE "PriceList" = #[flowVars.listCode]
+AND "ItemCode" in ('#[flowVars.itemCodes]')]]></db:dynamic-query>
+                    </db:select>
+                </when>
+                <otherwise>
+                    <expression-component doc:name="Prepare WhsCodes"><![CDATA[flowVars.whsCode = flowVars.whsCode.replaceAll(",","','");]]></expression-component>
+                    <db:select config-ref="Generic_Database_Configuration" doc:name="Database">
+                        <db:dynamic-query><![CDATA[SELECT I."ItemCode",I."Price" 
+FROM #[payload + ".ITM1"] I, #[payload + ".OITW"] S
+WHERE I."ItemCode" = S."ItemCode" 
+AND S."WhsCode" in ('#[flowVars.whsCode]') 
+AND (S."OnHand" + S."OnOrder" - S."IsCommited") > 0 
+AND "PriceList" = #[flowVars.listCode]]]></db:dynamic-query>
+                    </db:select>
+                </otherwise>
+            </choice>
+
+            <choice doc:name="Choice">
+                <when expression="#[flowVars.sqlResults == null]">
+                    <set-variable variableName="sqlResults" value="#[payload]" doc:name="Save sqlResults"/>
+                </when>
+                <otherwise>
+                    <set-variable variableName="sqlResults" value="#[flowVars.sqlResults + payload]" doc:name="Add sqlResults"/>
+                </otherwise>
+            </choice>
+        </foreach>
+        <expression-component doc:name="Remove Dupes"><![CDATA[payload = com.acqua.tools.RemoveResultDupes.removeDupes(flowVars.sqlResults);]]></expression-component>
+        <json:object-to-json-transformer doc:name="Object to JSON"/>
+        <expression-component doc:name="Expression"><![CDATA[payload = "{\"result\":" + payload + "}";
+]]></expression-component>
+        <message-properties-transformer mimeType="application/json" doc:name="Message Properties"/>
+        <logger message="Response: #[message.payloadAs(java.lang.String)]" level="INFO" doc:name="Logger"/>
+        <exception-strategy ref="System_Layer_Generic_Exception_Strategy" doc:name="Reference Exception Strategy"/>
+    </flow>
+    <flow name="sapb1-system-get-items-description-flow">
+        <http:listener config-ref="System_Listener_Configuration" path="/Sap/itemsDesc" allowedMethods="GET" doc:name="HTTP"/>
+        <expression-component doc:name="Set App Details"><![CDATA[flowVars.flowName="sapb1-system-get-items-description-flow";
+flowVars.metricCategory="Sap";
+flowVars.apiName="TDISCIP,TSUBDISCIP,TTEMPO,TGENERO,TLINEA,TSUBLINEA,TMARCA,TSUBTIPO,TCOLOR1,TCOLOR2,TCOLOR3";
+flowVars.errorCode="NONE";]]></expression-component>
+        <expression-component doc:name="Get Query Params"><![CDATA[flowVars.sociedades = message.inboundProperties.'http.query.params'.sociedades != null ? message.inboundProperties.'http.query.params'.sociedades : "${sapb1_sociedades}";
+flowVars.itemCodes = message.inboundProperties.'http.query.params'.itemCodes;
+]]></expression-component>
+        <logger message="Getting item description for items #[flowVars.itemCodes] from #[flowVars.sociedades]." level="INFO" doc:name="Logger"/>
+        <expression-component doc:name="Split and Replace"><![CDATA[payload = flowVars.sociedades.split(",");
+if (flowVars.itemCodes != null){
+flowVars.itemCodes = flowVars.itemCodes.replaceAll(",","','");
+}
+]]></expression-component>
+        <foreach doc:name="For Each">
+            <db:select config-ref="Generic_Database_Configuration" doc:name="Database">
+                <db:dynamic-query><![CDATA[SELECT #[payload + ".OITM.\"ItemCode\"," + payload + ".OITM.\"ItemName\",CONCAT(" + payload + ".\"@TCOLOR1\".\"Name\",CONCAT(',',CONCAT(" + payload + ".\"@TCOLOR2\".\"Name\",CONCAT(','," + payload + ".\"@TCOLOR3\".\"Name\")))) AS \"itemColor\"," + payload + ".OITM.\"U_Discip\"," + payload + ".OITM.\"U_Subdiscip\"," + payload + ".\"@TDISCIP\".\"Name\" AS \"discipName\"," + payload + ".\"@TSUBDISCIP\".\"Name\" AS \"subDiscipName\"," + payload + ".OITM.\"U_Tempo\"," + payload + ".\"@TTEMPO\".\"Name\" AS \"tempoName\"," + payload + ".\"@TGENERO\".\"Name\" AS \"generoName\"," + payload + ".OITM.\"U_Genero\"," + payload + ".OITM.\"U_Sublinea\"," + payload + ".\"@TSUBLINEA\".\"Name\" AS \"subLineaName\"," + payload + ".OITM.\"U_Linea\"," + payload + ".\"@TLINEA\".\"Name\" AS \"lineaName\"," + payload + ".\"@TMARCA\".\"Name\" AS \"marcaName\"," + payload + ".OITM.\"U_Marca\"," + payload + ".\"@TSUBTIPO\".\"Name\" AS \"subTipoName\"," + payload + ".OITM.\"U_Subtipo\"," + payload + ".OITM.\"validFor\""]
+FROM #[payload + ".OITM"]
+LEFT JOIN #[payload + ".\"@TDISCIP\" ON " + payload + ".\"@TDISCIP\".\"Code\" = " + payload + ".OITM.\"U_Discip\""]
+LEFT JOIN #[payload + ".\"@TSUBDISCIP\" ON " + payload + ".\"@TSUBDISCIP\".\"Code\" = " + payload + ".OITM.\"U_Subdiscip\""]
+LEFT JOIN #[payload + ".\"@TTEMPO\" ON " + payload + ".\"@TTEMPO\".\"Code\" = " + payload + ".OITM.\"U_Tempo\""]
+LEFT JOIN #[payload + ".\"@TGENERO\" ON " + payload + ".\"@TGENERO\".\"Code\" = " + payload + ".OITM.\"U_Genero\""]
+LEFT JOIN #[payload + ".\"@TLINEA\" ON " + payload + ".\"@TLINEA\".\"Code\" = " + payload + ".OITM.\"U_Linea\""]
+LEFT JOIN #[payload + ".\"@TSUBLINEA\" ON " + payload + ".\"@TSUBLINEA\".\"Code\" = " + payload + ".OITM.\"U_Sublinea\""]
+LEFT JOIN #[payload + ".\"@TMARCA\" ON " + payload + ".\"@TMARCA\".\"Code\" = " + payload + ".OITM.\"U_Marca\""]
+LEFT JOIN #[payload + ".\"@TSUBTIPO\" ON " + payload + ".\"@TSUBTIPO\".\"Code\" = " + payload + ".OITM.\"U_Subtipo\""]
+LEFT JOIN #[payload + ".\"@TCOLOR1\" ON " + payload + ".\"@TCOLOR1\".\"Code\" = " + payload + ".OITM.\"U_Color1\""]
+LEFT JOIN #[payload + ".\"@TCOLOR2\" ON " + payload + ".\"@TCOLOR2\".\"Code\" = " + payload + ".OITM.\"U_Color2\""]
+LEFT JOIN #[payload + ".\"@TCOLOR3\" ON " + payload + ".\"@TCOLOR3\".\"Code\" = " + payload + ".OITM.\"U_Color3\""]
+WHERE #[payload + ".OITM.\"ItemCode\""] in ('#[flowVars.itemCodes]')]]></db:dynamic-query>
+
+
+            </db:select>
+            <choice doc:name="Choice">
+                <when expression="#[flowVars.sqlResults == null]">
+                    <set-variable variableName="sqlResults" value="#[payload]" doc:name="Save sqlResults"/>
+                </when>
+                <otherwise>
+                    <set-variable variableName="sqlResults" value="#[flowVars.sqlResults + payload]" doc:name="Add sqlResults"/>
+                </otherwise>
+            </choice>
+
+        </foreach>
+        <expression-component doc:name="Remove Dupes"><![CDATA[payload = com.acqua.tools.RemoveResultDupes.removeDupes(flowVars.sqlResults);]]></expression-component>
+
+        <json:object-to-json-transformer doc:name="Object to JSON"/>
+        <expression-component doc:name="Expression"><![CDATA[payload = "{\"result\":" + payload + "}";]]></expression-component>
+        <message-properties-transformer mimeType="application/json" doc:name="Message Properties"/>
+        <logger message="Response: #[message.payloadAs(java.lang.String)]" level="INFO" doc:name="Logger"/>
+        <exception-strategy ref="System_Layer_Generic_Exception_Strategy" doc:name="Reference Exception Strategy"/>
+    </flow>
+</mule>

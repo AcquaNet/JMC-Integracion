@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking"
+	xmlns:json="http://www.mulesoft.org/schema/mule/json" xmlns="http://www.mulesoft.org/schema/mule/core"
+	xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:spring="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/json/current/mule-json.xsd
+http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd">
+	<asynchronous-processing-strategy
+		name="PL_Asynchronous_Processing_Strategy" doc:name="Asynchronous Processing Strategy" />
+	<choice-exception-strategy name="Process_Layer_Generic_Exception_Strategy">
+		<catch-exception-strategy
+			when="#[exception.causedBy(com.acqua.common.pl.exceptions.PLException)]"
+			doc:name="Catch PLException">
+			<expression-component doc:name="Get Create PL Response Error"><![CDATA[flowVars.circularException = exception.getCause(); 
+flowVars.ProcessLayerResponseError = flowVars.circularException.getProcessLayerResponseError();]]></expression-component>
+			<set-payload value="#[flowVars.ProcessLayerResponseError]"
+				doc:name="Set Payload" />
+			<json:object-to-json-transformer
+				mimeType="application/json" doc:name="Object to JSON" />
+			<logger message="Error: #[payload]" level="ERROR"
+				category="com.acqua.common.utils.CommonLayer"
+				doc:name="Logger" />
+			<set-property propertyName="http.status"
+				value="#[flowVars.ProcessLayerResponseError.getErrors().getHttpStatus()]"
+				doc:name="Property" />
+
+
+		</catch-exception-strategy>
+		
+		<catch-exception-strategy
+			when="#[exception.causedBy(com.acqua.common.authentication.AuthentificationException)]"
+			doc:name="Catch Bad User Exception">
+			<expression-component doc:name="Get Create Auth Response Error"><![CDATA[flowVars.authException = exception.getCause(); 
+flowVars.authResponseError = flowVars.authException.getAuthResponseError();]]></expression-component>
+			<set-payload value="#[flowVars.authResponseError]"
+				doc:name="Set Payload" />
+			<json:object-to-json-transformer
+				mimeType="application/json" doc:name="Object to JSON" />
+			<logger message="Error: #[payload]" level="ERROR"
+				category="com.acqua.common.utils.CommonLayer"
+				doc:name="Logger" />
+			<set-property propertyName="http.status"
+				value="#[401]"
+				doc:name="Property" />
+
+
+		</catch-exception-strategy>
+		
+		<catch-exception-strategy doc:name="Catch No Controlled Strategy">
+			<custom-transformer returnClass="com.acqua.common.pl.model.PLResponseError"
+				class="com.acqua.common.pl.transformers.PLCreateResponse" doc:name="Java - Create SL Response Error">
+			</custom-transformer>
+			<json:object-to-json-transformer
+				doc:name="Object to JSON" />
+			<logger message="Error: #[payload]" level="ERROR"
+				category="com.acqua.common.utils.CommonLayer"
+				doc:name="Logger" />
+			<set-property propertyName="http.status" value="#[510]"
+				doc:name="Property" />
+            <async processingStrategy="PL_Asynchronous_Processing_Strategy" doc:name="Async">
+                <flow-ref name="circular-exception-send-notification-flow" doc:name="circular-exception-send-notification-flow"/>
+            </async>
+		</catch-exception-strategy>
+
+	</choice-exception-strategy>
+
+</mule>

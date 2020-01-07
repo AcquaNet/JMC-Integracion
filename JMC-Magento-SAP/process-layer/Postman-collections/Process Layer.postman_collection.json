@@ -1,0 +1,1086 @@
+{
+	"info": {
+		"_postman_id": "829f08fc-334b-428b-aef7-012befb84879",
+		"name": "Process Layer",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "http://localhost:8082/createUser",
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"id": "afcd47ad-7c01-49bc-93c7-776cb8eb97f5",
+						"exec": [
+							"var moment = require('moment');",
+							"var dateobj = new Date();",
+							"var dateFrom = dateobj.toISOString();",
+							"var dateTo = moment(dateobj).add(90, 'days').toISOString();",
+							"",
+							"var int =  Math.floor(Math.random() * (5000 - 111)) + 111;",
+							"",
+							"var int2 =  Math.floor(Math.random() * (199 - 11)) + 11; ",
+							"",
+							"var vec = new Array(10);",
+							"  var cuit = Math.floor(Math.random() * 9000000000) + 1000000000;",
+							"  cuit = cuit.toString();",
+							"",
+							"  var sumaCuit = cuit.charAt(0) * 5;",
+							"  sumaCuit += cuit.charAt(1) * 4;",
+							"  sumaCuit += cuit.charAt(2) * 3;",
+							"  sumaCuit += cuit.charAt(3) * 2;",
+							"  sumaCuit += cuit.charAt(4) * 7;",
+							"  sumaCuit += cuit.charAt(5) * 6;",
+							"  sumaCuit += cuit.charAt(6) * 5;",
+							"  sumaCuit += cuit.charAt(7) * 4;",
+							"  sumaCuit += cuit.charAt(8) * 3;",
+							"  sumaCuit += cuit.charAt(9) * 2;",
+							"  ",
+							"  var moduloCuit = sumaCuit % 11;",
+							"  ",
+							"  var identificador = 11 - moduloCuit",
+							"  ",
+							"  var cuitFinal = cuit + identificador.toString()",
+							"",
+							"pm.globals.set(\"CUIT\", cuitFinal);",
+							"pm.globals.set(\"int\", int);",
+							"pm.globals.set(\"int2\", int2);",
+							"pm.globals.set(\"dateFrom\", dateFrom);",
+							"pm.globals.set(\"dateTo\", dateTo);"
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"id": "1d9f19b0-a44e-4973-b4e9-6cf7bb50565f",
+						"exec": [
+							"var jsonData = pm.response.json();",
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"pm.test(\"Content-Type is present\", function () {",
+							"    pm.response.to.have.header(\"Content-Type\");",
+							"});",
+							"pm.test(\"BioStar2 Enabled\", function () {",
+							"    pm.expect(jsonData.bioStarDetails.user).not.eql(false);",
+							"    pm.globals.set(\"biostarID\", jsonData.bioStarDetails.user.user_id);",
+							"});",
+							"pm.test(\"UniFi Enabled\", function () {",
+							"    pm.expect(jsonData.uniFiDetails).not.eql(false);",
+							"    pm.globals.set(\"unifiId\", jsonData.uniFiDetails[\"_id\"]);",
+							"});",
+							"pm.test(\"PaperCut Enabled\", function () {",
+							"    pm.expect(jsonData.paperCutDetails).not.eql(false);",
+							"    pm.globals.set(\"papercutId\", jsonData.paperCutDetails.id);",
+							"});",
+							"pm.test(\"Libertya Enabled\", function () {",
+							"    pm.expect(jsonData.libertyaDetails).not.eql(true);",
+							"    pm.globals.set(\"libertyaId\", jsonData.paperCutDetails.bPartnerID);",
+							"});",
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"auth": {
+					"type": "basic",
+					"basic": [
+						{
+							"key": "password",
+							"value": "8FAc58d7D71944C098CE95528e8948A3",
+							"type": "string"
+						},
+						{
+							"key": "username",
+							"value": "60d91d9307784c009e2bfe60561a3074",
+							"type": "string"
+						}
+					]
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n\t\"bioStar2\": {\r\n\t\t\"biostarEnabled\": true,\r\n\t\t\"biostarCreds\": {\r\n\t\t\t\"subdomain\": \"impresiones\",\r\n\t\t\t\"pass\": \"oficina13\",\r\n\t\t\t\"user\": \"srepetto\"\r\n\t\t},\r\n\t\t\"biostarUser\": {\r\n\t\t\t\"name\": \"Acqua Prueba{{int}}\",\r\n\t\t\t\"userId\": {{int}},\r\n\t\t\t\"email\": \"soporte{{int}}@acqua.net.ar\",\r\n\t\t\t\"phoneNumber\": \"1130388{{int}}\",\r\n\t\t\t\"status\": \"AC\",\r\n\t\t\t\"startDateTime\": \"{{dateFrom}}\",\r\n\t\t\t\"endDateTime\": \"{{dateTo}}\",\r\n\t\t\t\"userGroup\": 1287,\r\n\t\t\t\"accessGroups\": [48],\r\n\t\t\t\"cardIds\": [\"{{int2}}\", \"{{int2}}\"],\r\n\t\t\t\"cardFormat\": 0\r\n\t\t}\r\n\t},\r\n\t\"libertya\": {\r\n\t\t\"libertyaEnabled\":true,\r\n\t\t\"libertyaUser\": {\r\n\t\t\t\"id\": \"130{{int}}\",\r\n\t\t\t\"taxId\": \"{{CUIT}}\",\r\n\t\t\t\"taxIdType\": 80,\r\n\t\t\t\"taxCategory\": 1010066,\r\n\t\t\t\"firstName\": \"Prueba Acqua {{int}}\",\r\n\t\t\t\"secondName\": \"Prueba Acqua {{int}}\",\r\n\t\t\t\"bpGroupId\": 1010045,\r\n\t\t\t\"isOneTime\": \"N\",\r\n\t\t\t\"isProspect\": \"Y\",\r\n\t\t\t\"isVendor\": \"N\",\r\n\t\t\t\"isCustomer\": \"Y\",\r\n\t\t\t\"isEmployee\": \"Y\",\r\n\t\t\t\"isSalesRep\": \"N\",\r\n\t\t\t\"paymentTermId\": 1010083,\r\n\t\t\t\"priceListId\": 1010595,\r\n\t\t\t\"address\": \"direccion {{int}}\",\r\n\t\t\t\"phone\": \"123456\",\r\n\t\t\t\"employeeNumber\": {{$randomInt}}\r\n\t\t}\r\n\t},\r\n\t\"paperCut\": {\r\n\t\t\"papercutEnabled\":true,\r\n\t\t\"papercutUser\": {\r\n\t\t\t\"username\": \"acquaprueba{{int}}\",\r\n\t\t\t\"password\": \"acqua2019\",\r\n\t\t\t\"fullName\": \"Acqua{{int}}\",\r\n\t\t\t\"cardNumber\": {{int}},\r\n\t\t\t\"pin\": 1234,\r\n\t\t\t\"businessName\": \"Acqua\",\r\n\t\t\t\"office\": \"Oficina {{int}}\",\r\n\t\t\t\"notes\": \"00004\",\r\n\t\t\t\"initialBalance\": 100,\r\n\t\t\t\"email\": \"acqua{{int}}@acqua.net.ar\"\r\n\t\t}\r\n\t},\r\n\t\"uniFi\": {\r\n\t\t\"unifiEnabled\":true,\r\n\t\t\"unifiCreds\": {\r\n\t\t\t\"username\": \"marcos\",\r\n\t\t\t\"password\": \"i-RoksPWez0Tm\"\r\n\t\t},\r\n\t\t\"unifiUsers\": {\r\n\t\t\t\"radius\": {\r\n\t\t\t\t\"radiusUser\": \"wifiprueba{{int}}\",\r\n\t\t\t\t\"radiusPass\": \"wifiprueba1\",\r\n\t\t\t\t\"netId\": 713,\r\n\t\t\t\t\"radiusTunnelType\": 13,\r\n\t\t\t\t\"radiusMiddleType\": 6\r\n\t\t\t}\r\n\t\t}\r\n\t}\r\n}"
+				},
+				"url": {
+					"raw": "{{HOST}}/createUser",
+					"host": [
+						"{{HOST}}"
+					],
+					"path": [
+						"createUser"
+					]
+				}
+			},
+			"response": [
+				{
+					"name": "http://localhost:8082/createUser",
+					"originalRequest": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n\t\"bioStar2\": {\r\n\t\t\"biostarEnabled\": true,\r\n\t\t\"biostarCreds\": {\r\n\t\t\t\"subdomain\": \"impresiones\",\r\n\t\t\t\"pass\": \"oficina13\",\r\n\t\t\t\"user\": \"srepetto\"\r\n\t\t},\r\n\t\t\"biostarUser\": {\r\n\t\t\t\"name\": \"Acqua Prueba{{int}}\",\r\n\t\t\t\"userId\": {{int}},\r\n\t\t\t\"email\": \"soporte{{int}}@acqua.net.ar\",\r\n\t\t\t\"phoneNumber\": \"1130388{{int}}\",\r\n\t\t\t\"status\": \"AC\",\r\n\t\t\t\"startDateTime\": \"2016-05-01T00:05:32.000Z\",\r\n\t\t\t\"endDateTime\": \"2030-05-01T00:05:32.000Z\",\r\n\t\t\t\"userGroup\": 1287,\r\n\t\t\t\"accessGroups\": [48],\r\n\t\t\t\"cardIds\": [\"{{int2}}\", \"{{int2}}\"],\r\n\t\t\t\"cardFormat\": 0\r\n\t\t}\r\n\t},\r\n\t\"libertya\": {\r\n\t\t\"libertyaEnabled\":false,\r\n\t\t\"libertyaUser\": {\r\n\t\t\t\"id\": \"130{{int}}\",\r\n\t\t\t\"taxId\": \"20405143446\",\r\n\t\t\t\"taxIdType\": 80,\r\n\t\t\t\"taxCategory\": 1,\r\n\t\t\t\"firstName\": \"Prueba Acqua {{int}}\",\r\n\t\t\t\"secondName\": \"Prueba Acqua {{int}}\",\r\n\t\t\t\"bpGroupId\": 1010045,\r\n\t\t\t\"isOneTime\": \"N\",\r\n\t\t\t\"isProspect\": \"Y\",\r\n\t\t\t\"isVendor\": \"N\",\r\n\t\t\t\"isCustomer\": \"Y\",\r\n\t\t\t\"isEmployee\": \"Y\",\r\n\t\t\t\"isSalesRep\": \"N\",\r\n\t\t\t\"paymentTermId\": 1010083,\r\n\t\t\t\"priceListId\": 1010595,\r\n\t\t\t\"address\": \"direccion {{int}}\",\r\n\t\t\t\"phone\": \"123456\",\r\n\t\t\t\"employeeNumber\": {{$randomInt}}\r\n\t\t}\r\n\t},\r\n\t\"paperCut\": {\r\n\t\t\"papercutEnabled\":true,\r\n\t\t\"papercutUser\": {\r\n\t\t\t\"username\": \"acquaprueba{{int}}\",\r\n\t\t\t\"password\": \"acqua2019\",\r\n\t\t\t\"fullName\": \"Acqua{{int}}\",\r\n\t\t\t\"cardNumber\": {{int}},\r\n\t\t\t\"pin\": 1234,\r\n\t\t\t\"businessName\": \"Acqua\",\r\n\t\t\t\"office\": \"Oficina {{int}}\",\r\n\t\t\t\"notes\": \"00004\",\r\n\t\t\t\"initialBalance\": 100,\r\n\t\t\t\"email\": \"acqua{{int}}@acqua.net.ar\"\r\n\t\t}\r\n\t},\r\n\t\"uniFi\": {\r\n\t\t\"unifiEnabled\":true,\r\n\t\t\"unifiCreds\": {\r\n\t\t\t\"username\": \"marcos\",\r\n\t\t\t\"password\": \"i-RoksPWez0Tm\"\r\n\t\t},\r\n\t\t\"unifiUsers\": {\r\n\t\t\t\"radius\": {\r\n\t\t\t\t\"radiusUser\": \"wifiprueba{{int}}\",\r\n\t\t\t\t\"radiusPass\": \"wifiprueba1\",\r\n\t\t\t\t\"netId\": 713,\r\n\t\t\t\t\"radiusTunnelType\": 13,\r\n\t\t\t\t\"radiusMiddleType\": 6\r\n\t\t\t}\r\n\t\t}\r\n\t}\r\n}"
+						},
+						"url": {
+							"raw": "http://localhost:8082/createUser",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8082",
+							"path": [
+								"createUser"
+							]
+						}
+					},
+					"status": "OK",
+					"code": 200,
+					"_postman_previewlanguage": "json",
+					"header": [
+						{
+							"key": "Content-Length",
+							"value": "463"
+						},
+						{
+							"key": "MULE_ENCODING",
+							"value": "windows-1252"
+						},
+						{
+							"key": "Content-Type",
+							"value": "application/json"
+						},
+						{
+							"key": "Date",
+							"value": "Tue, 30 Apr 2019 15:10:10 GMT"
+						}
+					],
+					"cookie": [],
+					"body": "{\n    \"bioStarDetails\": {\n        \"user\": {\n            \"status_code\": \"CREATED\",\n            \"user_id\": \"3974\",\n            \"message\": \"Created successfully\"\n        },\n        \"card\": {\n            \"status_code\": \"SUCCESSFUL\",\n            \"cardId\": 291,\n            \"message\": \"Processed Successfully\",\n            \"userId\": 3974\n        }\n    },\n    \"paperCutDetails\": {\n        \"id\": \"acquaprueba3974\"\n    },\n    \"libertyaDetails\": false,\n    \"uniFiDetails\": {\n        \"name\": \"wifiprueba3974\",\n        \"site_id\": \"5a3906d2e4b0e87e9136e62f\",\n        \"x_password\": \"wifiprueba1\",\n        \"_id\": \"5cc86551d22ad2048ac887c7\",\n        \"tunnel_type\": 13,\n        \"tunnel_medium_type\": 6\n    }\n}"
+				}
+			]
+		},
+		{
+			"name": "http://localhost:8082/getConsumptionStatus",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "3544509a-2e34-4060-99c3-9b464ef95a0c",
+						"exec": [
+							"pm.test(\"Content-Type is present\", function () {",
+							"    pm.response.to.have.header(\"Content-Type\");",
+							"});",
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"",
+							"var jsonData = pm.response.json();",
+							"pm.test(\"Balance is 100\", function () {",
+							"    pm.expect(jsonData.balance).to.eql(100);",
+							"    pm.globals.set(\"balanceAdd\", (jsonData.balance - 50));",
+							"    pm.globals.set(\"balance\", (jsonData.balance + 50).toFixed(1));",
+							"});",
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"auth": {
+					"type": "basic",
+					"basic": [
+						{
+							"key": "password",
+							"value": "8FAc58d7D71944C098CE95528e8948A3",
+							"type": "string"
+						},
+						{
+							"key": "username",
+							"value": "60d91d9307784c009e2bfe60561a3074",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [
+					{
+						"key": "user",
+						"value": "{{papercutId}}",
+						"type": "text"
+					},
+					{
+						"key": "Content-Type",
+						"name": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": ""
+				},
+				"url": {
+					"raw": "{{HOST}}/getConsumptionStatus",
+					"host": [
+						"{{HOST}}"
+					],
+					"path": [
+						"getConsumptionStatus"
+					]
+				}
+			},
+			"response": [
+				{
+					"name": "http://localhost:8082/getConsumptionStatus",
+					"originalRequest": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "user",
+								"value": "{{papercutId}}",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"name": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "http://localhost:8082/getConsumptionStatus",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8082",
+							"path": [
+								"getConsumptionStatus"
+							]
+						}
+					},
+					"status": "OK",
+					"code": 200,
+					"_postman_previewlanguage": "json",
+					"header": [
+						{
+							"key": "Transfer-Encoding",
+							"value": "chunked"
+						},
+						{
+							"key": "Content-Type",
+							"value": "application/json"
+						},
+						{
+							"key": "Date",
+							"value": "Tue, 30 Apr 2019 15:10:39 GMT"
+						}
+					],
+					"cookie": [],
+					"body": "{\n    \"balance\": 100,\n    \"jobCount\": 0,\n    \"pageCount\": 0\n}"
+				}
+			]
+		},
+		{
+			"name": "http://localhost:8082/updateCredits",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "f757d3f2-e8a5-46f3-8f9e-cef7d677942d",
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"pm.test(\"Content-Type is present\", function () {",
+							"    pm.response.to.have.header(\"Content-Type\");",
+							"});",
+							"pm.test(\"New Balance Check\", function () {",
+							"    var jsonData = pm.response.json();",
+							"    pm.expect(jsonData.newBalance).to.eql(pm.globals.get(\"balance\"));",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"auth": {
+					"type": "basic",
+					"basic": [
+						{
+							"key": "password",
+							"value": "8FAc58d7D71944C098CE95528e8948A3",
+							"type": "string"
+						},
+						{
+							"key": "username",
+							"value": "60d91d9307784c009e2bfe60561a3074",
+							"type": "string"
+						}
+					]
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"name": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n\t\n\t\"username\": \"{{papercutId}}\",\n\t\"amount\": {{balanceAdd}}\n}"
+				},
+				"url": {
+					"raw": "{{HOST}}/updateCredits",
+					"host": [
+						"{{HOST}}"
+					],
+					"path": [
+						"updateCredits"
+					]
+				}
+			},
+			"response": [
+				{
+					"name": "http://localhost:8082/updateCredits",
+					"originalRequest": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"name": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n\t\n\t\"username\": \"{{papercutId}}\",\n\t\"amount\": {{balance}}\n}"
+						},
+						"url": {
+							"raw": "http://localhost:8082/updateCredits",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8082",
+							"path": [
+								"updateCredits"
+							]
+						}
+					},
+					"status": "OK",
+					"code": 200,
+					"_postman_previewlanguage": "json",
+					"header": [
+						{
+							"key": "Transfer-Encoding",
+							"value": "chunked"
+						},
+						{
+							"key": "Content-Type",
+							"value": "application/json"
+						},
+						{
+							"key": "Date",
+							"value": "Tue, 30 Apr 2019 15:27:38 GMT"
+						}
+					],
+					"cookie": [],
+					"body": "{\n    \"newBalance\": \"150.0\"\n}"
+				}
+			]
+		},
+		{
+			"name": "http://localhost:8082/suspendUserAccount",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "1915770a-de9c-4b00-b085-e54e8209a4cd",
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"pm.test(\"Content-Type is present\", function () {",
+							"    pm.response.to.have.header(\"Content-Type\");",
+							"});",
+							"var jsonData = pm.response.json();",
+							"pm.test(\"BioStar2 Enabled\", function () {",
+							"    pm.expect(jsonData.bioStarDetails.user).not.eql(false);",
+							"});",
+							"pm.test(\"UniFi Enabled\", function () {",
+							"    pm.expect(jsonData.uniFiDetails).not.eql(false);",
+							"});",
+							"pm.test(\"PaperCut Enabled\", function () {",
+							"    pm.expect(jsonData.paperCutDetails).not.eql(false);",
+							"});",
+							"pm.test(\"New Balance as 0\", function () {",
+							"    pm.expect(jsonData.paperCutDetails.newBalance).to.eql(\"0.0\");",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"auth": {
+					"type": "basic",
+					"basic": [
+						{
+							"key": "password",
+							"value": "8FAc58d7D71944C098CE95528e8948A3",
+							"type": "string"
+						},
+						{
+							"key": "username",
+							"value": "60d91d9307784c009e2bfe60561a3074",
+							"type": "string"
+						}
+					]
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "application/json"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n\t\"bioStar2\": {\r\n\t\t\"biostarEnabled\":true,\r\n\t\t\"biostarCreds\": {\r\n\t\t\t\"subdomain\": \"impresiones\",\r\n\t\t\t\"pass\": \"oficina13\",\r\n\t\t\t\"user\": \"srepetto\"\r\n\t\t},\r\n\t\t\"biostarSystem\": {\r\n\t\t\t\"userId\": {{biostarID}}\r\n\t\t}\r\n\t},\r\n\t\"paperCut\": {\r\n\t\t\"papercutEnabled\":true,\r\n\t\t\"papercutSystem\": {\r\n\t\t\t\"username\": \"{{papercutId}}\"\r\n\t\t}\r\n\t},\r\n\t\"uniFi\": {\r\n\t\t\"unifiEnabled\":true,\r\n\t\t\"unifiCreds\": {\r\n\t\t\t\"username\": \"marcos\",\r\n\t\t\t\"password\": \"i-RoksPWez0Tm\"\r\n\t\t},\r\n\t\t\"unifiSystem\": {\r\n\t\t\t\r\n\t\t\t\t\"radiusID\": \"{{unifiId}}\"\r\n\t\t\t\r\n\t\t}\r\n\t}\r\n}"
+				},
+				"url": {
+					"raw": "{{HOST}}/suspendUserAccount",
+					"host": [
+						"{{HOST}}"
+					],
+					"path": [
+						"suspendUserAccount"
+					]
+				}
+			},
+			"response": [
+				{
+					"name": "http://localhost:8082/suspendUserAccount",
+					"originalRequest": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\r\n\t\"bioStar2\": {\r\n\t\t\"biostarEnabled\":true,\r\n\t\t\"biostarCreds\": {\r\n\t\t\t\"subdomain\": \"impresiones\",\r\n\t\t\t\"pass\": \"oficina13\",\r\n\t\t\t\"user\": \"srepetto\"\r\n\t\t},\r\n\t\t\"biostarSystem\": {\r\n\t\t\t\"userId\": {{biostarID}}\r\n\t\t}\r\n\t},\r\n\t\"paperCut\": {\r\n\t\t\"papercutEnabled\":true,\r\n\t\t\"papercutSystem\": {\r\n\t\t\t\"username\": \"{{papercutId}}\"\r\n\t\t}\r\n\t},\r\n\t\"uniFi\": {\r\n\t\t\"unifiEnabled\":true,\r\n\t\t\"unifiCreds\": {\r\n\t\t\t\"username\": \"marcos\",\r\n\t\t\t\"password\": \"i-RoksPWez0Tm\"\r\n\t\t},\r\n\t\t\"unifiSystem\": {\r\n\t\t\t\r\n\t\t\t\t\"radiusID\": \"{{unifiId}}\"\r\n\t\t\t\r\n\t\t}\r\n\t}\r\n}"
+						},
+						"url": {
+							"raw": "http://localhost:8082/suspendUserAccount",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8082",
+							"path": [
+								"suspendUserAccount"
+							]
+						}
+					},
+					"status": "OK",
+					"code": 200,
+					"_postman_previewlanguage": "json",
+					"header": [
+						{
+							"key": "Content-Length",
+							"value": "178"
+						},
+						{
+							"key": "MULE_ENCODING",
+							"value": "windows-1252"
+						},
+						{
+							"key": "Content-Type",
+							"value": "application/json"
+						},
+						{
+							"key": "Date",
+							"value": "Tue, 30 Apr 2019 16:52:48 GMT"
+						}
+					],
+					"cookie": [],
+					"body": "{\n    \"bioStarDetails\": {\n        \"status_code\": \"SUCCESSFUL\",\n        \"message\": \"Processed Successfully\"\n    },\n    \"paperCutDetails\": {\n        \"newBalance\": \"0.0\"\n    },\n    \"uniFiDetails\": {\n        \"data\": [],\n        \"meta\": {\n            \"rc\": \"ok\"\n        }\n    }\n}"
+				}
+			]
+		},
+		{
+			"name": "http://localhost:8082/altaTarjeta",
+			"event": [
+				{
+					"listen": "prerequest",
+					"script": {
+						"id": "edd72a64-8178-4632-8c31-2ac3d1e96e15",
+						"exec": [
+							"var newcardIds =",
+							"pm.globals.get(\"int2\") + 1;",
+							"pm.globals.set(\"int3\", newcardIds);"
+						],
+						"type": "text/javascript"
+					}
+				},
+				{
+					"listen": "test",
+					"script": {
+						"id": "38eaa77a-cd4e-4021-91ac-0b1079a8cb65",
+						"exec": [
+							"pm.test(\"Status code is 404\", function () {",
+							"    pm.response.to.have.status(404);",
+							"});",
+							"pm.test(\"Content-Type is present\", function () {",
+							"    pm.response.to.have.header(\"Content-Type\");",
+							"});",
+							"pm.globals.unset(\"papercutId\");",
+							"pm.globals.unset(\"balance\");",
+							"pm.globals.unset(\"balanceAdd\");",
+							"pm.globals.unset(\"dateFrom\");",
+							"pm.globals.unset(\"dateTo\");",
+							"pm.globals.unset(\"biostarID\");",
+							"pm.globals.unset(\"libertyaId\");",
+							""
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"auth": {
+					"type": "basic",
+					"basic": [
+						{
+							"key": "password",
+							"value": "8FAc58d7D71944C098CE95528e8948A3",
+							"type": "string"
+						},
+						{
+							"key": "username",
+							"value": "60d91d9307784c009e2bfe60561a3074",
+							"type": "string"
+						}
+					]
+				},
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"name": "Content-Type",
+						"value": "application/json",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\r\n\t\"userId\": {{biostarID}},\r\n\t\"cardIds\": [{{int3}}, {{int3}}],\r\n\t\"cardFormat\": 0\r\n}"
+				},
+				"url": {
+					"raw": "{{HOST}}/altaTarjeta",
+					"host": [
+						"{{HOST}}"
+					],
+					"path": [
+						"altaTarjeta"
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "http://localhost:8082/getInvoicesDetails",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "a2e3aa5c-2b24-4f79-9b44-0441aafa48b7",
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"pm.test(\"Content-Type is present\", function () {",
+							"    pm.response.to.have.header(\"Content-Type\");",
+							"});",
+							"pm.test(\"Response Contains CUIT\", function () {",
+							"    var jsonData = pm.response.json();",
+							"    pm.expect(jsonData[0].CUIT).not.eql(null);",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"auth": {
+					"type": "basic",
+					"basic": [
+						{
+							"key": "password",
+							"value": "8FAc58d7D71944C098CE95528e8948A3",
+							"type": "string"
+						},
+						{
+							"key": "username",
+							"value": "60d91d9307784c009e2bfe60561a3074",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [
+					{
+						"key": "taxId",
+						"value": "33715954449",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": ""
+				},
+				"url": {
+					"raw": "{{HOST}}/getInvoicesDetails",
+					"host": [
+						"{{HOST}}"
+					],
+					"path": [
+						"getInvoicesDetails"
+					]
+				}
+			},
+			"response": [
+				{
+					"name": "http://localhost:8082/getInvoicesDetails",
+					"originalRequest": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "taxId",
+								"value": "33715954449",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "http://localhost:8082/getInvoicesDetails",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8082",
+							"path": [
+								"getInvoicesDetails"
+							]
+						}
+					},
+					"status": "OK",
+					"code": 200,
+					"_postman_previewlanguage": "json",
+					"header": [
+						{
+							"key": "Content-Length",
+							"value": "18238"
+						},
+						{
+							"key": "Content-Type",
+							"value": "application/json"
+						},
+						{
+							"key": "Date",
+							"value": "Thu, 02 May 2019 15:41:28 GMT"
+						}
+					],
+					"cookie": [],
+					"body": "[\n    {\n        \"C_DocType_PrintName\": \"Factura B\",\n        \"C_DocTypeTarget_ID\": \"1010669\",\n        \"CUIT\": \"33715954449\",\n        \"DocAction\": \"CO\",\n        \"C_BPartnerLocation_Fax\": \"\",\n        \"C_PaymentTerm_Value\": \"Inmediato\",\n        \"AD_User_ID\": \"\",\n        \"C_Currency_CurSymbol\": \"$\",\n        \"C_PaymentTerm_IsPaySchedule\": \"false\",\n        \"ManualGeneralDiscount\": \"0.00\",\n        \"C_BPartnerLocation_C_Location_ID\": \"1012569\",\n        \"DateOrdered\": \"\",\n        \"IsApproved\": \"false\",\n        \"UpdatedBy\": \"1010717\",\n        \"OpenAmt\": \"100.00\",\n        \"C_BPartnerLocation_C_BPartner_Location_ID\": \"1012414\",\n        \"ManageDragOrderDiscounts\": \"false\",\n        \"NetAmount\": \"100.00\",\n        \"caecbte\": \"\",\n        \"Invoice_Adress\": \"\",\n        \"Processed\": \"false\",\n        \"C_Region_ID__detail\": \"Buenos Aires\",\n        \"DocStatus\": \"DR\",\n        \"C_POSPaymentMedium_Credit_ID\": \"\",\n        \"DateCAI\": \"\",\n        \"CreatedBy\": \"1010717\",\n        \"C_DocTypeTarget_ID__detail\": \"Factura B-0002\",\n        \"M_AuthorizationChain_ID\": \"\",\n        \"UpdateOrderQty\": \"false\",\n        \"C_DocType_DocumentNote\": null,\n        \"AD_Client_ID__detail\": \"Las VerÃ³nicas S.A.\",\n        \"C_PaymentTerm_ID\": \"1010083\",\n        \"Caja\": \"\",\n        \"C_Invoice_ID\": \"1022242\",\n        \"docsubtypeinv\": \"\",\n        \"DateInvoiced\": \"2019-05-01 11:25:00.0\",\n        \"DateRecepted\": \"\",\n        \"PuntoDeVenta\": \"2\",\n        \"IsSOTrx\": \"true\",\n        \"PrintType\": \"\",\n        \"GrandTotal\": \"100.00\",\n        \"idcae\": \"\",\n        \"IsPaid\": \"false\",\n        \"C_BPartner_Location_ID__detail\": \"quindy srl._1012569\",\n        \"NotExchangeableCredit\": \"false\",\n        \"C_Order_ID\": \"\",\n        \"C_POSJournal_ID\": \"\",\n        \"Description\": \"Una factura desde WS\",\n        \"IsPrinted\": \"false\",\n        \"IsSelfService\": \"false\",\n        \"NombreCli\": \"\",\n        \"vtocae\": \"\",\n        \"C_BPartnerLocation_AD_ComponentObjectUID\": \"\",\n        \"C_ConversionType_ID\": \"\",\n        \"ActualizarPreciosConFacturaDeCompra\": \"\",\n        \"ApplyPercepcion\": \"true\",\n        \"NumeroComprobante\": \"2\",\n        \"C_BPartnerLocation_EMail\": \"\",\n        \"Created\": \"2019-05-01 19:15:49.882498\",\n        \"C_Currency_ISOCode\": \"ARS\",\n        \"ChargeAmt\": \"0.00\",\n        \"C_Campaign_ID\": \"\",\n        \"C_BPartnerLocation_AD_Client_ID\": \"1010016\",\n        \"IsVoidable\": \"false\",\n        \"User2_ID\": \"\",\n        \"C_Project_ID\": \"\",\n        \"DocumentNo\": \"B000200000002\",\n        \"POReference\": \"\",\n        \"InitialCurrentAccountAmt\": \"0.00\",\n        \"AD_Client_ID__value\": \"veronicas\",\n        \"C_BPartnerLocation_Phone2\": \"\",\n        \"C_BPartnerLocation_ISDN\": \"\",\n        \"SkipIPNoCaeValidation\": \"false\",\n        \"C_BPartner_ID__value\": \"1000173\",\n        \"AuthorizationChainStatus\": \"\",\n        \"C_Charge_ID\": \"\",\n        \"CopyFrom\": \"\",\n        \"NumeroDeDocumento\": \"<B000200000002>\",\n        \"C_Currency_ID\": \"118\",\n        \"C_DocType_ID\": \"0\",\n        \"SendEMail\": \"false\",\n        \"C_BPartnerLocation_CreatedBy\": \"1010717\",\n        \"AD_OrgTrx_ID\": \"\",\n        \"FiscalAlreadyPrinted\": \"false\",\n        \"IsTaxIncluded\": \"false\",\n        \"C_POSPaymentMedium_ID\": \"\",\n        \"IsDiscountPrinted\": \"false\",\n        \"ManageDragOrderSurcharges\": \"false\",\n        \"C_PaymentTerm_NetDays\": \"0\",\n        \"M_PriceList_ID__detail\": \"Ventas\",\n        \"C_BPartner_Location_ID\": \"1012414\",\n        \"Posted\": \"false\",\n        \"C_Letra_Comprobante_ID\": \"1010056\",\n        \"M_PriceList_ID\": \"1010595\",\n        \"CreateFrom\": \"\",\n        \"TotalLines\": \"100.00\",\n        \"C_BPartnerLocation_C_SalesRegion_ID\": \"\",\n        \"FechadeTCparaActualizarPrecios\": \"\",\n        \"C_PaymentTerm_ID__detail\": \"Inmediato\",\n        \"C_CashLine_ID\": \"\",\n        \"C_BPartnerLocation_AD_Org_ID\": \"1010053\",\n        \"PaymentRule\": \"P\",\n        \"AuthMatch\": \"true\",\n        \"C_BPartnerLocation_Updated\": \"2019-04-17 16:16:59.457885\",\n        \"Updated\": \"2019-05-01 19:15:49.882812\",\n        \"C_Region_Delivery_ID\": \"\",\n        \"PriceListCurrency\": \"\",\n        \"C_Letra_Comprobante_ID__detail\": \"B\",\n        \"CAI\": \"\",\n        \"CreateCashLine\": \"false\",\n        \"DateAcct\": \"2019-05-01 19:15:49.883345\",\n        \"IsExchange\": \"false\",\n        \"Authorize\": \"\",\n        \"C_BPartnerLocation_C_BPartner_ID\": \"1012399\",\n        \"C_PaymentTerm_ID__value\": \"Inmediato\",\n        \"AD_Org_ID__detail\": \"Lujan Mall\",\n        \"M_RMA_ID\": \"\",\n        \"C_PaymentTerm_Name\": \"Inmediato\",\n        \"OldGrandTotal\": \"0.00\",\n        \"C_BPartnerLocation_Created\": \"2019-04-17 16:16:59.457643\",\n        \"C_Invoice_Orig_ID\": \"\",\n        \"C_BPartnerLocation_UpdatedBy\": \"1010717\",\n        \"DatePrinted\": \"\",\n        \"User1_ID\": \"\",\n        \"C_DocType_ID__detail\": \"** New **\",\n        \"C_BPartnerLocation_IsBillTo\": \"true\",\n        \"C_Payment_ID\": \"\",\n        \"ManageElectronicInvoice\": \"N\",\n        \"AD_Org_ID__value\": \"Lujan Mall\",\n        \"IsTransferred\": \"false\",\n        \"C_BPartnerLocation_Phone\": \"\",\n        \"C_Currency_ID__detail\": \"ARS\",\n        \"SalesRep_ID\": \"\",\n        \"cae\": \"\",\n        \"IsActive\": \"true\",\n        \"C_BPartnerLocation_IsTemporal\": \"false\",\n        \"IsPayScheduleValid\": \"false\",\n        \"CodigoCategoriaIVA\": \"\",\n        \"C_BPartnerLocation_IsRemitTo\": \"true\",\n        \"caeerror\": \"\",\n        \"C_BPartnerLocation_IsShipTo\": \"true\",\n        \"Processing\": \"false\",\n        \"C_BPartner_ID__detail\": \"1000173_Lyon Park sa\",\n        \"C_Region_ID\": \"1000083\",\n        \"IsCopy\": \"false\",\n        \"C_Activity_ID\": \"\",\n        \"AD_Client_ID\": \"1010016\",\n        \"C_BPartnerLocation_IsPayFrom\": \"true\",\n        \"IsInDispute\": \"false\",\n        \"NroIdentificCliente\": \"\",\n        \"AuthCode\": \"\",\n        \"C_BPartnerLocation_Name\": \"quindy srl.\",\n        \"ImportClearance\": \"\",\n        \"FiscalDescription\": \"\",\n        \"TipoComprobante\": \"C \",\n        \"C_DocType_DocSubTypeCAE\": \"06\",\n        \"CreatedBy__detail\": \"AdminLibertya\",\n        \"UpdatedBy__detail\": \"AdminLibertya\",\n        \"Ref_Invoice_ID\": \"\",\n        \"AD_Org_ID\": \"1010053\",\n        \"C_BPartnerLocation_IsActive\": \"true\",\n        \"C_BPartner_ID\": \"1012399\",\n        \"ManualDocumentNo\": \"false\",\n        \"GenerateTo\": \"\",\n        \"M_InOutTransport_ID\": \"\"\n    },\n    {\n        \"C_DocType_PrintName\": \"Factura B\",\n        \"C_DocTypeTarget_ID\": \"1010669\",\n        \"CUIT\": \"33715954449\",\n        \"DocAction\": \"CO\",\n        \"C_BPartnerLocation_Fax\": \"\",\n        \"C_PaymentTerm_Value\": \"Inmediato\",\n        \"AD_User_ID\": \"\",\n        \"C_Currency_CurSymbol\": \"$\",\n        \"C_PaymentTerm_IsPaySchedule\": \"false\",\n        \"ManualGeneralDiscount\": \"0.00\",\n        \"C_BPartnerLocation_C_Location_ID\": \"1012569\",\n        \"DateOrdered\": \"\",\n        \"IsApproved\": \"false\",\n        \"UpdatedBy\": \"1010717\",\n        \"OpenAmt\": \"43.01\",\n        \"C_BPartnerLocation_C_BPartner_Location_ID\": \"1012414\",\n        \"ManageDragOrderDiscounts\": \"false\",\n        \"NetAmount\": \"43.01\",\n        \"caecbte\": \"\",\n        \"Invoice_Adress\": \"\",\n        \"Processed\": \"false\",\n        \"C_Region_ID__detail\": \"Buenos Aires\",\n        \"DocStatus\": \"DR\",\n        \"C_POSPaymentMedium_Credit_ID\": \"\",\n        \"DateCAI\": \"\",\n        \"CreatedBy\": \"1010717\",\n        \"C_DocTypeTarget_ID__detail\": \"Factura B-0002\",\n        \"M_AuthorizationChain_ID\": \"\",\n        \"UpdateOrderQty\": \"false\",\n        \"C_DocType_DocumentNote\": null,\n        \"AD_Client_ID__detail\": \"Las VerÃ³nicas S.A.\",\n        \"C_PaymentTerm_ID\": \"1010083\",\n        \"Caja\": \"\",\n        \"C_Invoice_ID\": \"1022241\",\n        \"docsubtypeinv\": \"\",\n        \"DateInvoiced\": \"2019-05-01 11:25:00.0\",\n        \"DateRecepted\": \"\",\n        \"PuntoDeVenta\": \"2\",\n        \"IsSOTrx\": \"true\",\n        \"PrintType\": \"\",\n        \"GrandTotal\": \"43.01\",\n        \"idcae\": \"\",\n        \"IsPaid\": \"false\",\n        \"C_BPartner_Location_ID__detail\": \"quindy srl._1012569\",\n        \"NotExchangeableCredit\": \"false\",\n        \"C_Order_ID\": \"\",\n        \"C_POSJournal_ID\": \"\",\n        \"Description\": \"Una factura desde WS\",\n        \"IsPrinted\": \"false\",\n        \"IsSelfService\": \"false\",\n        \"NombreCli\": \"\",\n        \"vtocae\": \"\",\n        \"C_BPartnerLocation_AD_ComponentObjectUID\": \"\",\n        \"C_ConversionType_ID\": \"\",\n        \"ActualizarPreciosConFacturaDeCompra\": \"\",\n        \"ApplyPercepcion\": \"true\",\n        \"NumeroComprobante\": \"1\",\n        \"C_BPartnerLocation_EMail\": \"\",\n        \"Created\": \"2019-05-01 19:14:47.638032\",\n        \"C_Currency_ISOCode\": \"ARS\",\n        \"ChargeAmt\": \"0.00\",\n        \"C_Campaign_ID\": \"\",\n        \"C_BPartnerLocation_AD_Client_ID\": \"1010016\",\n        \"IsVoidable\": \"false\",\n        \"User2_ID\": \"\",\n        \"C_Project_ID\": \"\",\n        \"DocumentNo\": \"B000200000001\",\n        \"POReference\": \"\",\n        \"InitialCurrentAccountAmt\": \"0.00\",\n        \"AD_Client_ID__value\": \"veronicas\",\n        \"C_BPartnerLocation_Phone2\": \"\",\n        \"C_BPartnerLocation_ISDN\": \"\",\n        \"SkipIPNoCaeValidation\": \"false\",\n        \"C_BPartner_ID__value\": \"1000173\",\n        \"AuthorizationChainStatus\": \"\",\n        \"C_Charge_ID\": \"\",\n        \"CopyFrom\": \"\",\n        \"NumeroDeDocumento\": \"<B000200000001>\",\n        \"C_Currency_ID\": \"118\",\n        \"C_DocType_ID\": \"0\",\n        \"SendEMail\": \"false\",\n        \"C_BPartnerLocation_CreatedBy\": \"1010717\",\n        \"AD_OrgTrx_ID\": \"\",\n        \"FiscalAlreadyPrinted\": \"false\",\n        \"IsTaxIncluded\": \"false\",\n        \"C_POSPaymentMedium_ID\": \"\",\n        \"IsDiscountPrinted\": \"false\",\n        \"ManageDragOrderSurcharges\": \"false\",\n        \"C_PaymentTerm_NetDays\": \"0\",\n        \"M_PriceList_ID__detail\": \"Ventas\",\n        \"C_BPartner_Location_ID\": \"1012414\",\n        \"Posted\": \"false\",\n        \"C_Letra_Comprobante_ID\": \"1010056\",\n        \"M_PriceList_ID\": \"1010595\",\n        \"CreateFrom\": \"\",\n        \"TotalLines\": \"43.01\",\n        \"C_BPartnerLocation_C_SalesRegion_ID\": \"\",\n        \"FechadeTCparaActualizarPrecios\": \"\",\n        \"C_PaymentTerm_ID__detail\": \"Inmediato\",\n        \"C_CashLine_ID\": \"\",\n        \"C_BPartnerLocation_AD_Org_ID\": \"1010053\",\n        \"PaymentRule\": \"P\",\n        \"AuthMatch\": \"true\",\n        \"C_BPartnerLocation_Updated\": \"2019-04-17 16:16:59.457885\",\n        \"Updated\": \"2019-05-01 19:14:47.638355\",\n        \"C_Region_Delivery_ID\": \"\",\n        \"PriceListCurrency\": \"\",\n        \"C_Letra_Comprobante_ID__detail\": \"B\",\n        \"CAI\": \"\",\n        \"CreateCashLine\": \"false\",\n        \"DateAcct\": \"2019-05-01 19:14:47.639248\",\n        \"IsExchange\": \"false\",\n        \"Authorize\": \"\",\n        \"C_BPartnerLocation_C_BPartner_ID\": \"1012399\",\n        \"C_PaymentTerm_ID__value\": \"Inmediato\",\n        \"AD_Org_ID__detail\": \"Lujan Mall\",\n        \"M_RMA_ID\": \"\",\n        \"C_PaymentTerm_Name\": \"Inmediato\",\n        \"OldGrandTotal\": \"0.00\",\n        \"C_BPartnerLocation_Created\": \"2019-04-17 16:16:59.457643\",\n        \"C_Invoice_Orig_ID\": \"\",\n        \"C_BPartnerLocation_UpdatedBy\": \"1010717\",\n        \"DatePrinted\": \"\",\n        \"User1_ID\": \"\",\n        \"C_DocType_ID__detail\": \"** New **\",\n        \"C_BPartnerLocation_IsBillTo\": \"true\",\n        \"C_Payment_ID\": \"\",\n        \"ManageElectronicInvoice\": \"N\",\n        \"AD_Org_ID__value\": \"Lujan Mall\",\n        \"IsTransferred\": \"false\",\n        \"C_BPartnerLocation_Phone\": \"\",\n        \"C_Currency_ID__detail\": \"ARS\",\n        \"SalesRep_ID\": \"\",\n        \"cae\": \"\",\n        \"IsActive\": \"true\",\n        \"C_BPartnerLocation_IsTemporal\": \"false\",\n        \"IsPayScheduleValid\": \"false\",\n        \"CodigoCategoriaIVA\": \"\",\n        \"C_BPartnerLocation_IsRemitTo\": \"true\",\n        \"caeerror\": \"\",\n        \"C_BPartnerLocation_IsShipTo\": \"true\",\n        \"Processing\": \"false\",\n        \"C_BPartner_ID__detail\": \"1000173_Lyon Park sa\",\n        \"C_Region_ID\": \"1000083\",\n        \"IsCopy\": \"false\",\n        \"C_Activity_ID\": \"\",\n        \"AD_Client_ID\": \"1010016\",\n        \"C_BPartnerLocation_IsPayFrom\": \"true\",\n        \"IsInDispute\": \"false\",\n        \"NroIdentificCliente\": \"\",\n        \"AuthCode\": \"\",\n        \"C_BPartnerLocation_Name\": \"quindy srl.\",\n        \"ImportClearance\": \"\",\n        \"FiscalDescription\": \"\",\n        \"TipoComprobante\": \"C \",\n        \"C_DocType_DocSubTypeCAE\": \"06\",\n        \"CreatedBy__detail\": \"AdminLibertya\",\n        \"UpdatedBy__detail\": \"AdminLibertya\",\n        \"Ref_Invoice_ID\": \"\",\n        \"AD_Org_ID\": \"1010053\",\n        \"C_BPartnerLocation_IsActive\": \"true\",\n        \"C_BPartner_ID\": \"1012399\",\n        \"ManualDocumentNo\": \"false\",\n        \"GenerateTo\": \"\",\n        \"M_InOutTransport_ID\": \"\"\n    },\n    {\n        \"C_DocType_PrintName\": \"Factura A\",\n        \"C_DocTypeTarget_ID\": \"1010666\",\n        \"CUIT\": \"33715954449\",\n        \"DocAction\": \"CO\",\n        \"C_BPartnerLocation_Fax\": \"\",\n        \"C_PaymentTerm_Value\": \"Inmediato\",\n        \"AD_User_ID\": \"\",\n        \"C_Currency_CurSymbol\": \"$\",\n        \"C_PaymentTerm_IsPaySchedule\": \"false\",\n        \"ManualGeneralDiscount\": \"0.00\",\n        \"C_BPartnerLocation_C_Location_ID\": \"1012569\",\n        \"DateOrdered\": \"\",\n        \"IsApproved\": \"false\",\n        \"UpdatedBy\": \"1010795\",\n        \"OpenAmt\": \"14518.79\",\n        \"C_BPartnerLocation_C_BPartner_Location_ID\": \"1012414\",\n        \"ManageDragOrderDiscounts\": \"false\",\n        \"NetAmount\": \"11999.00\",\n        \"caecbte\": \"\",\n        \"SalesRep_ID__detail\": \"AdminLibertya\",\n        \"Invoice_Adress\": \", ,  , Buenos Aires \",\n        \"Processed\": \"false\",\n        \"C_Region_ID__detail\": \"Asturias\",\n        \"DocStatus\": \"DR\",\n        \"C_POSPaymentMedium_Credit_ID\": \"\",\n        \"DateCAI\": \"\",\n        \"CreatedBy\": \"1010795\",\n        \"C_DocTypeTarget_ID__detail\": \"Factura A-0002\",\n        \"M_AuthorizationChain_ID\": \"\",\n        \"UpdateOrderQty\": \"false\",\n        \"C_DocType_DocumentNote\": null,\n        \"AD_Client_ID__detail\": \"Las VerÃ³nicas S.A.\",\n        \"C_PaymentTerm_ID\": \"1010083\",\n        \"Caja\": \"\",\n        \"C_Invoice_ID\": \"1022240\",\n        \"docsubtypeinv\": \"\",\n        \"DateInvoiced\": \"2019-04-30 09:59:23.0\",\n        \"DateRecepted\": \"\",\n        \"PuntoDeVenta\": \"2\",\n        \"IsSOTrx\": \"true\",\n        \"PrintType\": \"\",\n        \"C_ConversionType_ID__value\": \"S\",\n        \"GrandTotal\": \"14518.79\",\n        \"idcae\": \"\",\n        \"IsPaid\": \"false\",\n        \"C_BPartner_Location_ID__detail\": \"quindy srl._1012569\",\n        \"NotExchangeableCredit\": \"false\",\n        \"C_Order_ID\": \"\",\n        \"C_POSJournal_ID\": \"\",\n        \"Description\": \"\",\n        \"IsPrinted\": \"false\",\n        \"IsSelfService\": \"false\",\n        \"NombreCli\": \"Lyon Park sa\",\n        \"vtocae\": \"\",\n        \"C_BPartnerLocation_AD_ComponentObjectUID\": \"\",\n        \"C_ConversionType_ID\": \"114\",\n        \"ActualizarPreciosConFacturaDeCompra\": \"\",\n        \"ApplyPercepcion\": \"true\",\n        \"NumeroComprobante\": \"2\",\n        \"C_BPartnerLocation_EMail\": \"\",\n        \"Created\": \"2019-04-30 09:59:23.92005\",\n        \"C_Currency_ISOCode\": \"ARS\",\n        \"ChargeAmt\": \"0.00\",\n        \"C_Campaign_ID\": \"\",\n        \"C_BPartnerLocation_AD_Client_ID\": \"1010016\",\n        \"IsVoidable\": \"false\",\n        \"User2_ID\": \"\",\n        \"C_Project_ID\": \"\",\n        \"DocumentNo\": \"A000200000002\",\n        \"POReference\": \"\",\n        \"InitialCurrentAccountAmt\": \"0.00\",\n        \"AD_Client_ID__value\": \"veronicas\",\n        \"C_BPartnerLocation_Phone2\": \"\",\n        \"C_BPartnerLocation_ISDN\": \"\",\n        \"SkipIPNoCaeValidation\": \"false\",\n        \"C_BPartner_ID__value\": \"1000173\",\n        \"AuthorizationChainStatus\": \"\",\n        \"C_Charge_ID\": \"\",\n        \"CopyFrom\": \"N\",\n        \"NumeroDeDocumento\": \"<A000200000002>\",\n        \"C_Currency_ID\": \"118\",\n        \"C_DocType_ID\": \"0\",\n        \"SendEMail\": \"false\",\n        \"C_BPartnerLocation_CreatedBy\": \"1010717\",\n        \"AD_OrgTrx_ID\": \"\",\n        \"FiscalAlreadyPrinted\": \"false\",\n        \"IsTaxIncluded\": \"false\",\n        \"C_POSPaymentMedium_ID\": \"\",\n        \"IsDiscountPrinted\": \"false\",\n        \"ManageDragOrderSurcharges\": \"false\",\n        \"C_PaymentTerm_NetDays\": \"0\",\n        \"M_PriceList_ID__detail\": \"Ventas\",\n        \"C_BPartner_Location_ID\": \"1012414\",\n        \"Posted\": \"false\",\n        \"C_Letra_Comprobante_ID\": \"1010055\",\n        \"M_PriceList_ID\": \"1010595\",\n        \"CreateFrom\": \"N\",\n        \"TotalLines\": \"11999.00\",\n        \"C_BPartnerLocation_C_SalesRegion_ID\": \"\",\n        \"FechadeTCparaActualizarPrecios\": \"\",\n        \"C_PaymentTerm_ID__detail\": \"Inmediato\",\n        \"C_CashLine_ID\": \"\",\n        \"C_BPartnerLocation_AD_Org_ID\": \"1010053\",\n        \"PaymentRule\": \"P\",\n        \"AuthMatch\": \"false\",\n        \"C_BPartnerLocation_Updated\": \"2019-04-17 16:16:59.457885\",\n        \"Updated\": \"2019-04-30 09:59:23.920283\",\n        \"C_Region_Delivery_ID\": \"\",\n        \"PriceListCurrency\": \"\",\n        \"C_Letra_Comprobante_ID__detail\": \"A\",\n        \"CAI\": \"\",\n        \"CreateCashLine\": \"true\",\n        \"DateAcct\": \"2019-04-30 00:00:00.0\",\n        \"IsExchange\": \"false\",\n        \"Authorize\": \"N\",\n        \"C_BPartnerLocation_C_BPartner_ID\": \"1012399\",\n        \"C_PaymentTerm_ID__value\": \"Inmediato\",\n        \"AD_Org_ID__detail\": \"Lujan Mall\",\n        \"M_RMA_ID\": \"\",\n        \"C_PaymentTerm_Name\": \"Inmediato\",\n        \"OldGrandTotal\": \"0.00\",\n        \"C_BPartnerLocation_Created\": \"2019-04-17 16:16:59.457643\",\n        \"C_Invoice_Orig_ID\": \"\",\n        \"C_BPartnerLocation_UpdatedBy\": \"1010717\",\n        \"C_ConversionType_ID__detail\": \"Directa\",\n        \"DatePrinted\": \"\",\n        \"User1_ID\": \"\",\n        \"C_DocType_ID__detail\": \"** New **\",\n        \"C_BPartnerLocation_IsBillTo\": \"true\",\n        \"C_Payment_ID\": \"\",\n        \"ManageElectronicInvoice\": \"N\",\n        \"AD_Org_ID__value\": \"Lujan Mall\",\n        \"IsTransferred\": \"false\",\n        \"C_BPartnerLocation_Phone\": \"\",\n        \"C_Currency_ID__detail\": \"ARS\",\n        \"SalesRep_ID\": \"1010717\",\n        \"cae\": \"\",\n        \"IsActive\": \"true\",\n        \"C_BPartnerLocation_IsTemporal\": \"false\",\n        \"IsPayScheduleValid\": \"false\",\n        \"CodigoCategoriaIVA\": \"\",\n        \"C_BPartnerLocation_IsRemitTo\": \"true\",\n        \"caeerror\": \"\",\n        \"C_BPartnerLocation_IsShipTo\": \"true\",\n        \"Processing\": \"false\",\n        \"C_BPartner_ID__detail\": \"1000173_Lyon Park sa\",\n        \"C_Region_ID\": \"1000027\",\n        \"IsCopy\": \"false\",\n        \"C_Activity_ID\": \"\",\n        \"AD_Client_ID\": \"1010016\",\n        \"C_BPartnerLocation_IsPayFrom\": \"true\",\n        \"IsInDispute\": \"false\",\n        \"NroIdentificCliente\": \"33715954449\",\n        \"AuthCode\": \"\",\n        \"C_BPartnerLocation_Name\": \"quindy srl.\",\n        \"ImportClearance\": \"\",\n        \"FiscalDescription\": \"\",\n        \"TipoComprobante\": \"\",\n        \"C_DocType_DocSubTypeCAE\": \"01\",\n        \"CreatedBy__detail\": \"mbuccellato\",\n        \"UpdatedBy__detail\": \"mbuccellato\",\n        \"Ref_Invoice_ID\": \"\",\n        \"AD_Org_ID\": \"1010053\",\n        \"C_BPartnerLocation_IsActive\": \"true\",\n        \"C_BPartner_ID\": \"1012399\",\n        \"ManualDocumentNo\": \"false\",\n        \"GenerateTo\": \"N\",\n        \"M_InOutTransport_ID\": \"\"\n    },\n    {\n        \"C_DocType_PrintName\": \"Factura A\",\n        \"C_DocTypeTarget_ID\": \"1010666\",\n        \"CUIT\": \"33715954449\",\n        \"DocAction\": \"CO\",\n        \"C_BPartnerLocation_Fax\": \"\",\n        \"C_PaymentTerm_Value\": \"Inmediato\",\n        \"AD_User_ID\": \"\",\n        \"C_Currency_CurSymbol\": \"$\",\n        \"C_PaymentTerm_IsPaySchedule\": \"false\",\n        \"ManualGeneralDiscount\": \"0.00\",\n        \"C_BPartnerLocation_C_Location_ID\": \"1012569\",\n        \"DateOrdered\": \"\",\n        \"IsApproved\": \"false\",\n        \"UpdatedBy\": \"1010717\",\n        \"OpenAmt\": \"607.75\",\n        \"C_BPartnerLocation_C_BPartner_Location_ID\": \"1012414\",\n        \"ManageDragOrderDiscounts\": \"false\",\n        \"NetAmount\": \"550.00\",\n        \"caecbte\": \"\",\n        \"SalesRep_ID__detail\": \"AdminLibertya\",\n        \"Invoice_Adress\": \", ,  , Buenos Aires \",\n        \"Processed\": \"false\",\n        \"C_Region_ID__detail\": \"Asturias\",\n        \"DocStatus\": \"DR\",\n        \"C_POSPaymentMedium_Credit_ID\": \"\",\n        \"DateCAI\": \"\",\n        \"CreatedBy\": \"1010717\",\n        \"C_DocTypeTarget_ID__detail\": \"Factura A-0002\",\n        \"M_AuthorizationChain_ID\": \"\",\n        \"UpdateOrderQty\": \"false\",\n        \"C_DocType_DocumentNote\": null,\n        \"AD_Client_ID__detail\": \"Las VerÃ³nicas S.A.\",\n        \"C_PaymentTerm_ID\": \"1010083\",\n        \"Caja\": \"\",\n        \"C_Invoice_ID\": \"1022239\",\n        \"docsubtypeinv\": \"\",\n        \"DateInvoiced\": \"2019-04-25 17:46:37.0\",\n        \"DateRecepted\": \"\",\n        \"PuntoDeVenta\": \"2\",\n        \"IsSOTrx\": \"true\",\n        \"PrintType\": \"\",\n        \"C_ConversionType_ID__value\": \"S\",\n        \"GrandTotal\": \"607.75\",\n        \"idcae\": \"\",\n        \"IsPaid\": \"false\",\n        \"C_BPartner_Location_ID__detail\": \"quindy srl._1012569\",\n        \"NotExchangeableCredit\": \"false\",\n        \"C_Order_ID\": \"\",\n        \"C_POSJournal_ID\": \"\",\n        \"Description\": \"\",\n        \"IsPrinted\": \"false\",\n        \"IsSelfService\": \"false\",\n        \"NombreCli\": \"Lyon Park sa\",\n        \"vtocae\": \"\",\n        \"C_BPartnerLocation_AD_ComponentObjectUID\": \"\",\n        \"C_ConversionType_ID\": \"114\",\n        \"ActualizarPreciosConFacturaDeCompra\": \"\",\n        \"ApplyPercepcion\": \"true\",\n        \"NumeroComprobante\": \"1\",\n        \"C_BPartnerLocation_EMail\": \"\",\n        \"Created\": \"2019-04-25 17:46:37.114693\",\n        \"C_Currency_ISOCode\": \"ARS\",\n        \"ChargeAmt\": \"0.00\",\n        \"C_Campaign_ID\": \"\",\n        \"C_BPartnerLocation_AD_Client_ID\": \"1010016\",\n        \"IsVoidable\": \"false\",\n        \"User2_ID\": \"\",\n        \"C_Project_ID\": \"\",\n        \"DocumentNo\": \"A000200000001\",\n        \"POReference\": \"\",\n        \"InitialCurrentAccountAmt\": \"0.00\",\n        \"AD_Client_ID__value\": \"veronicas\",\n        \"C_BPartnerLocation_Phone2\": \"\",\n        \"C_BPartnerLocation_ISDN\": \"\",\n        \"SkipIPNoCaeValidation\": \"false\",\n        \"C_BPartner_ID__value\": \"1000173\",\n        \"AuthorizationChainStatus\": \"\",\n        \"C_Charge_ID\": \"\",\n        \"CopyFrom\": \"N\",\n        \"NumeroDeDocumento\": \"<A000200000001>\",\n        \"C_Currency_ID\": \"118\",\n        \"C_DocType_ID\": \"0\",\n        \"SendEMail\": \"false\",\n        \"C_BPartnerLocation_CreatedBy\": \"1010717\",\n        \"AD_OrgTrx_ID\": \"\",\n        \"FiscalAlreadyPrinted\": \"false\",\n        \"IsTaxIncluded\": \"false\",\n        \"C_POSPaymentMedium_ID\": \"\",\n        \"IsDiscountPrinted\": \"false\",\n        \"ManageDragOrderSurcharges\": \"false\",\n        \"C_PaymentTerm_NetDays\": \"0\",\n        \"M_PriceList_ID__detail\": \"Ventas\",\n        \"C_BPartner_Location_ID\": \"1012414\",\n        \"Posted\": \"false\",\n        \"C_Letra_Comprobante_ID\": \"1010055\",\n        \"M_PriceList_ID\": \"1010595\",\n        \"CreateFrom\": \"N\",\n        \"TotalLines\": \"550.00\",\n        \"C_BPartnerLocation_C_SalesRegion_ID\": \"\",\n        \"FechadeTCparaActualizarPrecios\": \"\",\n        \"C_PaymentTerm_ID__detail\": \"Inmediato\",\n        \"C_CashLine_ID\": \"\",\n        \"C_BPartnerLocation_AD_Org_ID\": \"1010053\",\n        \"PaymentRule\": \"P\",\n        \"AuthMatch\": \"false\",\n        \"C_BPartnerLocation_Updated\": \"2019-04-17 16:16:59.457885\",\n        \"Updated\": \"2019-04-25 17:46:37.115063\",\n        \"C_Region_Delivery_ID\": \"\",\n        \"PriceListCurrency\": \"\",\n        \"C_Letra_Comprobante_ID__detail\": \"A\",\n        \"CAI\": \"\",\n        \"CreateCashLine\": \"true\",\n        \"DateAcct\": \"2019-04-25 00:00:00.0\",\n        \"IsExchange\": \"false\",\n        \"Authorize\": \"N\",\n        \"C_BPartnerLocation_C_BPartner_ID\": \"1012399\",\n        \"C_PaymentTerm_ID__value\": \"Inmediato\",\n        \"AD_Org_ID__detail\": \"Lujan Mall\",\n        \"M_RMA_ID\": \"\",\n        \"C_PaymentTerm_Name\": \"Inmediato\",\n        \"OldGrandTotal\": \"0.00\",\n        \"C_BPartnerLocation_Created\": \"2019-04-17 16:16:59.457643\",\n        \"C_Invoice_Orig_ID\": \"\",\n        \"C_BPartnerLocation_UpdatedBy\": \"1010717\",\n        \"C_ConversionType_ID__detail\": \"Directa\",\n        \"DatePrinted\": \"\",\n        \"User1_ID\": \"\",\n        \"C_DocType_ID__detail\": \"** New **\",\n        \"C_BPartnerLocation_IsBillTo\": \"true\",\n        \"C_Payment_ID\": \"\",\n        \"ManageElectronicInvoice\": \"N\",\n        \"AD_Org_ID__value\": \"Lujan Mall\",\n        \"IsTransferred\": \"false\",\n        \"C_BPartnerLocation_Phone\": \"\",\n        \"C_Currency_ID__detail\": \"ARS\",\n        \"SalesRep_ID\": \"1010717\",\n        \"cae\": \"\",\n        \"IsActive\": \"true\",\n        \"C_BPartnerLocation_IsTemporal\": \"false\",\n        \"IsPayScheduleValid\": \"false\",\n        \"CodigoCategoriaIVA\": \"\",\n        \"C_BPartnerLocation_IsRemitTo\": \"true\",\n        \"caeerror\": \"\",\n        \"C_BPartnerLocation_IsShipTo\": \"true\",\n        \"Processing\": \"false\",\n        \"C_BPartner_ID__detail\": \"1000173_Lyon Park sa\",\n        \"C_Region_ID\": \"1000027\",\n        \"IsCopy\": \"false\",\n        \"C_Activity_ID\": \"\",\n        \"AD_Client_ID\": \"1010016\",\n        \"C_BPartnerLocation_IsPayFrom\": \"true\",\n        \"IsInDispute\": \"false\",\n        \"NroIdentificCliente\": \"33715954449\",\n        \"AuthCode\": \"\",\n        \"C_BPartnerLocation_Name\": \"quindy srl.\",\n        \"ImportClearance\": \"\",\n        \"FiscalDescription\": \"\",\n        \"TipoComprobante\": \"\",\n        \"C_DocType_DocSubTypeCAE\": \"01\",\n        \"CreatedBy__detail\": \"AdminLibertya\",\n        \"UpdatedBy__detail\": \"AdminLibertya\",\n        \"Ref_Invoice_ID\": \"\",\n        \"AD_Org_ID\": \"1010053\",\n        \"C_BPartnerLocation_IsActive\": \"true\",\n        \"C_BPartner_ID\": \"1012399\",\n        \"ManualDocumentNo\": \"false\",\n        \"GenerateTo\": \"N\",\n        \"M_InOutTransport_ID\": \"\"\n    }\n]"
+				}
+			]
+		},
+		{
+			"name": "http://localhost:8082/getAllocationsDetails",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "332e5a7b-e236-4ab4-9a91-7593e7484fb8",
+						"exec": [
+							"pm.test(\"Status code is 400\", function () {",
+							"    pm.response.to.have.status(400);",
+							"});",
+							"pm.test(\"Content-Type is present\", function () {",
+							"    pm.response.to.have.header(\"Content-Type\");",
+							"});",
+							"pm.test(\"Response Contains Status Code\", function () {",
+							"    var jsonData = pm.response.json();",
+							"    pm.expect(jsonData.errors.httpStatus).to.eql(400);",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"auth": {
+					"type": "basic",
+					"basic": [
+						{
+							"key": "password",
+							"value": "8FAc58d7D71944C098CE95528e8948A3",
+							"type": "string"
+						},
+						{
+							"key": "username",
+							"value": "60d91d9307784c009e2bfe60561a3074",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [
+					{
+						"key": "taxId",
+						"value": "",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": ""
+				},
+				"url": {
+					"raw": "{{HOST}}/getAllocationsDetails",
+					"host": [
+						"{{HOST}}"
+					],
+					"path": [
+						"getAllocationsDetails"
+					]
+				}
+			},
+			"response": [
+				{
+					"name": "http://localhost:8082/getAllocationsDetails",
+					"originalRequest": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "taxId",
+								"value": "",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "http://localhost:8082/getAllocationsDetails",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8082",
+							"path": [
+								"getAllocationsDetails"
+							]
+						}
+					},
+					"status": "Bad Request",
+					"code": 400,
+					"_postman_previewlanguage": "json",
+					"header": [
+						{
+							"key": "Content-Length",
+							"value": "3857"
+						},
+						{
+							"key": "Content-Type",
+							"value": "application/json; charset=UTF-8"
+						},
+						{
+							"key": "Date",
+							"value": "Thu, 02 May 2019 18:01:41 GMT"
+						},
+						{
+							"key": "Connection",
+							"value": "close"
+						}
+					],
+					"cookie": [],
+					"body": "{\n    \"errors\": {\n        \"flowName\": \"circular-get-invoices-details-flow\",\n        \"errorCode\": \"GET\",\n        \"category\": \"Libertya\",\n        \"httpStatus\": 400,\n        \"errorMessage\": \"\",\n        \"slResponseError\": {\n            \"errors\": {\n                \"flowName\": \"libertya-system-get-invoices-taxid-flow\",\n                \"errorCode\": \"NONE\",\n                \"category\": \"Libertya\",\n                \"httpStatus\": 400,\n                \"errorMessage\": \"\",\n                \"externalErrorCode\": {\n                    \"apiName\": \"documentQueryInvoices\",\n                    \"result\": \"\",\n                    \"result_namespace\": \"\",\n                    \"errorMessage\": \"org.libertya.ws.exception.ModelException: No se han recuperado documentos con los criterios de búsqueda especificados (org.libertya.ws.handler.DocumentQueryHandler.documentQuery(DocumentQueryHandler.java:286), org.libertya.ws.handler.DocumentQueryHandler.documentQueryInvoices(DocumentQueryHandler.java:179), org.libertya.ws.LibertyaWSImpl.documentQueryInvoices(LibertyaWSImpl.java:207), sun.reflect.GeneratedMethodAccessor231.invoke(Unknown Source), sun.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43), java.lang.reflect.Method.invoke(Method.java:498), org.apache.axis.providers.java.RPCProvider.invokeMethod(RPCProvider.java:397), org.apache.axis.providers.java.RPCProvider.processMessage(RPCProvider.java:186), org.apache.axis.providers.java.JavaProvider.invoke(JavaProvider.java:323), org.apache.axis.strategies.InvocationStrategy.visit(InvocationStrategy.java:32), org.apache.axis.SimpleChain.doVisiting(SimpleChain.java:118), org.apache.axis.SimpleChain.invoke(SimpleChain.java:83), org.apache.axis.handlers.soap.SOAPService.invoke(SOAPService.java:454), org.apache.axis.server.AxisServer.invoke(AxisServer.java:281), org.apache.axis.transport.http.AxisServlet.doPost(AxisServlet.java:699), javax.servlet.http.HttpServlet.service(HttpServlet.java:717), org.apache.axis.transport.http.AxisServletBase.service(AxisServletBase.java:327), javax.servlet.http.HttpServlet.service(HttpServlet.java:810), org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:252), org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:173), org.jboss.web.tomcat.filters.ReplyHeaderFilter.doFilter(ReplyHeaderFilter.java:81), org.apache.catalina.core.ApplicationFilterChain.internalDoFilter(ApplicationFilterChain.java:202), org.apache.catalina.core.ApplicationFilterChain.doFilter(ApplicationFilterChain.java:173), org.apache.catalina.core.StandardWrapperValve.invoke(StandardWrapperValve.java:213), org.apache.catalina.core.StandardContextValve.invoke(StandardContextValve.java:178), org.jboss.web.tomcat.security.CustomPrincipalValve.invoke(CustomPrincipalValve.java:39), org.jboss.web.tomcat.security.SecurityAssociationValve.invoke(SecurityAssociationValve.java:153), org.jboss.web.tomcat.security.JaccContextValve.invoke(JaccContextValve.java:59), org.apache.catalina.core.StandardHostValve.invoke(StandardHostValve.java:126), org.apache.catalina.valves.ErrorReportValve.invoke(ErrorReportValve.java:105), org.apache.catalina.core.StandardEngineValve.invoke(StandardEngineValve.java:107), org.apache.catalina.connector.CoyoteAdapter.service(CoyoteAdapter.java:148), org.apache.coyote.http11.Http11Processor.process(Http11Processor.java:856), org.apache.coyote.http11.Http11Protocol$Http11ConnectionHandler.processConnection(Http11Protocol.java:744), org.apache.tomcat.util.net.PoolTcpEndpoint.processSocket(PoolTcpEndpoint.java:527), org.apache.tomcat.util.net.MasterSlaveWorkerThread.run(MasterSlaveWorkerThread.java:112), java.lang.Thread.run(Thread.java:748)) \\n - Parameters - \\n org.libertya.ws.bean.parameter.ParameterBean - UserName = AdminLibertya; ClientID = 1010016; OrgID = 1010053\\n  mainTable: \\n - Method arguments: bPartnerID = -1; value = null; taxID = Tax Id not supported; filterByClient = false; filterByOrg = false; purchaseTrxOnly = false; salesTrxOnly = false; fromDate = null; toDate = null; additionalWhereClause = null; \",\n                    \"httpStatus\": 400\n                }\n            }\n        }\n    }\n}"
+				}
+			]
+		},
+		{
+			"name": "http://localhost:8082/getAccessGroups",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "c6185d73-1285-48a5-a7ef-41263c6cfd86",
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"pm.test(\"Content-Type is present\", function () {",
+							"    pm.response.to.have.header(\"Content-Type\");",
+							"});",
+							"pm.test(\"Access Group ID Present\", function () {",
+							"    var jsonData = pm.response.json();",
+							"    pm.expect(jsonData.accessGroups[0].id).not.eql(null);",
+							"});",
+							"pm.test(\"Access Group Name Present\", function () {",
+							"    var jsonData = pm.response.json();",
+							"    pm.expect(jsonData.accessGroups[0].accessGroup).not.eql(null);",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"auth": {
+					"type": "basic",
+					"basic": [
+						{
+							"key": "password",
+							"value": "8FAc58d7D71944C098CE95528e8948A3",
+							"type": "string"
+						},
+						{
+							"key": "username",
+							"value": "60d91d9307784c009e2bfe60561a3074",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [
+					{
+						"key": "user",
+						"value": "srepetto",
+						"type": "text"
+					},
+					{
+						"key": "pass",
+						"value": "oficina13",
+						"type": "text"
+					},
+					{
+						"key": "subdomain",
+						"value": "impresiones",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": ""
+				},
+				"url": {
+					"raw": "{{HOST}}/getAccessGroups",
+					"host": [
+						"{{HOST}}"
+					],
+					"path": [
+						"getAccessGroups"
+					]
+				}
+			},
+			"response": [
+				{
+					"name": "http://localhost:8082/getAccessGroups",
+					"originalRequest": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "http://localhost:8082/getAccessGroups",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8082",
+							"path": [
+								"getAccessGroups"
+							]
+						}
+					},
+					"status": "OK",
+					"code": 200,
+					"_postman_previewlanguage": "json",
+					"header": [
+						{
+							"key": "Content-Length",
+							"value": "1576"
+						},
+						{
+							"key": "Content-Type",
+							"value": "application/json"
+						},
+						{
+							"key": "Date",
+							"value": "Thu, 02 May 2019 18:12:16 GMT"
+						}
+					],
+					"cookie": [],
+					"body": "{\n    \"accessGroups\": [\n        {\n            \"id\": 4,\n            \"accessGroup\": \"Oficina 13\"\n        },\n        {\n            \"id\": 6,\n            \"accessGroup\": \"Circular\"\n        },\n        {\n            \"id\": 9,\n            \"accessGroup\": \"Oficina 15\"\n        },\n        {\n            \"id\": 10,\n            \"accessGroup\": \"Oficina 06\"\n        },\n        {\n            \"id\": 11,\n            \"accessGroup\": \"Oficina 04\"\n        },\n        {\n            \"id\": 14,\n            \"accessGroup\": \"Oficina 11\"\n        },\n        {\n            \"id\": 15,\n            \"accessGroup\": \"Oficina 17\"\n        },\n        {\n            \"id\": 16,\n            \"accessGroup\": \"Oficina 05\"\n        },\n        {\n            \"id\": 17,\n            \"accessGroup\": \"Oficina 10\"\n        },\n        {\n            \"id\": 18,\n            \"accessGroup\": \"Oficina 09\"\n        },\n        {\n            \"id\": 19,\n            \"accessGroup\": \"Puestos Fijos y Libres\"\n        },\n        {\n            \"id\": 20,\n            \"accessGroup\": \"Oficina 03\"\n        },\n        {\n            \"id\": 21,\n            \"accessGroup\": \"Oficina 08\"\n        },\n        {\n            \"id\": 22,\n            \"accessGroup\": \"Oficina 12\"\n        },\n        {\n            \"id\": 23,\n            \"accessGroup\": \"Oficina Z\"\n        },\n        {\n            \"id\": 24,\n            \"accessGroup\": \"Oficina 01\"\n        },\n        {\n            \"id\": 25,\n            \"accessGroup\": \"Liliana PequeÃ±o\"\n        },\n        {\n            \"id\": 26,\n            \"accessGroup\": \"Mantenimiento\"\n        },\n        {\n            \"id\": 27,\n            \"accessGroup\": \"Limpieza\"\n        },\n        {\n            \"id\": 28,\n            \"accessGroup\": \"Oficina 02\"\n        },\n        {\n            \"id\": 30,\n            \"accessGroup\": \"Oficina X\"\n        },\n        {\n            \"id\": 31,\n            \"accessGroup\": \"Oficina 14\"\n        },\n        {\n            \"id\": 32,\n            \"accessGroup\": \"Oficina Y\"\n        },\n        {\n            \"id\": 33,\n            \"accessGroup\": \"Full Access\"\n        },\n        {\n            \"id\": 35,\n            \"accessGroup\": \"Oficina 16\"\n        },\n        {\n            \"id\": 36,\n            \"accessGroup\": \"Oficina S\"\n        },\n        {\n            \"id\": 37,\n            \"accessGroup\": \"Oficina T\"\n        },\n        {\n            \"id\": 38,\n            \"accessGroup\": \"Oficina V\"\n        },\n        {\n            \"id\": 39,\n            \"accessGroup\": \"Oficina w\"\n        },\n        {\n            \"id\": 40,\n            \"accessGroup\": \"Oficina U\"\n        },\n        {\n            \"id\": 41,\n            \"accessGroup\": \"Oficina Q\"\n        },\n        {\n            \"id\": 47,\n            \"accessGroup\": \"Oficina R\"\n        },\n        {\n            \"id\": 48,\n            \"accessGroup\": \"Prueba Acqua\"\n        },\n        {\n            \"id\": 49,\n            \"accessGroup\": \"Prueba Acqua1\"\n        },\n        {\n            \"id\": 58,\n            \"accessGroup\": \"Oficina 18\"\n        }\n    ]\n}"
+				}
+			]
+		},
+		{
+			"name": "http://localhost:8082/getUserGroups",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "465eb02a-3531-446e-a58f-a899f7b784ea",
+						"exec": [
+							"pm.test(\"Status code is 200\", function () {",
+							"    pm.response.to.have.status(200);",
+							"});",
+							"pm.test(\"Content-Type is present\", function () {",
+							"    pm.response.to.have.header(\"Content-Type\");",
+							"});",
+							"pm.test(\"User Group ID Present\", function () {",
+							"    var jsonData = pm.response.json();",
+							"    pm.expect(jsonData.userGroups[0].id).not.eql(null);",
+							"});",
+							"pm.test(\"User Group Name Present\", function () {",
+							"    var jsonData = pm.response.json();",
+							"    pm.expect(jsonData.userGroups[0].userGroup).not.eql(null);",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"auth": {
+					"type": "basic",
+					"basic": [
+						{
+							"key": "password",
+							"value": "8FAc58d7D71944C098CE95528e8948A3",
+							"type": "string"
+						},
+						{
+							"key": "username",
+							"value": "60d91d9307784c009e2bfe60561a3074",
+							"type": "string"
+						}
+					]
+				},
+				"method": "GET",
+				"header": [
+					{
+						"key": "user",
+						"value": "srepetto",
+						"type": "text"
+					},
+					{
+						"key": "pass",
+						"value": "oficina13",
+						"type": "text"
+					},
+					{
+						"key": "subdomain",
+						"value": "impresiones",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": ""
+				},
+				"url": {
+					"raw": "{{HOST}}/getUserGroups",
+					"host": [
+						"{{HOST}}"
+					],
+					"path": [
+						"getUserGroups"
+					]
+				}
+			},
+			"response": [
+				{
+					"name": "http://localhost:8082/getUserGroups",
+					"originalRequest": {
+						"method": "GET",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": ""
+						},
+						"url": {
+							"raw": "http://localhost:8082/getUserGroups",
+							"protocol": "http",
+							"host": [
+								"localhost"
+							],
+							"port": "8082",
+							"path": [
+								"getUserGroups"
+							]
+						}
+					},
+					"status": "OK",
+					"code": 200,
+					"_postman_previewlanguage": "json",
+					"header": [
+						{
+							"key": "Content-Length",
+							"value": "1395"
+						},
+						{
+							"key": "Content-Type",
+							"value": "application/json"
+						},
+						{
+							"key": "Date",
+							"value": "Thu, 02 May 2019 18:10:02 GMT"
+						}
+					],
+					"cookie": [],
+					"body": "{\n    \"userGroups\": [\n        {\n            \"id\": 1,\n            \"userGroup\": \"All Users\"\n        },\n        {\n            \"id\": 1005,\n            \"userGroup\": \"Circular\"\n        },\n        {\n            \"id\": 1014,\n            \"userGroup\": \"Oxant\"\n        },\n        {\n            \"id\": 1023,\n            \"userGroup\": \"Norte MKT\"\n        },\n        {\n            \"id\": 1027,\n            \"userGroup\": \"B&P Company Solution S.R.L.\"\n        },\n        {\n            \"id\": 1031,\n            \"userGroup\": \"Circular Usrs\"\n        },\n        {\n            \"id\": 1033,\n            \"userGroup\": \"Gallaretas\"\n        },\n        {\n            \"id\": 1034,\n            \"userGroup\": \"Soldati\"\n        },\n        {\n            \"id\": 1036,\n            \"userGroup\": \"Unigamex\"\n        },\n        {\n            \"id\": 1043,\n            \"userGroup\": \"Sandra Ojman\"\n        },\n        {\n            \"id\": 1045,\n            \"userGroup\": \"AJZ Abogados\"\n        },\n        {\n            \"id\": 1049,\n            \"userGroup\": \"Puestos fijos y libres\"\n        },\n        {\n            \"id\": 1055,\n            \"userGroup\": \"Monica MariÃ±o\"\n        },\n        {\n            \"id\": 1060,\n            \"userGroup\": \"Contenido TV\"\n        },\n        {\n            \"id\": 1063,\n            \"userGroup\": \"CargoAgent\"\n        },\n        {\n            \"id\": 1064,\n            \"userGroup\": \"NCC\"\n        },\n        {\n            \"id\": 1083,\n            \"userGroup\": \"Smurra\"\n        },\n        {\n            \"id\": 1089,\n            \"userGroup\": \"Liliana PequeÃ±o\"\n        },\n        {\n            \"id\": 1091,\n            \"userGroup\": \"Mantenimiento y Seguridad\"\n        },\n        {\n            \"id\": 1104,\n            \"userGroup\": \"Limpieza\"\n        },\n        {\n            \"id\": 1107,\n            \"userGroup\": \"Acqua\"\n        },\n        {\n            \"id\": 1119,\n            \"userGroup\": \"Frida Media\"\n        },\n        {\n            \"id\": 1122,\n            \"userGroup\": \"nuca rental\"\n        },\n        {\n            \"id\": 1135,\n            \"userGroup\": \"Making Experience\"\n        },\n        {\n            \"id\": 1143,\n            \"userGroup\": \"Helicopteros Del Pacifico\"\n        },\n        {\n            \"id\": 1162,\n            \"userGroup\": \"Miii\"\n        },\n        {\n            \"id\": 1172,\n            \"userGroup\": \"BIDHUB\"\n        },\n        {\n            \"id\": 1287,\n            \"userGroup\": \"AcquaPrueba\"\n        },\n        {\n            \"id\": 1304,\n            \"userGroup\": \"New User Group 1\"\n        },\n        {\n            \"id\": 1305,\n            \"userGroup\": \"RossiCasal\"\n        }\n    ]\n}"
+				}
+			]
+		}
+	]
+}

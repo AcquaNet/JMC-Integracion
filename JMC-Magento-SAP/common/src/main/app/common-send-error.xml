@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:smtps="http://www.mulesoft.org/schema/mule/smtps"  xmlns:smtp="http://www.mulesoft.org/schema/mule/smtp" xmlns:json="http://www.mulesoft.org/schema/mule/json" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:spring="http://www.springframework.org/schema/beans" 
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/json/current/mule-json.xsd
+http://www.mulesoft.org/schema/mule/smtp http://www.mulesoft.org/schema/mule/smtp/current/mule-smtp.xsd
+http://www.mulesoft.org/schema/mule/smtps http://www.mulesoft.org/schema/mule/smtps/current/mule-smtps.xsd">
+   
+    <spring:beans>
+        <spring:bean id="ZipLayersLogger" name="ZipLayersLogger" class="com.acqua.common.utils.ZipLayersLogger"/>
+        <spring:bean id="Handlebars" name="Handlebars" class="com.acqua.common.utils.HandlebarsTransform"/>
+    </spring:beans>
+    
+    <smtp:connector name="SMTP" contentType="text/html" validateConnections="true" doc:name="SMTP"/>
+    
+    <smtp:gmail-connector name="Gmail" validateConnections="true" doc:name="Gmail" contentType="text/html"/>
+    
+    <flow name="circular-exception-send-notification-flow">
+
+        <logger message="Sending Error..." level="INFO" doc:name="Logger" category="com.acqua.common.utils.CommonLayer"/>
+        
+        <set-variable value="#[mule.home != null?mule.home:&quot;${MULE_HOME}&quot;]" variableName="mule_home" doc:name="Variable" />
+        <logger message="Mule HOME: #[flowVars.mule_home]" level="INFO" doc:name="Logger"/>
+        
+        <json:json-to-object-transformer doc:name="JSON to Object" mimeType="application/java" returnClass="java.util.HashMap"/>
+      
+        <component doc:name="Set Handlebars">
+            <spring-object bean="Handlebars"/>
+        </component>
+        <component doc:name="Attach Logs">
+            <spring-object bean="ZipLayersLogger"/>
+        </component>
+ 
+        <smtp:outbound-endpoint host="${circular_smtp_host}" port="${circular_smtp_port}" user="${circular_smtp_user}" password="${circular_smtp_pass}" to="${circular_smtp_email_to}" from="${circular_smtp_email_from}" bcc="${circular_smtp_email_bbc}" responseTimeout="10000" doc:name="SMTP"  subject="${circular_smtp_email_errorSubject}" connector-ref="Gmail">
+            <property key="mail.smtp.starttls.enable" value="true"/>
+        </smtp:outbound-endpoint>
+    
+    </flow>
+    
+</mule>
