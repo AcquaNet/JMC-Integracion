@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns:json="http://www.mulesoft.org/schema/mule/json"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:spring="http://www.springframework.org/schema/beans" 
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/json/current/mule-json.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd">
+<flow name="Provee">
+        <http:listener config-ref="HTTP_Listener_Configuration" path="/Provee" allowedMethods="GET" doc:name="HTTP"/>
+        <flow-ref name="SetCredentialsHeaders" doc:name="SetCredentialsHeaders"/>
+        <flow-ref name="SapSuppliersRequest" doc:name="Flow Reference"/>
+
+    </flow>
+    <flow name="SapSuppliersRequest">
+        <set-variable variableName="flowName" value="SapSuppliersRequest" doc:name="set flowName"/>
+        <http:request config-ref="HTTP_Request_Configuration" path="/BusinessPartners" method="GET" doc:name="HTTP">
+            <http:request-builder>
+                <http:query-param paramName="$filter" value="CardType eq 'cSupplier' and OpenOrdersBalance lt 0"/>
+                <http:header headerName="Set-Cookie" value="B1SESSION=#[flowVars.SessID]; path=/b1s; "/>
+                <http:header headerName="Set-Cookie" value="ROUTEID=.node0; path=/b1s;"/>
+            </http:request-builder>
+        </http:request>
+        <expression-component doc:name="Expression"><![CDATA[payload = message.payloadAs(java.lang.String);
+payload = com.acqua.tools.JsonParser.jsonToObject(payload, "com.acqua.model.OdataSN");
+
+]]></expression-component>
+        <set-payload value="#[payload.value]" doc:name="Set Payload"/>
+        <json:object-to-json-transformer doc:name="Object to JSON"/>
+        <message-properties-transformer doc:name="Message Properties">
+            <add-message-property key="User" value="#[flowVars.User]"/>
+            <add-message-property key="Password" value="#[flowVars.Pass]"/>
+            <add-message-property key="SessionID" value="#[flowVars.SessID]"/>
+            <add-message-property key="Database" value="#[flowVars.DB]"/>
+        </message-properties-transformer>
+        <logger message="#[payload]" level="INFO" doc:name="Logger" category="com.limpiolux"/>
+        <exception-strategy ref="http-status-Choice_Exception_Strategy" doc:name="Reference Exception Strategy"/>
+    </flow>
+</mule>

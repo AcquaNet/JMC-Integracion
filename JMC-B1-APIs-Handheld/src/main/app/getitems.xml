@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:json="http://www.mulesoft.org/schema/mule/json" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:spring="http://www.springframework.org/schema/beans" 
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd
+http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/json/current/mule-json.xsd">
+    <flow name="getItems">
+        <http:listener config-ref="HTTP_Listener_Configuration" path="/getItems" allowedMethods="POST" doc:name="HTTP"/>
+        <flow-ref name="SetCredentialsHeaders" doc:name="SetCredentialsHeaders"/>
+        <flow-ref name="SapItemsRequest" doc:name="Flow Reference"/>
+    </flow>
+    <flow name="SapItemsRequest">
+        <choice doc:name="Choice">
+            <when expression="#[flowVars.filtro == null]">
+                <json:json-to-object-transformer returnClass="java.util.HashMap" doc:name="JSON to Object"/>
+                <set-payload value="#[payload.ordenes]" doc:name="Set Payload"/>
+                <foreach doc:name="For Each">
+                    <choice doc:name="Choice">
+                        <when expression="#[flowVars.filtro == null]">
+                            <set-variable variableName="filtro" value="DocNum eq #[payload]" doc:name="Set filtro"/>
+                        </when>
+                        <otherwise>
+                            <set-variable variableName="filtro" value="#[flowVars.filtro] or DocNum eq #[payload]" doc:name="Set filtro"/>
+                        </otherwise>
+                    </choice>
+                </foreach>
+            </when>
+            <otherwise>
+                <logger message="The filters are already loaded." level="INFO" doc:name="Logger"/>
+            </otherwise>
+        </choice>
+        <logger message="[SAP Recuperar Ordenes de Compra GET] Filtro: [#[flowVars.filtro]]" level="INFO" category="com.limpiolux" doc:name="Logger"/>
+        <http:request config-ref="HTTP_Request_Configuration" path="/PurchaseOrders" method="GET" doc:name="GET OC from SAP">
+            <http:request-builder>
+                <http:query-param paramName="$filter" value="#[flowVars.filtro]"/>
+                <http:query-param paramName="$select" value="DocEntry, DocNum, DocumentLines"/>
+                <http:header headerName="Set-Cookie" value="B1SESSION=#[flowVars.SessID]; path=/b1s; "/>
+                <http:header headerName="Set-Cookie" value="ROUTEID=.node0; path=/b1s;"/>
+            </http:request-builder>
+        </http:request>
+        <logger message="Respuesta SAP: #[message.payloadAs(java.lang.String)]" level="INFO" category="com.limpiolux" doc:name="Logger"/>
+        <expression-component doc:name="JsonToObject PurchaseOrders"><![CDATA[payload = message.payloadAs(java.lang.String);
+payload = com.acqua.tools.JsonParser.jsonToObject(payload, "com.acqua.model.OdataPO");]]></expression-component>
+        <set-payload value="#[payload.value]" doc:name="Set Payload"/>
+        <flow-ref name="getItemsDesc" doc:name="getItemsDesc"/>
+        <logger message="Items Recuperados: #[payload]" level="INFO" category="com.limpiolux" doc:name="Logger"/>
+        <message-properties-transformer doc:name="Message Properties">
+            <add-message-property key="User" value="#[flowVars.User]"/>
+            <add-message-property key="Password" value="#[flowVars.Pass]"/>
+            <add-message-property key="SessionID" value="#[flowVars.SessID]"/>
+            <add-message-property key="Database" value="#[flowVars.DB]"/>
+        </message-properties-transformer>
+        <exception-strategy ref="http-status-Choice_Exception_Strategy" doc:name="Reference Exception Strategy"/>
+    </flow>
+
+    <sub-flow name="getItemsDesc">
+        <logger message="Retriveing Items from DocumentLines" level="INFO" doc:name="Logger"/>
+        <foreach doc:name="For Each Orden de Compra">
+            <json:object-to-json-transformer doc:name="Object to JSON"/>
+            <json:json-to-object-transformer returnClass="java.util.HashMap" doc:name="JSON to Object"/>
+            <set-payload value="#[payload.docLines]" doc:name="Set Payload"/>
+            <foreach doc:name="For Each Item in DocumentLines">
+                <expression-component doc:name="ItemConsolidador.checkItems()"><![CDATA[flowVars.ItemCargado = com.acqua.tools.ItemConsolidador.checkItems(payload.itemCode)]]></expression-component>
+                <choice doc:name="Choice">
+                    <when expression="#[payload.lineStatus == &quot;bost_Open&quot; &amp;&amp; flowVars.ItemCargado == false]">
+                        <set-payload value="{&quot;itemId&quot;: &quot;#[payload.itemCode]&quot;,   &quot;itemDesc&quot;: &quot;#[payload.itemDesc]&quot;, &quot;barCode&quot;:&quot;#[payload.barCode]&quot; }" doc:name="Set Payload"/>
+                        <choice doc:name="Choice">
+                            <when expression="#[flowVars.itemDesc == null]">
+                                <set-variable variableName="itemDesc" value="#[payload]" doc:name="set itemDesc"/>
+                            </when>
+                            <otherwise>
+                                <set-variable variableName="itemDesc" value="#[flowVars.itemDesc],#[payload]" doc:name="set itemDesc"/>
+                            </otherwise>
+                        </choice>
+                    </when>
+                    <when expression="#[payload.lineStatus == &quot;bost_Open&quot; &amp;&amp; flowVars.ItemCargado == true]">
+                        <logger message="Item #[payload.itemCode] ya fue cargado en el sistema" level="INFO" doc:name="Logger"/>
+                    </when>
+                    <otherwise>
+                        <logger message="DocumentLine Status: &quot;#[payload.lineStatus]&quot;" level="INFO" doc:name="Logger" category="com.limpiolux"/>
+                    </otherwise>
+                </choice>
+
+            </foreach>
+        </foreach>
+        <expression-component doc:name="ItemConsolador.resetCheckItems()"><![CDATA[com.acqua.tools.ItemConsolidador.resetCheckItems();]]></expression-component>
+        <set-payload value="[ #[flowVars.itemDesc] ]" doc:name="Set Payload"/>
+    </sub-flow>
+</mule>

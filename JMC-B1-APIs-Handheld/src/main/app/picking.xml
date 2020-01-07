@@ -1,0 +1,367 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:mulexml="http://www.mulesoft.org/schema/mule/xml" xmlns:json="http://www.mulesoft.org/schema/mule/json" xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:spring="http://www.springframework.org/schema/beans" 
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/json/current/mule-json.xsd
+http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd
+http://www.mulesoft.org/schema/mule/xml http://www.mulesoft.org/schema/mule/xml/current/mule-xml.xsd">
+    
+    <flow name="pickingFlow">
+        <http:listener config-ref="HTTP_Listener_Configuration" path="/Picking" allowedMethods="POST" doc:name="HTTP"/>
+        <flow-ref name="SetCredentialsHeaders" doc:name="SetCredentialsHeaders"/>
+        <json:json-to-object-transformer returnClass="java.util.HashMap" doc:name="JSON to Object"/>
+        <set-variable variableName="filter" value="#[payload.fecha]" doc:name="set filter"/>
+        <flow-ref name="SapRequestPickList" doc:name="SapRequestPickList"/>
+    </flow>
+    <flow name="SapRequestPickList">
+        <set-variable variableName="flowName" value="SapRequestPickList" doc:name="set flowName"/>
+        <logger message="[SAP Recuperar Picking] Fecha: #[flowVars.filter]" level="INFO" category="com.limpiolux" doc:name="Logger"/>
+        <http:request config-ref="HTTP_Request_Configuration" path="/PickLists" method="GET" doc:name="HTTP">
+            <http:request-builder>
+                <http:query-param paramName="$filter" value="PickDate eq '#[flowVars.filter]'"/>
+                <http:header headerName="Set-Cookie" value="B1SESSION=#[flowVars.SessID]; path=/b1s; "/>
+                <http:header headerName="Set-Cookie" value="ROUTEID=.node0; path=/b1s;"/>
+            </http:request-builder>
+        </http:request>
+        
+        <expression-component doc:name="JsonParser.jsonToObject(PickList)"><![CDATA[payload = message.payloadAs(java.lang.String);
+payload = com.acqua.tools.JsonParser.jsonToObject(payload,"com.acqua.model.OdataPL");
+]]></expression-component>
+        <choice doc:name="Choice">
+            <when expression="#[payload.value.size() &gt;= 1]">
+                <set-payload value="#[payload.value]" doc:name="Set Payload"/>
+                <foreach doc:name="For Each">
+                    <choice doc:name="Choice">
+                        <when expression="#[payload.status == &quot;ps_Released&quot; || payload.status == &quot;ps_Picked&quot;]">
+                            <json:object-to-json-transformer doc:name="Object to JSON"/>
+                            <json:json-to-object-transformer returnClass="java.util.HashMap" doc:name="JSON to Object"/>
+                            <enricher target="#[flowVars.pickList]" doc:name="Message Enricher">
+                                <set-payload value="{ &quot;pickNum&quot;:&quot;#[payload.absoluteEntry]&quot;, &quot;name&quot;:&quot;#[payload.nameLb]&quot;, &quot;pickDate&quot;:&quot;#[payload.pickDate]&quot;, &quot;objectType&quot;:&quot;156&quot;, &quot;ownerCode&quot;:&quot;#[payload.ownerCode]&quot;, &quot;pickStatus&quot;:&quot;#[payload.status]&quot;," doc:name="Set Payload"/>
+                            </enricher>
+                            <choice doc:name="Choice">
+                                <when expression="#[flowVars.pickList != null]">
+                                    <set-payload value="#[flowVars.pickList] &quot;pickListLines&quot;:[] }" doc:name="Set Payload"/>
+                                    <choice doc:name="Choice">
+                                        <when expression="#[flowVars.PickLists == null]">
+                                            <set-variable variableName="PickLists" value="#[payload]" doc:name="set PickLists"/>
+                                        </when>
+                                        <otherwise>
+                                            <set-variable variableName="PickLists" value="#[flowVars.PickLists] , #[payload]" doc:name="set PickLists"/>
+                                        </otherwise>
+                                    </choice>
+                                </when>
+                                <otherwise>
+                                    <logger message="No hay pickings" level="INFO" category="com.limpiolux" doc:name="Logger"/>
+                                </otherwise>
+                            </choice>
+                            <remove-variable variableName="pickList" doc:name="Variable"/>
+                            <remove-variable variableName="linesinfo" doc:name="Variable"/>
+                        </when>
+                        <otherwise>
+                            <logger message="Picking N* #[payload.absoluteEntry] Status Closed" level="INFO" category="com.limiplux" doc:name="Logger"/>
+                        </otherwise>
+                    </choice>
+                </foreach>
+            </when>
+            <otherwise>
+                <logger message="No hay pickings" level="INFO" doc:name="Logger" category="com.limpiolux"/>
+            </otherwise>
+        </choice>
+        <choice doc:name="Choice">
+            <when expression="#[flowVars.PickLists != null]">
+                <set-payload value="[#[flowVars.PickLists]]" mimeType="application/json" doc:name="Set Payload"/>
+            </when>
+            <otherwise>
+                <set-payload value="Nada pendiente en la fecha seleccionada." mimeType="application/json" doc:name="Set Payload"/>
+            </otherwise>
+        </choice>
+        <logger level="INFO" doc:name="Logger" category="com.limpiolux" message="Datos de Pickings Recuperados: #[payload]"/>
+        <message-properties-transformer doc:name="Message Properties">
+            <add-message-property key="User" value="#[flowVars.User]"/>
+            <add-message-property key="Password" value="#[flowVars.Pass]"/>
+            <add-message-property key="SessionID" value="#[flowVars.SessID]"/>
+            <add-message-property key="Database" value="#[flowVars.DB]"/>
+        </message-properties-transformer>
+        <exception-strategy ref="http-status-Choice_Exception_Strategy" doc:name="Reference Exception Strategy"/>
+    </flow>
+    <sub-flow name="getPickListLines">
+        <logger message="getPickListLines" level="INFO" category="com.limpiolux" doc:name="Logger"/>
+        <foreach doc:name="For Each">
+            <set-variable variableName="saleEntry" value="#[payload.orderEntry]" doc:name="set saleEntry"/>
+            <set-variable variableName="lineNumber" value="#[payload.lineNumber]" doc:name="Set lineNumber"/>
+            <set-variable variableName="pickedQuantity" value="#[payload.pickedQuantity]" doc:name="Set pickedQuantity"/>
+            <set-variable variableName="releasedQuantity" value="#[payload.previouslyReleasedQuantity  != null ? payload.previouslyReleasedQuantity : payload.prevRQ]" doc:name="set ReleasedQuantity"/>
+            <set-variable variableName="orderRowID" value="#[payload.orderRowID]" doc:name="Set OrderRowID"/>
+            <set-variable variableName="pickStatus" value="#[payload.pickStatus != null ? payload.pickStatus : &quot;Closed&quot;]" doc:name="Set pickStatus"/>
+            <flow-ref name="getSalesOrders" doc:name="getSalesOrders"/>
+        </foreach>
+    </sub-flow>
+    <flow name="getSalesOrders">
+        <set-variable variableName="flowName" value="getSalesOrders" doc:name="Set flowName"/>
+        <http:request config-ref="HTTP_Request_Configuration" path="/Orders(#[flowVars.saleEntry])" method="GET" doc:name="HTTP">
+            <http:request-builder>
+                <http:query-param paramName="$select" value="DocumentLines"/>
+                <http:header headerName="Set-Cookie" value="B1SESSION=#[flowVars.SessID]; path=/b1s; "/>
+                <http:header headerName="Set-Cookie" value="ROUTEID=.node0; path=/b1s;"/>
+            </http:request-builder>
+        </http:request>
+        <expression-component doc:name="Expression"><![CDATA[payload = message.payloadAs(java.lang.String);
+payload = com.acqua.tools.JsonParser.jsonToObject(payload,"com.acqua.model.PurchaseOrders")
+]]></expression-component>
+        <json:object-to-json-transformer doc:name="Object to JSON"/>
+        <json:json-to-object-transformer doc:name="JSON to Object" returnClass="java.util.HashMap"/>
+        <set-payload value="#[payload.docLines]" doc:name="Set Payload"/>
+        <foreach doc:name="For Each">
+            <choice doc:name="Choice">
+                <when expression="#[(payload.lineNum == flowVars.lineNumber) &amp;&amp; (flowVars.pickStatus == &quot;ps_Released&quot; || flowVars.pickStatus == &quot;ps_Picked&quot;) &amp;&amp; (flowVars.releasedQuantity != 0)]">
+                    <set-payload value="{  &quot;baseObjectType&quot;: &quot;17&quot;,  &quot;orderEntry&quot;:&quot;#[flowVars.saleEntry]&quot;,  &quot;orderRowID&quot;: &quot;#[flowVars.orderRowID]&quot;,   &quot;itemCode&quot;:&quot;#[payload.itemCode]&quot;,  &quot;itemDescription&quot;:&quot;#[payload.itemDesc]&quot;,  &quot;quantity&quot;:&quot;#[flowVars.releasedQuantity]&quot;, &quot;lineNum&quot;:&quot;#[flowVars.lineNumber]&quot;, &quot;unitOfMea&quot;:&quot;#[payload.unitOfMea]&quot;, &quot;pickedQuantity&quot;: &quot;#[flowVars.pickedQuantity]&quot;, &quot;binLocations&quot; : &quot;#[flowVars['binLocation-' + flowVars.lineNumber]]&quot; }" doc:name="Set Payload"/>
+                    <choice doc:name="Choice">
+                        <when expression="#[flowVars.linesInfo == null]">
+                            <set-variable variableName="linesInfo" value="#[payload]" doc:name="set linesInfo"/>
+                        </when>
+                        <otherwise>
+                            <set-variable variableName="linesInfo" value="#[flowVars.linesInfo], #[payload]" doc:name="set linesInfo"/>
+                        </otherwise>
+                    </choice>
+                </when>
+                <otherwise>
+                    <logger message="Closed" level="INFO" doc:name="Logger"/>
+                </otherwise>
+            </choice>
+        </foreach>
+        <exception-strategy ref="http-status-Choice_Exception_Strategy" doc:name="Reference Exception Strategy"/>
+    </flow>
+    <flow name="pickingFlow1">
+        <http:listener config-ref="HTTP_Listener_Configuration" path="/confirPick" allowedMethods="POST" doc:name="HTTP"/>
+        <flow-ref name="SetCredentialsHeaders" doc:name="SetCredentialsHeaders"/>
+        <flow-ref name="SapPickingRequest" doc:name="SapPickingRequest"/>
+        
+    </flow>
+    <flow name="SapPickingRequest">
+        <set-variable variableName="flowName" value="SapPickingRequest" doc:name="set flowName"/>
+        <choice doc:name="Choice">
+            <when expression="#[flowVars.Absoluteentry == null &amp;&amp; flowVars.PickAllocation == null]">
+                <json:json-to-object-transformer returnClass="java.util.HashMap" doc:name="JSON to Object"/>
+                <set-variable variableName="Absoluteentry" value="#[payload.absoluteEntry]" doc:name="set Absoluteentry"/>
+                <set-variable variableName="handRequest" value="#[payload]" doc:name="set handRequest"/>
+                <json:object-to-json-transformer doc:name="Object to JSON"/>
+                <expression-component doc:name="Expression"><![CDATA[payload = message.payloadAs(java.lang.String)
+
+]]></expression-component>
+                <set-variable variableName="PickAllocation" value="#[payload]" mimeType="application/json" doc:name="set PickAllocation"/>
+                <set-payload value="#[flowVars.handRequest]" doc:name="Set Payload"/>
+                <expression-component doc:name="Expression"><![CDATA[payload = payload.pickListsLines]]></expression-component>
+                <foreach doc:name="For Each">
+                    <set-variable variableName="pickQuantity-#[payload.lineNumber]" value="#[payload.pickedQuantity]" doc:name="Set pickQuantity"/>
+                </foreach>
+            </when>
+            <otherwise>
+                <logger level="INFO" doc:name="Logger" category="com.limpiolux" message="Error al procesar datos de Picking"/>
+            </otherwise>
+        </choice>
+        <set-payload value="{     }" mimeType="application/json" doc:name="Set Payload"/>
+        <http:request config-ref="HTTP_Request_Configuration" path="/PickLists(#[flowVars.Absoluteentry])/GetReleasedAllocation" method="POST" doc:name="HTTP">
+            <http:request-builder>
+                <http:header headerName="Set-Cookie" value="B1SESSION=#[flowVars.SessID]; path=/b1s; "/>
+                <http:header headerName="Set-Cookie" value="ROUTEID=.node0; path=/b1s;"/>
+            </http:request-builder>
+        </http:request>
+        <expression-component doc:name="Expression"><![CDATA[payload = message.payloadAs(java.lang.String);
+payload = com.acqua.tools.JsonParser.jsonToObject(payload,"com.acqua.model.PickList");
+]]></expression-component>
+        <set-variable variableName="pickStatus" value="#[payload.status]" doc:name="set pickStatus"/>
+        <set-payload value="#[payload.pickListLines]" doc:name="Set Payload"/>
+        <foreach doc:name="For Each">
+            <flow-ref name="getBinAllocations" doc:name="getBinAllocations"/>
+        </foreach>
+        <set-payload value="#[flowVars.handRequest]" doc:name="Set Payload"/>
+        <enricher target="#[flowVars.firstPick]" doc:name="Message Enricher">
+            <set-payload value="   &quot;Absoluteentry&quot;: #[payload.absoluteEntry],    &quot;Name&quot;: &quot;#[payload.nameLb]&quot;,    &quot;ObjectType&quot;: &quot;#[payload.objectType]&quot;,    &quot;PickDate&quot;: &quot;#[payload.pickDate]&quot;,    &quot;OwnerCode&quot;: #[payload.ownerCode],       &quot;OwnerName&quot;: null,
+      &quot;Remarks&quot;: &quot;Aqua&quot;,
+      &quot;UseBaseUnits&quot;:&quot;tYES&quot;," doc:name="Set Payload"/>
+        </enricher>
+        <expression-component doc:name="Expression"><![CDATA[payload = payload.pickListsLines]]></expression-component>
+        <foreach doc:name="For Each">
+            <set-payload value="{  &quot;AbsoluteEntry&quot;: #[payload.absoluteEntry],    &quot;OrderEntry&quot;: #[payload.orderEntry],   &quot;OrderRowID&quot;: #[payload.orderRowID],   &quot;LineNumber&quot;: #[payload.lineNumber],   &quot;PickedQuantity&quot;: #[payload.pickedQuantity],   &quot;BaseObjectType&quot;: 17,   &quot;SerialNumbers&quot;: [],         &quot;BatchNumbers&quot;: [],   &quot;DocumentLinesBinAllocations&quot;: [   #[flowVars[&quot;binsAllocations-&quot; + payload.lineNumber]]   ]  }" doc:name="Set Payload"/>
+            <choice doc:name="Choice">
+                <when expression="#[flowVars.createPickLine == null]">
+                    <set-variable variableName="createPickLine" value="#[payload]" doc:name="set createPickLine"/>
+                </when>
+                <otherwise>
+                    <set-variable variableName="createPickLine" value="#[flowVars.createPickLine], #[payload]" doc:name="set createPickLine"/>
+                </otherwise>
+            </choice>
+            <logger level="INFO" doc:name="Logger"/>
+        </foreach>
+        <choice doc:name="Choice">
+            <when expression="#[flowVars.pickStatus != &quot;ps_Released&quot;]">
+                <flow-ref name="updatePickList" doc:name="updatePickList"/>
+            </when>
+            <otherwise>
+                <logger message="Released" level="INFO" category="com.limpiolux" doc:name="Logger"/>
+            </otherwise>
+        </choice>
+        <set-payload value="{ #[flowVars.firstPick] &quot;PickListsLines&quot;: [ #[flowVars.createPickLine] ] } " mimeType="application/json" doc:name="Set Payload"/>
+        <logger message="[SAP Actualizar PickList POST] #[flowVars.PickAllocation]" level="INFO" doc:name="Logger"/>
+        <http:request config-ref="HTTP_Request_Configuration" path="/PickLists(#[flowVars.Absoluteentry])" method="PATCH" doc:name="HTTP"/>
+        <set-payload value="Picking Realizado" doc:name="Set Payload"/>
+        <message-properties-transformer doc:name="Message Properties">
+            <add-message-property key="User" value="#[flowVars.User]"/>
+            <add-message-property key="Password" value="#[flowVars.Pass]"/>
+            <add-message-property key="SessionID" value="#[flowVars.SessID]"/>
+            <add-message-property key="Database" value="#[flowVars.DB]"/>
+        </message-properties-transformer>
+        <exception-strategy ref="http-status-Choice_Exception_Strategy" doc:name="Reference Exception Strategy"/>
+    </flow>
+    <sub-flow name="getBinAllocations">
+        <mulexml:object-to-xml-transformer doc:name="Object to XML"/>
+        <json:xml-to-json-transformer doc:name="XML to JSON"/>
+        <json:json-to-object-transformer returnClass="java.util.HashMap" doc:name="JSON to Object"/>
+        <foreach doc:name="For Each">
+            <set-variable variableName="lineNumber" value="#[payload.lineNumber]" doc:name="set lineNumber"/>
+            <set-variable variableName="pickLineInfo" value="#[payload]" doc:name="set pickLineInfo"/>
+            <choice doc:name="Choice">
+                <when expression="#[payload.docbinAlloc != null]">
+                    <expression-component doc:name="Expression"><![CDATA[payload = payload.docbinAlloc]]></expression-component>
+                    <foreach doc:name="For Each">
+                        <choice doc:name="Choice">
+                            <when expression="#[payload.baseLineNumber == flowVars.lineNumber]">
+                                <set-variable variableName="binAbsEntry-#[payload.baseLineNumber]" value="#[payload.binAbsEntry]" doc:name="set binAbsEntry"/>
+                                <set-payload value="{   &quot;BinAbsEntry&quot;: #[payload.binAbsEntry],   &quot;BaseLineNumber&quot;: #[payload.baseLineNumber],   &quot;Quantity&quot;: #[flowVars[&quot;pickQuantity-&quot; + payload.baseLineNumber]] }" doc:name="Set Payload"/>
+                                <choice doc:name="Choice">
+                                    <when expression="#[flowVars.binsAllocation == null]">
+                                        <set-variable variableName="binsAllocations-#[flowVars.lineNumber]" value="#[payload]" doc:name="set binsAllocations"/>
+                                    </when>
+                                    <otherwise>
+                                        <set-variable variableName="binsAllocations-#[flowVars.lineNumber]" value="#[flowVars.binsAllocations], #[payload]" doc:name="set binsAllocations"/>
+                                    </otherwise>
+                                </choice>
+                            </when>
+                            <otherwise>
+                                <logger message="bin not from pickListLine" level="INFO" category="com.limpiolux" doc:name="Logger"/>
+                            </otherwise>
+                        </choice>
+                    </foreach>
+                </when>
+                <otherwise>
+                    <logger message="closed bin" level="INFO" category="com.limpiolux" doc:name="Logger"/>
+                </otherwise>
+            </choice>
+        </foreach>
+    </sub-flow>
+    <flow name="updatePickList">
+        <expression-component doc:name="Expression"><![CDATA[payload = flowVars.handRequest;
+payload = payload.pickListsLines;]]></expression-component>
+        <foreach doc:name="For Each">
+            <set-payload value="{   &quot;AbsoluteEntry&quot;: #[payload.absoluteEntry],   &quot;OrderEntry&quot;: #[payload.orderEntry],   &quot;OrderRowID&quot;: #[payload.orderRowID],   &quot;LineNumber&quot;: #[payload.lineNumber],   &quot;PickedQuantity&quot;: 0, &quot;ReleasedQuantity&quot;: #[payload.prevReleasedQuantity],   &quot;BaseObjectType&quot;: 17,   &quot;SerialNumbers&quot;: [],         &quot;BatchNumbers&quot;: [],   &quot;DocumentLinesBinAllocations&quot;: [  { &quot;BinAbsEntry&quot;: #[flowVars[&quot;binAbsEntry-&quot; + payload.lineNumber]], &quot;BaseLineNumber&quot;: #[payload.lineNumber], &quot;Quantity&quot;: #[payload.prevReleasedQuantity]    }    ]  }" doc:name="Set Payload"/>
+            <choice doc:name="Choice">
+                <when expression="#[flowVars.updatePickLine == null]">
+                    <set-variable variableName="updatePickLine" value="#[payload]" doc:name="set updatePickLine"/>
+                </when>
+                <otherwise>
+                    <set-variable variableName="updatePickLine" value="#[flowVars.updatePickLine], #[payload]" doc:name="set updatePickLine"/>
+                </otherwise>
+            </choice>
+        </foreach>
+        <set-payload value="{
+&quot;PickList&quot;: {
+#[flowVars.firstPick] &quot;PickListsLines&quot;: [ #[flowVars.updatePickLine] ] } }" doc:name="Set Payload"/>
+        <http:request config-ref="HTTP_Request_Configuration" path="/PickListsService_UpdateReleasedAllocation" method="POST" doc:name="HTTP">
+            <http:request-builder>
+                <http:header headerName="Set-Cookie" value="B1SESSION=#[flowVars.SessID]; path=/b1s; "/>
+                <http:header headerName="Set-Cookie" value="ROUTEID=.node0; path=/b1s;"/>
+            </http:request-builder>
+        </http:request>
+    </flow>
+    <flow name="getPicking">
+        <http:listener config-ref="HTTP_Listener_Configuration" path="/getPick" allowedMethods="POST" doc:name="HTTP"/>
+        <flow-ref name="SetCredentialsHeaders" doc:name="SetCredentialsHeaders"/>
+        <json:json-to-object-transformer returnClass="java.util.HashMap" doc:name="JSON to Object"/>
+        <set-variable variableName="Absoluteentry" value="#[payload.pickNum]" doc:name="set Absoluteentry"/>
+        <flow-ref name="SapRequestPickListByNum" doc:name="SapRequestPickListByNum"/>
+    </flow>
+    <flow name="SapRequestPickListByNum">
+        <set-variable variableName="flowName" value="SapRequestPickListByNum" doc:name="set flowName"/>
+        <set-payload value="{}" mimeType="application/json" doc:name="Set Payload"/>
+        <http:request config-ref="HTTP_Request_Configuration" path="/PickLists(#[flowVars.Absoluteentry])/GetReleasedAllocation" method="POST" doc:name="HTTP"/>
+        <expression-component doc:name="Expression"><![CDATA[payload = message.payloadAs(java.lang.String);
+payload = com.acqua.tools.JsonParser.jsonToObject(payload,"com.acqua.model.PickList");
+]]></expression-component>
+        <set-variable variableName="SapResponse" value="#[payload]" doc:name="save SapResponse"/>
+        <mulexml:object-to-xml-transformer doc:name="Object to XML"/>
+        <json:xml-to-json-transformer doc:name="XML to JSON"/>
+        <json:json-to-object-transformer returnClass="java.util.HashMap" doc:name="JSON to Object"/>
+        <foreach doc:name="For Each">
+            <enricher target="#[flowVars.pickList]" doc:name="Message Enricher">
+                <set-payload value="{ &quot;pickNum&quot;:&quot;#[payload.absoluteEntry]&quot;, &quot;name&quot;:&quot;#[payload.nameLb]&quot;, &quot;pickDate&quot;:&quot;#[payload.pickDate]&quot;, &quot;objectType&quot;:&quot;156&quot;, &quot;ownerCode&quot;:&quot;#[payload.ownerCode]&quot;, &quot;pickStatus&quot;:&quot;#[payload.status]&quot;," doc:name="Set Payload"/>
+            </enricher>
+            <set-variable variableName="payloadSave" value="#[payload.pickListLines]" doc:name="save payload"/>
+            <flow-ref name="getItemLocation" doc:name="getItemLocation"/>
+            <expression-component doc:name="Expression"><![CDATA[payload = flowVars.SapResponse;
+
+]]></expression-component>
+            <json:object-to-json-transformer doc:name="Object to JSON"/>
+            <json:json-to-object-transformer returnClass="java.util.HashMap" doc:name="JSON to Object"/>
+            <expression-component doc:name="Expression"><![CDATA[payload = payload.pickListLines
+
+
+]]></expression-component>
+            <flow-ref name="getPickListLines" doc:name="getPickListLines"/>
+        </foreach>
+        <set-payload value="#[flowVars.pickList] &quot;pickListLines&quot;:[#[flowVars.linesInfo]] }" doc:name="Set Payload"/>
+        <logger message="Picking Individual Recuperado: #[payload]" level="INFO" category="com.limpiolux" doc:name="Logger"/>
+        <message-properties-transformer doc:name="Message Properties">
+            <add-message-property key="User" value="#[flowVars.User]"/>
+            <add-message-property key="Password" value="#[flowVars.Pass]"/>
+            <add-message-property key="SessionID" value="#[flowVars.SessID]"/>
+            <add-message-property key="Database" value="#[flowVars.DB]"/>
+        </message-properties-transformer>
+        <exception-strategy ref="http-status-Choice_Exception_Strategy" doc:name="Reference Exception Strategy"/>
+    </flow>
+    <sub-flow name="getItemLocation">
+        <set-variable variableName="flowName" value="getItemLocation" doc:name="set flowName"/>
+
+        <expression-component doc:name="Expression"><![CDATA[payload = flowVars.payloadSave]]></expression-component>
+        <foreach doc:name="For Each">
+            <choice doc:name="Choice">
+                <when expression="#[payload.absoluteEntry != null]">
+                    <logger message="Process 1 Item" level="INFO" category="com.limpiolux" doc:name="Logger"/>
+                    <flow-ref name="getBinLoc" doc:name="getBinLoc"/>
+
+                </when>
+                <otherwise>
+                    <foreach doc:name="For Each">
+                        <logger message="Process more than 1 Item" level="INFO" category="com.limpiolux" doc:name="Logger"/>
+                        <flow-ref name="getBinLoc" doc:name="getBinLoc"/>
+
+                    </foreach>
+                </otherwise>
+            </choice>
+        </foreach>
+        
+    </sub-flow>
+    <flow name="getBinLoc">
+    <set-variable variableName="lineNum" value="#[payload.lineNumber]" doc:name="set lineNum"/>
+                    <choice doc:name="Choice">
+                        <when expression="#[payload.docbinAlloc != null]">
+                            <expression-component doc:name="Expression"><![CDATA[payload = payload.docbinAlloc]]></expression-component>
+                            <foreach doc:name="For Each">
+                                <set-variable variableName="binLocationEntry" value="#[payload.binAbsEntry]" doc:name="set binLocationEntry"/>
+                            </foreach>
+                            <http:request config-ref="HTTP_Request_Configuration" path="/BinLocations(#[flowVars.binLocationEntry])" method="GET" doc:name="HTTP"/>
+                            <expression-component doc:name="Expression"><![CDATA[payload = message.payloadAs(java.lang.String);
+payload = com.acqua.tools.JsonParser.jsonToObject(payload,"com.acqua.model.BinLocations")]]></expression-component>
+                            <set-variable variableName="binLocation-#[flowVars.lineNum]" value="#[payload.binCode]" doc:name="set binLocation"/>
+                            <logger level="INFO" doc:name="Logger"/>
+                        </when>
+                        <otherwise>
+                            <logger level="INFO" doc:name="Logger"/>
+                        </otherwise>
+                    </choice>
+                    <exception-strategy ref="http-status-Choice_Exception_Strategy" doc:name="Reference Exception Strategy"/>
+    </flow>
+</mule>

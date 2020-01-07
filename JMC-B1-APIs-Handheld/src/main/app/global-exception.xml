@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:json="http://www.mulesoft.org/schema/mule/json" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:spring="http://www.springframework.org/schema/beans" 
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/json/current/mule-json.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd">
+    <choice-exception-strategy name="http-status-Choice_Exception_Strategy">
+        <catch-exception-strategy when="#[message.inboundProperties['http.status'] == 401]" doc:name="ReLogin">
+            <set-payload value="{ &quot;UserName&quot;: &quot;#[flowVars.User]&quot;, &quot;Password&quot;: &quot;#[flowVars.Pass]&quot;, &quot;CompanyDB&quot;: &quot;#[flowVars.DB]&quot; }" doc:name="Set Payload"/>
+            <http:request config-ref="HTTP_Request_Configuration" path="/Login" method="POST" doc:name="Login"/>
+            <expression-component doc:name="Expression"><![CDATA[payload = message.payloadAs(java.lang.String);]]></expression-component>
+            <json:json-to-object-transformer returnClass="java.lang.Object" doc:name="JSON to Object"/>
+            <set-variable variableName="SessID" value="#[message.payload.SessionId]" doc:name="Set New SessID"/>
+            <flow-ref name="#[flowVars.flowName]" doc:name="Flow Reference"/>
+        </catch-exception-strategy>
+        <catch-exception-strategy when="#[message.inboundProperties['http.status'] == 400]" doc:name="Catch Exception Strategy">
+            <set-property propertyName="http.status" value="#[201]" doc:name="Property"/>
+            <set-payload value="Datos ingresados incorrectos" doc:name="Set Payload"/>
+            <message-properties-transformer doc:name="Message Properties">
+                <add-message-property key="User" value="#[flowVars.User]"/>
+                <add-message-property key="Password" value="#[flowVars.Pass]"/>
+                <add-message-property key="SessionID" value="#[flowVars.SessID]"/>
+                <add-message-property key="Database" value="#[flowVars.DB]"/>
+            </message-properties-transformer>
+        </catch-exception-strategy>
+    </choice-exception-strategy>
+</mule>

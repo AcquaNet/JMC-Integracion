@@ -1,0 +1,35 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:file="http://www.mulesoft.org/schema/mule/file" xmlns:tls="http://www.mulesoft.org/schema/mule/tls" xmlns:context="http://www.springframework.org/schema/context" xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns:json="http://www.mulesoft.org/schema/mule/json" xmlns:dw="http://www.mulesoft.org/schema/mule/ee/dw" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:spring="http://www.springframework.org/schema/beans" 
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee/dw/current/dw.xsd
+http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/json/current/mule-json.xsd
+http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd
+http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-current.xsd
+http://www.mulesoft.org/schema/mule/tls http://www.mulesoft.org/schema/mule/tls/current/mule-tls.xsd
+http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd">
+    <http:listener-config name="HTTP_Listener_Configuration" host="0.0.0.0" port="8082" doc:name="HTTP Listener Configuration"/>
+   <http:request-config name="HTTP_Request_Configuration" host="${sap.host}" port="${sap.port}" basePath="${sap.basepath}" doc:name="HTTP Request Configuration" protocol="HTTPS" enableCookies="true">
+        <tls:context enabledProtocols="TLSv1,TLSv1.1,TLSv1.2">
+            <tls:trust-store path="saplogin.jks" password="123456" type="jks" insecure="true"/>
+        </tls:context>
+    </http:request-config>
+    <context:property-placeholder location="config/dev.properties"/>
+    <file:connector name="Application" outputPattern="LimpioLuxDev.exe" autoDelete="false" streaming="false" validateConnections="true" doc:name="File"/>
+    <sub-flow name="SetCredentialsHeaders">
+        <set-variable variableName="User" value="#[message.inboundProperties['user']]" doc:name="Set User"/>
+        <set-variable variableName="Pass" value="#[message.inboundProperties['password']]" doc:name="Set Pass"/>
+        <set-variable variableName="DB" value="#[message.inboundProperties['database']]" doc:name="Set DB"/>
+        <set-variable variableName="SessID" value="#[message.inboundProperties['sessionid']]" doc:name="Set SessID"/>
+    </sub-flow>
+    <flow name="global-configFlow">
+        <http:listener config-ref="HTTP_Listener_Configuration" path="/download" allowedMethods="GET" doc:name="HTTP"/>
+        <set-payload value="https://drive.google.com/uc?export=download&amp;id=1zA0vrmuZcYXKx_POjA7y24wYRrvxPHlo  https://drive.google.com/uc?export=download&amp;id=1bJs7gIx9dEEmsElePeRTwUjaaA5NzpQE     {    &quot;muleIp&quot;: &quot;192.168.0.7&quot;,        &quot;mulePort&quot;: &quot;8081&quot;,        &quot;logPath&quot;: &quot;/logs/&quot;,       &quot;dbName&quot;: &quot;DM_DEV&quot;,        &quot;handheld&quot;: &quot;HH2&quot; }    " doc:name="Set Payload"/>
+    </flow>
+    
+
+</mule>
