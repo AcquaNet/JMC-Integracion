@@ -1,0 +1,286 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:schedulers="http://www.mulesoft.org/schema/mule/schedulers" xmlns:jbossts="http://www.mulesoft.org/schema/mule/jbossts" xmlns:jms="http://www.mulesoft.org/schema/mule/jms" xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns:json="http://www.mulesoft.org/schema/mule/json" xmlns:metadata="http://www.mulesoft.org/schema/mule/metadata" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:spring="http://www.springframework.org/schema/beans" 
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/json/current/mule-json.xsd
+http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd
+http://www.mulesoft.org/schema/mule/jms http://www.mulesoft.org/schema/mule/jms/current/mule-jms.xsd
+http://www.mulesoft.org/schema/mule/jbossts http://www.mulesoft.org/schema/mule/jbossts/current/mule-jbossts.xsd
+http://www.mulesoft.org/schema/mule/schedulers http://www.mulesoft.org/schema/mule/schedulers/current/mule-schedulers.xsd">
+       <spring:beans >
+        <spring:bean name="startupListener" class="sapb1masterpoll.ActiveMQManager" />
+        
+    </spring:beans>
+    <flow name="B1_Sync_FetchFlow">
+        <http:listener config-ref="HTTP_Listener_Configuration" path="/1" allowedMethods="GET" doc:name="HTTP"/>
+        <flow-ref name="PollFlow" doc:name="Flow Reference"/>
+    </flow>
+    
+    
+    <flow name="PollFlow" processingStrategy="synchronous">
+        <poll doc:name="Poll">
+            <fixed-frequency-scheduler frequency="300" startDelay="5" timeUnit="SECONDS"/>
+            <logger message="Levantado de datos a persistencia iniciado" level="INFO" category="jmc.log" doc:name="Logger"/>
+        </poll>
+        <expression-component doc:name="Start Lock"><![CDATA[sapb1masterpoll.LockHandler.FetchLock();]]></expression-component>
+        <set-variable variableName="destinations" value="${sapB1.destinations}" encoding="ISO-8859-6" doc:name="set destinations"/>
+        <set-variable variableName="pathList" value="${sapB1.pathList}" doc:name="setPathList"/>
+        <expression-component doc:name="save UniqueIDs"><![CDATA[flowVars.uniqueIDList = sapb1masterpoll.StringToJSON.stringToMap("${sapB1.UniqueID.List}")]]></expression-component>
+        <set-payload value="{  &quot;CompanyDB&quot;:  &quot;${sapB1.DB}&quot;,  &quot;UserName&quot;: &quot;${sapB1.user}&quot;,  &quot;Password&quot;: &quot;${sapB1.pass}&quot; }" doc:name="Set Login Details" metadata:id="c28e6111-315a-4214-8037-f4317eb12a09"/>
+        <flow-ref name="sapB1LoginFlow" doc:name="sapB1LoginFlow"/>
+        <foreach collection="#[flowVars.pathList.split(',')]" doc:name="For Each Master Record">
+            <logger message="Inicio de Loop en Colleccion de Datos de: #[payload]" level="INFO" category="jmc.log" doc:name="Logger"/>
+            <expression-component doc:name="Clean all variables"><![CDATA[flowVars.AfterCounter=null;
+flowVars.mostRecent=null;
+flowVars.activeQ=null;
+flowVars.savePayloadForAfter=null;
+flowVars.savePayloadForBetween=null;
+flowVars.payloadMessage=null;
+flowVars.update=null;]]></expression-component>
+            <expression-component doc:name="set UniqueID"><![CDATA[flowVars.UniqueID = flowVars.uniqueIDList[payload]]]></expression-component>
+            <expression-component doc:name="set Request Path"><![CDATA[flowVars.requestPath = payload;]]></expression-component>
+            <flow-ref name="sapb1masterpollFlow" doc:name="sapb1masterpollFlow"/>
+        </foreach>
+        <expression-component doc:name="End Lock"><![CDATA[sapb1masterpoll.LockHandler.FetchUnLock();
+flowVars.AfterCounter=null;
+flowVars.mostRecent=null;
+flowVars.activeQ=null;
+flowVars.savePayloadForAfter=null;
+flowVars.savePayloadForBetween=null;
+flowVars.payloadMessage=null;
+flowVars.update=null;]]></expression-component>
+        <choice-exception-strategy doc:name="Choice Exception Strategy">
+            <catch-exception-strategy when="#[true]" doc:name="Catch Exception Strategy">
+                <expression-component doc:name="Finally - Unlock Lock"><![CDATA[sapb1masterpoll.LockHandler.FetchUnLock();]]></expression-component>
+                <set-payload value="#[exception.getDetailedMessage()]" doc:name="Set error message"/>
+            </catch-exception-strategy>
+        </choice-exception-strategy>
+
+    </flow>
+
+    <flow name="sapB1LoginFlow" processingStrategy="synchronous">
+        <logger message="Iniciando session a #[payload]" level="INFO" category="jmc.log" doc:name="Logger"/>
+
+        <http:request config-ref="HTTP_Request_Configuration" path="Login" method="POST" doc:name="HTTP"/>
+        <expression-component doc:name="Save Session"><![CDATA[flowVars.B1Session =sapb1masterpoll.StringToJSON.stringToMap(message.payloadAs(java.lang.String));]]></expression-component>
+        <logger message="Login OK, guardados datos de B1SESSION a variable" level="INFO" category="jmc.log" doc:name="Logger"/>
+    </flow>
+    <flow name="sapb1masterpollFlow" processingStrategy="synchronous">
+        <logger message="Carga de de fecha desde archivo de #[flowVars.requestPath]" level="INFO" category="jmc.log" doc:name="Logger"/>
+        <expression-component doc:name="Set Time"><![CDATA[flowVars.update = sapb1masterpoll.CurrentTimeSaver.getUpdateTime(flowVars.requestPath)]]></expression-component>
+
+        <set-variable variableName="requestType" value="After" doc:name="requestType"/>
+        <expression-component doc:name="Variable setting"><![CDATA[flowVars.savePayloadForAfter = sapb1masterpoll.WorkUtils.createList();
+flowVars.savePayloadForBetween = sapb1masterpoll.WorkUtils.createList();]]></expression-component>
+        <flow-ref name="GetDataForDates" doc:name="GetDataForDates"/>
+
+
+        <flow-ref name="CheckIfNullOrEmpty" doc:name="CheckIfNullOrEmpty"/>
+        <choice doc:name="Choice">
+            <when expression="#[payload.size() &gt; 0]">
+                <logger message="Sent to Poll" level="INFO" category="jmc.log" doc:name="Logger"/>
+                <flow-ref name="SendToPoll" doc:name="SendToPoll"/>
+            </when>
+            <otherwise>
+                <logger doc:name="Logger" level="INFO" message="Pool Dodged" category="jmc.log"/>
+            </otherwise>
+        </choice>
+        <logger doc:name="Task Finished - Return" level="INFO" message="Task Finished" category="jmc.log"/>
+
+
+    </flow>
+    <flow name="GetMoreResultsBetween" processingStrategy="synchronous">
+
+
+        <http:request config-ref="HTTP_Request_Configuration" path="#[flowVars.requestPath]" method="GET" doc:name="Fetch Next Batch of Results">
+            <http:request-builder>
+                <http:query-param paramName="$filter" value="(UpdateDate gt '#[flowVars.mostRecent.UpdateDate]' and UpdateDate lt '#[flowVars.patchUpdate.UpdateDate]' or UpdateDate eq '#[flowVars.mostRecent.UpdateDate]' and UpdateTime gt '#[flowVars.mostRecent.UpdateTime]' and UpdateTime lt '#[flowVars.patchUpdate.UpdateTime]')"/>
+                <http:query-param paramName="$skip" value="#[flowVars.SkipCounter]"/>
+                <http:header headerName="Set-Cookie" value="B1SESSION=#[flowVars.B1Session.SessionId]; path=/b1s; "/>
+
+            </http:request-builder>
+        </http:request>
+        <expression-component doc:name="Transform result to HashMap"><![CDATA[payload = sapb1masterpoll.StringToJSON.stringToMap(message.payloadAs(java.lang.String));]]></expression-component>
+
+    </flow>
+        <flow name="GetMoreResultsAfter" processingStrategy="synchronous">
+
+        <http:request config-ref="HTTP_Request_Configuration" path="#[flowVars.requestPath]" method="GET" doc:name="Fetch Next Batch of Results">
+            <http:request-builder>
+                <http:query-param paramName="$filter" value="(UpdateDate gt '#[flowVars.update.UpdateDate]' or UpdateDate eq '#[flowVars.update.UpdateDate]' and UpdateTime gt '#[flowVars.update.UpdateTime]' or UpdateDate eq null)"/>
+                <http:query-param paramName="$skip" value="#[flowVars.SkipCounter]"/>
+                <http:header headerName="Set-Cookie" value="B1SESSION=#[flowVars.B1Session.SessionId]; path=/b1s; "/>
+
+            </http:request-builder>
+        </http:request>
+        <expression-component doc:name="Transform result to HashMap"><![CDATA[payload = sapb1masterpoll.StringToJSON.stringToMap(message.payloadAs(java.lang.String));]]></expression-component>
+
+    </flow>
+    <flow name="GetDataForDates" processingStrategy="synchronous">
+        <set-variable variableName="resultFromLoop" value="#[sapb1masterpoll.WorkUtils.createList()]" doc:name="Pre-Set Variable"/>
+        <choice doc:name="Choice">
+            <when expression="#[flowVars.requestType.equals(&quot;After&quot;)]">
+                <expression-component doc:name="Set which flow to loop after"><![CDATA[flowVars.flowReference = "GetMoreResultsAfter";]]></expression-component>
+                <component class="sapb1masterpoll.WhileLoop" doc:name="WhileLoop"/>
+                <expression-component doc:name="Save Payload"><![CDATA[payload = flowVars.resultFromLoop;
+flowVars.resultFromLoop = null;]]></expression-component>
+
+            </when>
+            <when expression="#[flowVars.requestType.equals(&quot;Between&quot;)]">
+                <expression-component doc:name="Set which flow to loop between"><![CDATA[flowVars.flowReference = "GetMoreResultsBetween";]]></expression-component>
+                <component class="sapb1masterpoll.WhileLoop" doc:name="WhileLoop"/>
+                <expression-component doc:name="Save Payload"><![CDATA[payload =flowVars.resultFromLoop;
+flowVars.resultFromLoop = null;]]></expression-component>
+
+            </when>
+            <otherwise>
+                <logger  doc:name="RequestType Not Specified"/>
+            </otherwise>
+        </choice>
+        <logger level="INFO" doc:name="Logger" message="Finished Getting Info"/>
+    </flow>
+
+
+    <flow name="CheckIfNullOrEmpty" processingStrategy="synchronous">
+        <logger message="Checkeando si hay novedades #[flowVars.requestPath]" level="INFO" category="jmc.log" doc:name="Logger"/>
+        <choice doc:name="Check if payload is empty (0 novedades)">
+            <when expression="#[payload.size() &gt; 0]">
+                <expression-component doc:name="Save the most recent update"><![CDATA[flowVars.mostRecent = sapb1masterpoll.CompareUtils.getMostRecetString(flowVars.requestPath,flowVars.UniqueID,payload)]]></expression-component>
+                <choice doc:name="Check if contains nulls">
+                    <when expression="#[!sapb1masterpoll.CheckUtils.containsNull(payload)]">
+                        <logger message="No hay objetos nulos en las novedades de #[flowVars.requestPath]" level="INFO" category="jmc.log" doc:name="No Nulls Found"/>
+                    </when>
+                    <when expression="#[sapb1masterpoll.CheckUtils.containsNull(payload)]">
+                        <logger message="Hay Objetos con fecha null de #[flowVars.requestPath]" level="INFO" category="jmc.log" doc:name="Has Objects with Null UpdateDate"/>
+                        <expression-component doc:name="save payload and null values to nullValues"><![CDATA[flowVars.notNullValues = sapb1masterpoll.CheckUtils.getNotNulls(payload);
+flowVars.nullValues = sapb1masterpoll.CheckUtils.getNulls(payload);]]></expression-component>
+                        <flow-ref name="patchElements" doc:name="patchElements"/>
+                        <set-variable variableName="requestType" value="Between" doc:name="setBetween"/>
+                        <flow-ref name="GetDataForDates" doc:name="GetDataForDates"/>
+                        <logger message="Combinado de resultados nuevos y entre fechas de #[flowVars.requestPath]" level="INFO" category="jmc.log" doc:name="Logger"/>
+                        <expression-component doc:name="Combinar resultados de la busqueda y setearlo al Payload"><![CDATA[payload = sapb1masterpoll.WorkUtils.addOntoList(flowVars.UniqueID,flowVars.notNullValues,flowVars.savePayloadForBetween);
+]]></expression-component>
+                        <logger message="Checkear si hay nulos entre las fechas nuevas de #[flowVars.requestPath]" level="INFO" category="jmc.log" doc:name="Logger"/>
+                        <flow-ref name="CheckIfNullOrEmpty" doc:name="CheckIfNullOrEmpty"/>
+                    </when>
+                    <otherwise>
+                        <logger level="ERROR" doc:name="No deberia suceder nunca."/>
+                    </otherwise>
+                </choice>
+
+            </when>
+            <otherwise>
+                <logger  doc:name="El search esta vacio" category="jmc.log" level="INFO" message="No hay novedades de #[flowVars.requestPath]"/>
+            </otherwise>
+        </choice>
+    </flow>
+    <flow name="patchElements" processingStrategy="synchronous">
+        <logger message="Inicio de patch a elementos nulos de #[flowVars.requestPath]" level="INFO" category="jmc.log" doc:name="Logger"/>
+        <set-variable variableName="LastCodeChecked" value="" doc:name="setLastCodeChecked"/>
+
+        <foreach collection="#[flowVars.nullValues]" doc:name="For Each">
+            <expression-component doc:name="Guardar UniqueID del ultimo"><![CDATA[flowVars.LastCodeChecked = payload[flowVars.UniqueID]]]></expression-component>
+            <logger message="Patcheo de elemento nulo de #[flowVars.requestPath] de ID Unica #[payload[flowVars.UniqueID]]" level="INFO" category="jmc.log" doc:name="Logger"/>
+            <flow-ref name="B1_Sync_PatchElement_Flow" doc:name="PatchElementFlow"/>
+
+        </foreach>
+        <logger message="Buscar la fecha del patch del objeto de #[flowVars.requestPath] de ID #[flowVars.LastCodeChecked]" level="INFO" category="jmc.log" doc:name="Logger"/>
+        <http:request config-ref="HTTP_Request_Configuration" path="#[flowVars.requestPath]('#[flowVars.LastCodeChecked]')" method="GET" doc:name="get Last Code DateTime">
+
+        </http:request>
+        <logger message="Guardar fecha del patch de #[flowVars.requestPath] de ID #[flowVars.LastCodeChecked]" level="INFO" category="jmc.log" doc:name="Logger"/>
+        <expression-component doc:name="Save Last DateTime From Patch"><![CDATA[payload = sapb1masterpoll.StringToJSON.stringToMap(message.payloadAs(java.lang.String));
+flowVars.patchUpdate = payload;]]></expression-component>
+    </flow>
+    <flow name="B1_Sync_PatchElement_Flow">
+        <set-payload value="{}" doc:name="Set Payload"/>
+        <http:request config-ref="HTTP_Request_Configuration" path="#[flowVars.requestPath]('#[flowVars.LastCodeChecked]')" method="PATCH" doc:name="Patch NULL Object">
+            <http:success-status-code-validator values="200..299,400"/>
+        </http:request>
+        <choice doc:name="Choice">
+            <when expression="#[message.inboundProperties['http.status'] == 400]">
+                <logger message="Error when updating time for element. Exception: #[message.payloadAs(java.lang.String)]" level="INFO" category="jmc.log" doc:name="Patch failed"/>
+                <expression-component doc:name="Set flowvars for emailReporting"><![CDATA[flowVars.RESTType = "PATCH";
+flowVars.shortURL = "('"+flowVars.LastCodeChecked+"')";
+flowVars.RequestURL = flowVars.requestPath+flowVars.shortURL;
+flowVars.ObjectID = flowVars.LastCodeChecked;
+flowVars.destination = "JMCG_DEV";
+flowVars.messageSaved = "{}";]]></expression-component>
+                <flow-ref name="B1_Sync_EmailReportingFlow" doc:name="EmailReport"/>
+            </when>
+            <otherwise>
+                <logger message="Patch OK" category="jmc.log" doc:name="Patch OK"/>
+            </otherwise>
+        </choice>
+    </flow>
+
+    <flow name="SendToPoll" processingStrategy="synchronous">
+        <logger message="Inicio de flow de envios de elementos a ActiveMQ de #[flowVars.requestPath]" level="INFO" category="jmc.log" doc:name="Logger"/>
+
+        <logger message="Ordernar novedades de #[flowVars.requestPath] por fecha" level="INFO" category="jmc.log" doc:name="Logger"/>
+        <expression-component doc:name="Order results by DateTime"><![CDATA[payload = sapb1masterpoll.CompareUtils.orderByDate(flowVars.UniqueID,payload);]]></expression-component>
+        <logger  doc:name="Logger" category="jmc.log" level="INFO" message="Connecting to ActiveMQ"/>
+        <expression-component doc:name="Connect to ActiveMQ"><![CDATA[flowVars.ActiveMQConnection = sapb1masterpoll.ActiveMQManager.connect();
+]]></expression-component>
+        <logger message="Order Code = #[payload.DocNum]" level="INFO" category="jmc.log" doc:name="Logger"/>
+        <expression-component doc:name="Check and split orders"><![CDATA[flowVars.OrderDestinations = sapb1masterpoll.StringToJSON.stringToMap("${sapB1.Orders.Destinations}");
+payload = sapb1masterpoll.WorkUtils.SplitMultipleDestinations(flowVars.requestPath,payload,flowVars.OrderDestinations);]]></expression-component>
+        <foreach collection="payload" doc:name="For Each">
+            <flow-ref name="forEachFlowTransaction" doc:name="forEachFlowTransaction"/>
+        </foreach>
+        <logger message="Envio de ActiveMQ de #[flowVars.requestPath] terminado, cerrando conexion a ActiveMQ" level="INFO" category="jmc.log" doc:name="Logger"/>
+        <expression-component doc:name="Close ActiveMQ Connection"><![CDATA[sapb1masterpoll.ActiveMQManager.endConnection(flowVars.ActiveMQConnection);]]></expression-component>
+
+
+    </flow>
+    <flow name="forEachFlowTransaction" processingStrategy="synchronous">
+        <expression-component doc:name="Remove Warehouse info from Items"><![CDATA[payload = sapb1masterpoll.WorkUtils.removeWarehouseInfo(flowVars.requestPath,payload);]]></expression-component>
+        <expression-component doc:name="Remove null useless properties"><![CDATA[payload = sapb1masterpoll.WorkUtils.removeUselessInfo(flowVars.requestPath,payload);]]></expression-component>
+        <logger message="DocNum being processed is #[payload.DocNum]" level="INFO" category="jmc.log" doc:name="Logger"/>
+
+
+        <expression-component doc:name="Save payload to variable"><![CDATA[flowVars.originalPayload = payload;
+flowVars.correctDestination = payload.destination;]]></expression-component>
+        <logger message="Inicio de Envio de flow de envio de #[flowVars.requestPath] de ID #[payload[flowVars.UniqueID]] y conexion a activeMQ" level="INFO" category="jmc.log" doc:name="Logger"/>
+        <expression-component doc:name="Start ActiveMQ Session"><![CDATA[flowVars.ActiveMQSession = sapb1masterpoll.ActiveMQManager.CreateProducerSession(flowVars.ActiveMQConnection);]]></expression-component>
+
+
+        <foreach collection="#[flowVars.destinations.split(',')]"  doc:name="For Each Destination">
+            <choice doc:name="Filtro de destino">
+                <when expression="#[(flowVars.correctDestination != null) ? payload.equals(flowVars.correctDestination) : true]">
+                    <expression-component doc:name="Swap Destination and Payload"><![CDATA[flowVars.destination = payload;
+flowVars.originalPayload.destination=null;
+payload=sapb1masterpoll.StringToJSON.javaToJSONToString(flowVars.originalPayload);
+]]></expression-component>
+                    <expression-component doc:name="Set Queue PATH"><![CDATA[flowVars.QueueName = "Queue_"+flowVars.requestPath+"_"+flowVars.destination;]]></expression-component>
+                    <logger message="Creado de Queue y Productor de ActiveMQ #[flowVars.QueueName]" level="INFO" category="jmc.log" doc:name="Logger"/>
+                    <expression-component doc:name="Create ActiveMQ Message Producer for Queue"><![CDATA[flowVars.ActiveMQProducer = sapb1masterpoll.ActiveMQManager.createMessageProducer(flowVars.QueueName,flowVars.ActiveMQSession );]]></expression-component>
+                    <logger message="Enviar mensaje a transaccion de #[flowVars.QueueName]" level="INFO" category="jmc.log" doc:name="Logger"/>
+                    <expression-component doc:name="Start Message Transaction to ActiveMQ"><![CDATA[sapb1masterpoll.ActiveMQManager.sendMessageToQueue(flowVars.QueueName,flowVars.ActiveMQSession,payload);]]></expression-component>
+                </when>
+                <otherwise>
+                    <logger  doc:name="Logger" category="jmc.log" level="INFO" message="Destination is not equals #[payload] - #[flowVars.originalPayload.destination]"/>
+                </otherwise>
+            </choice>
+
+
+        </foreach>
+        <logger message="Intentar Guardar Fecha de #[flowVars.requestPath]" level="INFO" category="jmc.log" doc:name="Logger"/>
+        <expression-component doc:name="Update Last Time"><![CDATA[sapb1masterpoll.CurrentTimeSaver.setUpdateTime(flowVars.requestPath, flowVars.mostRecent.UpdateTime,flowVars.mostRecent.UpdateDate);]]></expression-component>
+        <logger message="Commit Transaction de #[flowVars.requestPath]" level="INFO" category="jmc.log" doc:name="Logger"/>
+        <expression-component doc:name="Commit Transaction"><![CDATA[sapb1masterpoll.ActiveMQManager.commitTransaction(flowVars.ActiveMQSession);
+]]></expression-component>
+        <foreach collection="#[flowVars.destinations.split(',')]" doc:name="For Each Destination Close Producer">
+            <logger message="Cerrar el productor de mensajes de #[flowVars.QueueName]" level="INFO" category="jmc.log" doc:name="Logger"/>
+
+            <expression-component doc:name="End Message Producer "><![CDATA[sapb1masterpoll.ActiveMQManager.endMessageProducer("Queue_"+flowVars.requestPath+"_"+flowVars.destination);]]></expression-component>
+        </foreach>
+        <logger message="Cerrar la session de ActiveMQ de #[flowVars.requestPath]" level="INFO" category="jmc.log" doc:name="Logger"/>
+        <expression-component doc:name="End ActiveMQ Session"><![CDATA[sapb1masterpoll.ActiveMQManager.closeProducerSession(flowVars.ActiveMQSession);]]></expression-component>
+
+    </flow>
+</mule>

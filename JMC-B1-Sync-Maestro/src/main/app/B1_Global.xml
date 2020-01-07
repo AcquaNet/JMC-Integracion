@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:jms="http://www.mulesoft.org/schema/mule/jms"
+	xmlns:context="http://www.springframework.org/schema/context"
+	xmlns:tls="http://www.mulesoft.org/schema/mule/tls" xmlns:http="http://www.mulesoft.org/schema/mule/http"
+	xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:spring="http://www.springframework.org/schema/beans" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-current.xsd
+http://www.mulesoft.org/schema/mule/tls http://www.mulesoft.org/schema/mule/tls/current/mule-tls.xsd
+http://www.mulesoft.org/schema/mule/jms http://www.mulesoft.org/schema/mule/jms/current/mule-jms.xsd">
+	<spring:beans>
+		<spring:bean id="ActiveMQLooper" name="ActiveMQLooper"
+			class="sapb1masterpoll.ActiveMQLooper">
+		</spring:bean>
+		<spring:bean class="org.springframework.beans.factory.config.MethodInvokingFactoryBean">
+			<spring:property name="targetClass" value="sapb1masterpoll.ActiveMQManager" />
+			<spring:property name="targetMethod" value="setProperty" />
+			<spring:property name="arguments">
+				<spring:list>
+					<spring:value>host</spring:value>
+					<spring:value>${sapB1.activeMQ.host}</spring:value>
+				</spring:list>
+			</spring:property>
+		</spring:bean>
+		<spring:bean class="org.springframework.beans.factory.config.MethodInvokingFactoryBean">
+			<spring:property name="targetClass" value="sapb1masterpoll.ActiveMQManager" />
+			<spring:property name="targetMethod" value="setProperty" />
+			<spring:property name="arguments">
+				<spring:list>
+					<spring:value>user</spring:value>
+					<spring:value>${sapB1.activeMQ.user}</spring:value>
+				</spring:list>
+			</spring:property>
+		</spring:bean>
+		<spring:bean class="org.springframework.beans.factory.config.MethodInvokingFactoryBean">
+			<spring:property name="targetClass" value="sapb1masterpoll.ActiveMQManager" />
+			<spring:property name="targetMethod" value="setProperty" />
+			<spring:property name="arguments">
+				<spring:list>
+					<spring:value>pass</spring:value>
+					<spring:value>${sapB1.activeMQ.pass}</spring:value>
+				</spring:list>
+			</spring:property>
+		</spring:bean>
+	</spring:beans>
+
+
+	<http:request-config name="HTTP_Request_Configuration"
+		host="${sapB1.host}" port="${sapB1.port}" basePath="/b1s/v1/"
+		enableCookies="true" doc:name="HTTP Request Configuration" protocol="HTTPS">
+		<tls:context enabledProtocols="TLSv1,TLSv1.1,TLSv1.2">
+			<tls:trust-store path="keystore.jks" password="123456"
+				type="jks" insecure="true" />
+		</tls:context>
+	</http:request-config>
+	<http:listener-config name="HTTP_Listener_Configuration"
+		host="0.0.0.0" port="8081" basePath="login" doc:name="HTTP Listener Configuration" />
+	<jms:activemq-xa-connector
+		persistentDelivery="true" name="Active_MQ_Queue" specification="1.1"
+		username="${sapB1.activeMQ.user}" password="${sapB1.activeMQ.pass}"
+		brokerURL="${sapB1.activeMQ.host}" validateConnections="true"
+		doc:name="Active MQ" />
+</mule>
