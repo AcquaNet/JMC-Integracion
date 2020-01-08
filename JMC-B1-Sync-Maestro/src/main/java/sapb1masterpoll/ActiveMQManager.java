@@ -6,8 +6,10 @@ import javax.jms.*;
 
 import org.mule.api.context.notification.MuleContextNotificationListener;
 import org.mule.context.notification.MuleContextNotification;
+import org.apache.activemq.ActiveMQConnection;
 import org.apache.activemq.ActiveMQConnectionFactory;
 import org.apache.activemq.RedeliveryPolicy;
+import org.apache.activemq.command.ActiveMQQueue;
 import org.apache.log4j.Logger;
 
 public class ActiveMQManager implements MuleContextNotificationListener<MuleContextNotification> {
@@ -55,7 +57,7 @@ public class ActiveMQManager implements MuleContextNotificationListener<MuleCont
 		ActiveMQConnectionFactory connectionFactory = new ActiveMQConnectionFactory(host);
 		
 		// Create a Connection
-		Connection connection = connectionFactory.createConnection(user,pass);
+		ActiveMQConnection connection = (ActiveMQConnection) connectionFactory.createConnection(user,pass);
 		connection.start();
 
 		// Create a Session
@@ -162,6 +164,7 @@ public class ActiveMQManager implements MuleContextNotificationListener<MuleCont
 		sendDestination.remove(queue);
 		if (producer.get(queue) != null) {
 		producer.get(queue).close();
+		
 		}
 	}
 	
@@ -183,8 +186,12 @@ public class ActiveMQManager implements MuleContextNotificationListener<MuleCont
 	public static void sendMessageToQueue(String queue, Session session, String message) throws JMSException {
 		TextMessage msg = session.createTextMessage();
 		msg.setText(message);
-		LOG.info("Mensaje para enviar: "+message);
+		//LOG.info("Mensaje para enviar: "+message);
 		LOG.info("Enviar mensaje a queue: "+queue);
 		producer.get(queue).send(msg);
 	}
+	
+		  public void QueueDeleter(ActiveMQConnection connection, String queue) throws JMSException {
+			  connection.destroyDestination(new ActiveMQQueue(queue));
+		  }
 }

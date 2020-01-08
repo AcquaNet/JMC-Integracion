@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:spring="http://www.springframework.org/schema/beans" 
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd">
+<choice-exception-strategy name="CatchExceptionStrategy">
+        <catch-exception-strategy when="#[message.inboundProperties['http.status'] == 401]" doc:name="Catch 401 Unauthorized ">
+            <expression-component doc:name="Convert JSON to HashMap"><![CDATA[payload = acqua.util.JSONUtil.stringToMap(message.payloadAs(java.lang.String));]]></expression-component>
+            <expression-component doc:name="HTTP Status"><![CDATA[message.outboundProperties['http.status'] = 200;]]></expression-component>
+            <choice doc:name="Choice">
+                <when expression="#[payload.error.message.value.contains('DB Credentials')]">
+                    <set-payload value="Login Exception: #['\n']Wrong login details. Details inputted: #['\n'] CompanyDB: #[flowVars.CompanyDB] #['\n'] UserName: #[flowVars.UserName] #['\n'] Password: #[flowVars.Password]" doc:name="Wrong login details"/>
+                </when>
+                <when expression="#[payload.error.message.value.contains('Invalid session')]">
+                    <set-payload value="Login Exception: #['\n']Session expired" doc:name="Session expired"/>
+                    <flow-ref name="b1_hh_loginToSAP" doc:name="Re-Login"/>
+                </when>
+                <otherwise>
+                    <logger level="INFO" doc:name="Logger"/>
+                </otherwise>
+            </choice>
+        </catch-exception-strategy>
+        <catch-exception-strategy when="#[message.inboundProperties['http.status'] == 500 || message.inboundProperties['http.status'] == 504]" doc:name="500 || 504">
+            <expression-component doc:name="Set http status"><![CDATA[message.outboundProperties['http.status'] =200;
+flowVars.loginResult = "NOT OK";]]></expression-component>
+            <set-payload value="Login Exception: #['\n']Failed to recive an answer from SAP B1, is it offline?: #['\n'] #[exception.cause] #['\n']#[exception.getDetailedMessage()]" doc:name="Unknown error - Return it "/>
+        </catch-exception-strategy>
+        <catch-exception-strategy when="#[exception.cause.toString().contains('UnresolvedAddressException')]" doc:name="Unresolved Adress">
+            <expression-component doc:name="Set error"><![CDATA[message.outboundProperties['http.status'] = 400;
+flowVars.loginResult = "NOT OK";]]></expression-component>
+            <set-payload value="Login error: #['\n']#[exception.cause] #['\n']Is the host right? ${sapB1.host}:${sapB1.port}#[message.inboundProperties['http.request.path']]" doc:name="Set Payload"/>
+
+        </catch-exception-strategy>
+                <catch-exception-strategy when="#[exception.detailedMessage.contains('Net.checkAddress')]" doc:name="Failed to connect">
+            <expression-component doc:name="Copy_of_Set error"><![CDATA[message.outboundProperties['http.status'] = 400;
+flowVars.loginResult = "NOT OK";]]></expression-component>
+            <set-payload value="Login error: #['\n']#[exception.cause] #['\n']Is the host right? ${sapB1.host}:${sapB1.port}#[message.inboundProperties['http.request.path']]" doc:name="Set Payload"/>
+        </catch-exception-strategy>
+        <catch-exception-strategy when="#[true]" doc:name="Non catched exception">
+            <expression-component doc:name="Set error"><![CDATA[message.outboundProperties['http.status'] = 400;
+message.outboundProperties['customError'] = payload;
+flowVars.loginResult = "NOT OK";
+]]></expression-component>
+            <set-payload value="Login error: #['\n']#[exception.cause] #['\n']Is the host right? ${sapB1.host}:${sapB1.port}#[message.inboundProperties['http.request.path']]" doc:name="Set Payload"/>
+
+        </catch-exception-strategy>
+
+    </choice-exception-strategy>
+    </mule>

@@ -11,15 +11,12 @@ http://www.mulesoft.org/schema/mule/jms http://www.mulesoft.org/schema/mule/jms/
 http://www.mulesoft.org/schema/mule/jbossts http://www.mulesoft.org/schema/mule/jbossts/current/mule-jbossts.xsd
 http://www.mulesoft.org/schema/mule/schedulers http://www.mulesoft.org/schema/mule/schedulers/current/mule-schedulers.xsd">
     <jms:activemq-xa-connector name="Active_MQ" specification="1.1" username="admin" password="admin" brokerURL="tcp://localhost:61616" validateConnections="true" persistentDelivery="true" doc:name="Active MQ"/>
+    
     <flow name="B1_Sync_DistributeFlow1">
         <http:listener config-ref="HTTP_Listener_Configuration" path="/2" allowedMethods="GET" doc:name="HTTP"/>
         <flow-ref name="ActiveMQDistributeFlow" doc:name="Flow Reference"/>
     </flow>
      <flow name="ActiveMQDistributeFlow" processingStrategy="synchronous">
-        <poll doc:name="Poll">
-            <fixed-frequency-scheduler frequency="300" startDelay="125" timeUnit="SECONDS"/>
-            <logger message="Flow Distribute Start" level="INFO" category="jmc.log" doc:name="Logger"/>
-        </poll>
         <expression-component doc:name="Start Dist Lock"><![CDATA[sapb1masterpoll.LockHandler.DistLock();]]></expression-component>
         <flow-ref name="InitSettings" doc:name="Init Settings"/>
         <logger message="Iniciar conexion a ActiveMQ" level="INFO" category="jmc.log" doc:name="Logger"/>
@@ -32,13 +29,16 @@ payload=flowVars.payloadMessage;]]></expression-component>
             <flow-ref name="sapB1LoginFlow" doc:name="Login"/>
             <foreach collection="#[flowVars.pathList.split(',')]" doc:name="For Each Master Record">
                 <logger message="Inicio de loop de #[payload] de #[flowVars.destination]" level="INFO" category="jmc.log" doc:name="Logger"/>
-                <expression-component doc:name="Set UniqueID"><![CDATA[flowVars.UniqueID = flowVars.uniqueIDList[payload]]]></expression-component>
+                <expression-component doc:name="Set flowVars.dist_UniqueID"><![CDATA[flowVars.dist_UniqueID = flowVars.dist_UniqueIDList[payload]]]></expression-component>
                 <expression-component doc:name="Set Type of the UniqueID"><![CDATA[flowVars.UniqueType = flowVars.UniqueTypeList[payload]]]></expression-component>
-                <expression-component doc:name="Set Request Path"><![CDATA[flowVars.requestPath = payload;]]></expression-component>
+                <expression-component doc:name="Set Request Path"><![CDATA[flowVars.dist_requestPath = payload;]]></expression-component>
                 <choice doc:name="Choice">
-                    <when expression="#[flowVars.destinationTable[flowVars.requestPath][flowVars.destination] != null]">
+                    <when expression="#[flowVars.destinationTable[flowVars.dist_requestPath][flowVars.destination] != null]">
                         <flow-ref name="B1_Sync_DistributeFlow" doc:name="Sync Distribute"/>
                     </when>
+                    <otherwise>
+                        <logger message="empty" doc:name="Logger"/>
+                    </otherwise>
                 </choice>
 
             </foreach>
@@ -57,7 +57,9 @@ payload=flowVars.payloadMessage;]]></expression-component>
         <logger message="Seteado de variables de flow de distribucion" level="INFO" category="jmc.log" doc:name="Logger"/>
         <set-variable variableName="destinations" value="${sapB1.destinations}" encoding="ISO-8859-6" doc:name="set destinations"/>
         <set-variable variableName="pathList" value="${sapB1.pathList}" doc:name="setPathList"/>
-        <expression-component doc:name="save UniqueIDs"><![CDATA[flowVars.uniqueIDList = sapb1masterpoll.StringToJSON.stringToMap("${sapB1.UniqueID.List}")]]></expression-component>
+        <expression-component doc:name="save UniqueIDs"><![CDATA[flowVars.dist_UniqueIDList = sapb1masterpoll.StringToJSON.stringToMap("${sapB1.UniqueID.List}");
+flowVars.Fetch_UniqueUpdate = sapb1masterpoll.StringToJSON.stringToMap("${sapB1.UniqueUpdate.List}");
+]]></expression-component>
         <expression-component doc:name="save UniqueID Types"><![CDATA[flowVars.UniqueTypeList = sapb1masterpoll.StringToJSON.stringToMap("${sapB1.UniqueType.List}")]]></expression-component>
         <set-variable variableName="destinationTable" value="${sapB1.destinationsTable}" doc:name="Save Per Object Destinations"/>
         <expression-component doc:name="Convert DestinationTable to HashMap"><![CDATA[flowVars.destinationTable = sapb1masterpoll.StringToJSON.stringToMap(flowVars.destinationTable);
@@ -74,7 +76,7 @@ flowVars.destinationTable = sapb1masterpoll.WorkUtils.convertInsideJSON(flowVars
         </choice-exception-strategy>
     </flow>
     <flow name="b1_sync_distributeFlow" processingStrategy="synchronous">
-        <expression-component doc:name="Set Queue Name"><![CDATA[flowVars.QueueName = "Queue_"+flowVars.requestPath+"_"+flowVars.destination]]></expression-component>
+        <expression-component doc:name="Set Queue Name"><![CDATA[flowVars.QueueName = "Queue_"+flowVars.dist_requestPath+"_"+flowVars.destination]]></expression-component>
         <logger message="Inicio de sesion de #[flowVars.QueueName]" level="INFO" doc:name="Logger" category="jmc.log"/>
         <expression-component doc:name="Start ActiveMQ Session"><![CDATA[flowVars.ActiveMQSession = sapb1masterpoll.ActiveMQManager.CreateSession(flowVars.QueueName, flowVars.ActiveMQConnection);
 flowVars.ActiveMQDestination = sapb1masterpoll.ActiveMQManager.createDestination(flowVars.QueueName, flowVars.ActiveMQSession);
@@ -101,51 +103,52 @@ sapb1masterpoll.ActiveMQManager.closeSession(flowVars.ActiveMQSession);]]></expr
     <flow name="B1_Sync_ProcessQueue" processingStrategy="synchronous">
         <logger message="Inicio de processamiento de mensaje de #[flowVars.QueueName]" level="INFO" category="jmc.log" doc:name="Logger"/>
         <expression-component doc:name="Convert payload"><![CDATA[payload = sapb1masterpoll.StringToJSON.stringToMap(payload);
-payload = sapb1masterpoll.WorkUtils.removeStandardPrice(payload);]]></expression-component>
+]]></expression-component>
         <expression-component doc:name="Save Message to FlowVar"><![CDATA[flowVars.identificador = payload.DocNum;
 payload.U_identificador = payload.DocNum;
+payload = sapb1masterpoll.WorkUtils.removeStandardPrice(payload);
 flowVars.messageSaved =payload;]]></expression-component>
         <logger message="El identificador es U_identificador=#[flowVars.identificador] destino=#[flowVars.destination]" level="INFO" category="jmc.log" doc:name="Logger"/>
-
         <choice doc:name="Check if its a document">
             <when expression="#[flowVars.UniqueType.equals('String')]">
-                <expression-component doc:name="Set the Link to hit for Master"><![CDATA[flowVars.requestURL = flowVars.requestPath+"('"+payload[flowVars.UniqueID]+"')";
-flowVars.ObjectID=payload[flowVars.UniqueID];]]></expression-component>
+                <expression-component doc:name="Set the Link to hit for Master"><![CDATA[flowVars.dist_requestURL = flowVars.dist_requestPath+"('"+payload[flowVars.dist_UniqueID]+"')";
+flowVars.ObjectID=payload[flowVars.dist_UniqueID];]]></expression-component>
             </when>
             <otherwise>
-                <expression-component doc:name="Set the Link to hit for Docs"><![CDATA[flowVars.ObjectID=payload[flowVars.UniqueID];
-flowVars.requestURL = flowVars.requestPath+"?$filter=U_identificador eq "+flowVars.identificador;
+                <expression-component doc:name="Set the Link to hit for Docs"><![CDATA[flowVars.ObjectID=payload[flowVars.dist_UniqueID];
+flowVars.dist_requestURL = flowVars.dist_requestPath+"?$filter=U_identificador eq "+flowVars.identificador;
 ]]></expression-component>
-
             </otherwise>
         </choice>
-        <http:request config-ref="HTTP_Request_Configuration" path="#[flowVars.requestURL]" method="GET" doc:name="Check if it exists on Destination">
+        <logger message="Request URL: #[flowVars.dist_requestURL]" level="INFO" category="jmc.log" doc:name="Logger"/>
+        <http:request config-ref="HTTP_Request_Configuration" path="#[flowVars.dist_requestURL]" method="GET" doc:name="Check if it exists on Destination">
             <http:request-builder>
-                <http:header headerName="Set-Cookie" value="B1SESSION=#[flowVars.B1Session.SessionId]; path=/b1s; "/>
+                <http:header headerName="Set-Cookie" value="B1SESSION=#[flowVars.Fetch_B1Session.SessionId]; path=/b1s; "/>
             </http:request-builder>
             <http:success-status-code-validator values="200..299,404"/>
         </http:request>
-        <expression-component doc:name="Transform Payload"><![CDATA[payload = sapb1masterpoll.StringToJSON.stringToMap(message.payloadAs(java.lang.String));]]></expression-component>
-
+        <expression-component doc:name="Transform Payload"><![CDATA[payload = sapb1masterpoll.StringToJSON.stringToMap(message.payloadAs(java.lang.String));
+flowVars.originalRequest = flowVars.dist_requestURL;]]></expression-component>
         <choice doc:name="Check if its a document">
             <when expression="#[flowVars.UniqueType.equals('String')]">
-                <expression-component doc:name="Remove already used barcodes on same Item"><![CDATA[flowVars.messageSaved = sapb1masterpoll.WorkUtils.removeUsedBarcodes(flowVars.requestPath, payload, flowVars.messageSaved);]]></expression-component>
+                <logger message="Non-Document" level="INFO" category="jmc.log" doc:name="Ignore, Request URL is fine"/>
+                <expression-component doc:name="Remove already used barcodes on same Item"><![CDATA[flowVars.messageSaved = sapb1masterpoll.WorkUtils.removeUsedBarcodes(flowVars.dist_requestPath, payload, flowVars.messageSaved);]]></expression-component>
                 <expression-component doc:name="Align with rest"><![CDATA[flowVars.placeholder = sapb1masterpoll.WorkUtils.createList();
 flowVars.placeholder.add(payload);
 payload = flowVars.placeholder;
 payload = sapb1masterpoll.WorkUtils.CheckIfOk(payload);]]></expression-component>
-
-                <logger doc:name="Ignore, Request URL is fine" category="jmc.log" level="INFO" message="Non-Document"/>
             </when>
             <otherwise>
+                <logger message="Document, Set payload.value as payload" level="INFO" category="jmc.log" doc:name="Document"/>
                 <expression-component doc:name="Set payload.value as payload"><![CDATA[payload = payload.value;]]></expression-component>
                 <choice doc:name="Check if payload is empty">
                     <when expression="#[payload.size() &gt;=1]">
+                        <logger message="Payload de document esta vacio" level="INFO" category="jmc.log" doc:name="payload is empty"/>
                         <expression-component doc:name="Transform result into payload to get the docEntry"><![CDATA[flowVars.DocEntry=payload[0].DocEntry;
 flowVars.saveElement = payload[0];
 payload.clear();
 payload.add(flowVars.saveElement);
-flowVars.requestURL = flowVars.requestPath+"("+flowVars.DocEntry+")";]]></expression-component>
+flowVars.dist_requestURL = flowVars.dist_requestPath+"("+flowVars.DocEntry+")";]]></expression-component>
                     </when>
                     <otherwise>
                         <logger doc:name="Vacio"/>
@@ -153,34 +156,56 @@ flowVars.requestURL = flowVars.requestPath+"("+flowVars.DocEntry+")";]]></expres
                 </choice>
             </otherwise>
         </choice>
-        <logger message="Link de HTTP Request GET: #[flowVars.requestURL]" level="INFO" category="jmc.log" doc:name="Logger"/>
-
-
+        <logger message="Link de HTTP Request GET: #[flowVars.dist_requestURL]" level="INFO" category="jmc.log" doc:name="Logger"/>
         <choice doc:name="Choice">
             <when expression="#[((payload.size() &gt;= 1) ? (payload[0].error == null) : false)]">
-                <expression-component doc:name="Result Exists- Patch"><![CDATA[flowVars.RESTType="PATCH"]]></expression-component>
-                <logger message="URL de HTTP PATCH: #[flowVars.requestURL]" level="INFO" category="jmc.log" doc:name="Logger"/>
-                <expression-component doc:name="Set Back Payload"><![CDATA[payload=flowVars.messageSaved;
+                <expression-component doc:name="Result Exists- PATCH"><![CDATA[flowVars.RESTType= flowVars.Fetch_UniqueUpdate[flowVars.dist_requestPath];]]></expression-component>
+                <expression-component doc:name="Set Back Payload"><![CDATA[flowVars.RESTType = sapb1masterpoll.WorkUtils.PostIfItsACancelledPurchaseOrder(flowVars.messageSaved, flowVars.RESTType, flowVars.dist_requestPath);
+flowVars.dist_requestURL = sapb1masterpoll.WorkUtils.CheckIfItsACancelledPurchaseOrder(flowVars.messageSaved,flowVars.dist_requestPath, flowVars.DocEntry, true, flowVars.UniqueType, flowVars.dist_requestURL);
+payload=flowVars.messageSaved;
 flowVars.hasDocNum = (payload.DocNum != null) ? payload.remove("DocNum") : false;
 payload = sapb1masterpoll.StringToJSON.javaToJSONToString(payload);]]></expression-component>
+                <logger message="URL de HTTP #[flowVars.RESTType] #[flowVars.dist_requestURL]" level="INFO" category="jmc.log" doc:name="Logger"/>
             </when>
             <when expression="#[((payload.size() &gt;= 1) ? (payload[0].error != null) : true)]">
-                <expression-component doc:name="Request Doesnt Exist- POST"><![CDATA[flowVars.RESTType="POST"]]></expression-component>
-                <expression-component doc:name="Set correct URL for POST"><![CDATA[flowVars.requestURL = flowVars.requestPath]]></expression-component>
-                <logger message="URL de POST: #[flowVars.requestURL]" level="INFO" category="jmc.log" doc:name="Logger"/>
+                <expression-component doc:name="Request Doesnt Exist- POST"><![CDATA[flowVars.RESTType="POST";]]></expression-component>
+                <expression-component doc:name="Set correct URL for POST"><![CDATA[flowVars.dist_requestURL = sapb1masterpoll.WorkUtils.CheckIfItsACancelledPurchaseOrder(flowVars.messageSaved,flowVars.dist_requestPath, flowVars.DocEntry, false, flowVars.UniqueType, flowVars.dist_requestURL);
+]]></expression-component>
+                <logger message="URL de POST: #[flowVars.dist_requestURL]" level="INFO" category="jmc.log" doc:name="Logger"/>
                 <expression-component doc:name="Set back payload"><![CDATA[payload=flowVars.messageSaved;
 payload = sapb1masterpoll.StringToJSON.javaToJSONToString(payload);
 flowVars.messageSaved = payload;]]></expression-component>
             </when>
             <otherwise>
-                <logger doc:name="Error - Not found nor fund?" level="ERROR" category="jmc.log" message="No esta seteado si hacer Patch o POST #[flowVars.QueueName]"/>
+                <logger message="No esta seteado si hacer Patch o POST #[flowVars.QueueName]" level="ERROR" category="jmc.log" doc:name="Error - Not found nor fund?"/>
             </otherwise>
         </choice>
-
-        <http:request config-ref="HTTP_Request_Configuration" path="#[flowVars.requestURL]" method="#[flowVars.RESTType]" doc:name="Send the patch or post to database">
-            <http:success-status-code-validator values="200..299,400"/>
+        <transformer ref="transformJSON" doc:name="Fix JSON"/>
+        <expression-component doc:name="set new changed payload"><![CDATA[flowVars.messageSaved = payload;]]></expression-component>
+        <http:request config-ref="HTTP_Request_Configuration" path="#[flowVars.dist_requestURL]" method="#[flowVars.RESTType]" doc:name="Send the patch or post to database">
+            <http:request-builder>
+                <http:header headerName="Set-Cookie" value="B1SESSION=#[flowVars.Fetch_B1Session.SessionId]; path=/b1s; "/>
+            </http:request-builder>
+            <http:success-status-code-validator values="200..299,400,404"/>
         </http:request>
-        <logger message="Mensaje Actualizado en destino, setear OK" level="INFO" category="jmc.log" doc:name="Logger"/>
+        <choice doc:name="Choice">
+            <when expression="#[message.inboundProperties['http.status'] &lt; 400]">
+                <logger message="Mensaje Actualizado en destino, setear OK. Status: #[message.inboundProperties['http.status']" level="INFO" category="jmc.log" doc:name="Logger"/>
+
+            </when>
+            <otherwise>
+                <logger message="Error actualizando en destino. Status: #[message.inboundProperties['http.status'] " level="INFO" category="jmc.log" doc:name="Logger"/>
+                <logger message="Respuesta de SL: payload: #[message.payloadAs(java.lang.String)]" level="INFO" category="jmc.log" doc:name="Logger"/>
+            </otherwise>
+        </choice>
         <expression-component doc:name="set flow result"><![CDATA[flowVars.FlowStatus = "OK";]]></expression-component>
+        <choice-exception-strategy doc:name="Copy_of_Choice Exception Strategy">
+            <catch-exception-strategy when="#[exception.cause.toString().contains('Timeout exceeded')]" doc:name="Timeout on Login">
+                <expression-component doc:name="Expression"><![CDATA[flowVars.Fetch_messageSaved = "Error al loguear en SAP.";
+flowVars.ErrorCodeReason = "Timeout al intentar enviar algo a SAP";]]></expression-component>
+                <flow-ref name="B1_Sync_EmailReportingFlow" doc:name="Log timeout issue"/>
+            </catch-exception-strategy>
+        </choice-exception-strategy>
     </flow>
+
 </mule>

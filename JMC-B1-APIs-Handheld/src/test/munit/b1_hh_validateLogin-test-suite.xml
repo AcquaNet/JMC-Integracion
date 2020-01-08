@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:munit="http://www.mulesoft.org/schema/mule/munit" xmlns:spring="http://www.springframework.org/schema/beans" xmlns:core="http://www.mulesoft.org/schema/mule/core" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/munit http://www.mulesoft.org/schema/mule/munit/current/mule-munit.xsd
+http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd">
+    <munit:config name="munit" doc:name="MUnit configuration"/>
+    <spring:beans>
+        <spring:import resource="classpath:API/b1_hh_validateLogin.xml"/>
+    </spring:beans>
+    <munit:test name="b1_hh_validateLogin-test-suite-b1_hh_validateLoginFlowTest" description="Test">
+        <set-payload value="{ &quot;entorno&quot; : &quot;DEV&quot;, &quot;user&quot; : &quot;consultor&quot;, &quot;pass&quot; : &quot;33d3a1b450a9fe871cabdfc13db2c2e0&quot; }" doc:name="Set Payload"/>
+        <flow-ref name="b1_hh_validateLoginFlow" doc:name="Flow-ref to b1_hh_validateLoginFlow"/>
+        <munit:assert-payload-equals message="Output message is not matching expected value" expectedValue="#[payload]" doc:name="Assert Payload"/>
+    </munit:test>
+</mule>

@@ -51,7 +51,7 @@ public class ActiveMQLooper implements Callable {
 			event = invokeMuleFlow(message, eventContext.getMuleContext(), "LoopingFlow", flowVars);
 				//System.out.println("### Logging flowVars");
 				
-				if (event.getMessage().getInboundProperty("http.status").equals(400)) {
+				if ((int) event.getMessage().getInboundProperty("http.status") > 299) {
 					//System.out.println("Issue is BAD REQUEST, Message error: ");
 					//System.out.println("URL: "+event.getFlowVariable("RESTType")+ " "+ event.getFlowVariable("requestURL"));
 					//System.out.println(event.getMessage().getPayloadAsString());
@@ -59,6 +59,20 @@ public class ActiveMQLooper implements Callable {
 					HashMap<String, Object> ErrorFlowVars = new HashMap<String, Object>();
 					for (String str : ErrorVars) {
 						ErrorFlowVars.put(str, event.getFlowVariable(str));
+					}
+					
+					if (event.getMessage().getInboundProperty("http.status").equals(400))
+					{
+					ErrorFlowVars.put("ErrorCodeReason","Error de datos");
+					}
+					else if (event.getMessage().getInboundProperty("http.status").equals(404))
+					{
+						ErrorFlowVars.put("ErrorCodeReason","Faltan alguno(s) de los elementos referenciados (POST), o no existe el objeto (GET)");
+					}
+					if (ErrorFlowVars.get("identificador") != null) {
+						if (ErrorFlowVars.get("identificador").equals("null") || ErrorFlowVars.get("identificador").equals("")) {
+							ErrorFlowVars.put("ObjectID", ErrorFlowVars.get("identificador"));
+						}
 					}
 					invokeMuleFlow(event.getMessage(), event.getMuleContext(), "B1_Sync_EmailReportingFlow", ErrorFlowVars);
 					

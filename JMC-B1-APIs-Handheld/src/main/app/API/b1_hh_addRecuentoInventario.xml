@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:spring="http://www.springframework.org/schema/beans" 
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd">
+    <flow name="b1_hh_addRecuentoInventarioFlow">
+        <http:listener config-ref="HTTP_Listener_Configuration" path="addRecuentoInventario" allowedMethods="POST" doc:name="HTTP"/>
+        <logger message="Input: #[message.payloadAs(java.lang.String)]" level="INFO" doc:name="Logger" category="jmc_hh"/>
+        <expression-component doc:name="convert payload"><![CDATA[payload = acqua.util.JSONUtil.stringToMap(message.payloadAs(java.lang.String));
+flowVars.destination = payload.sociedad;
+flowVars.almacen = payload.deposito;]]></expression-component>
+        <flow-ref name="b1_hh_loginToSAP" doc:name="loginToSAP"/>
+        <choice doc:name="Choice">
+            <when expression="#[flowVars.loginResult.equals(&quot;OK&quot;)]">
+                <expression-component doc:name="FlowVars for Fetching AbsEntry"><![CDATA[flowVars.sociedad = flowVars.destination;
+flowVars.BinCode = flowVars.almacen + "-UBICACIÓN-DE-SISTEMA";]]></expression-component>
+                <flow-ref name="b1_hh_global_setDBInfo" doc:name="set DB info "/>
+
+                <enricher source="#[payload]" target="#[flowVars.AbsEntry]" doc:name="Message Enricher">
+                    <transformer ref="fetchAbsEntry" doc:name="Transformer Reference"/>
+                </enricher>
+                <set-payload value="{      &quot;InventoryCountingLines&quot;: [         {             &quot;ItemCode&quot;: &quot;A&quot;,  &quot;WarehouseCode&quot;: &quot;#[flowVars.almacen]&quot;, &quot;BinEntry&quot; : &quot;#[flowVars.AbsEntry]&quot;   }     ] }" doc:name="Set Payload for counting creation"/>
+                <http:request config-ref="HTTP_Request_Configuration" path="InventoryCountings" method="POST" doc:name="create new inventory counting">
+                    <http:success-status-code-validator values="200..299,400"/>
+                </http:request>
+                <choice doc:name="Choice">
+                    <when expression="#[message.inboundProperties['http.status'] != 400]">
+                        <expression-component doc:name="Answer"><![CDATA[payload = acqua.util.JSONUtil.stringToMap(message.payloadAs(java.lang.String));]]></expression-component>
+                        <set-payload value="{&quot;estadoactual&quot;: &quot;open&quot;, &quot;existia&quot;: false, &quot;codigo&quot; : #[payload.DocumentNumber], &quot;codigoInterno&quot; : #[payload.DocumentEntry], &quot;resultado&quot;: true}" doc:name="Set Payload"/>
+                        <logger message="addRecuentoInventario respuesta: #[payload]" level="INFO" category="jmc_hh" doc:name="Logger"/>
+                    </when>
+                    <otherwise>
+                        <set-payload value="{&quot;estadoactual&quot;: &quot;open&quot;, &quot;existia&quot;: true, &quot;resultado&quot;: true}" doc:name="Set Payload"/>
+                        <logger message="addRecuentoInventario respuesta: #[payload]" level="INFO" category="jmc_hh" doc:name="Logger"/>
+                    </otherwise>
+                </choice>
+            </when>
+            <otherwise>
+                <set-payload value="{  &quot;resultado&quot;:false,&quot;mensaje&quot;:&quot;Fallo el login a base de datos. Checkear logs&quot; } " doc:name="Set answer for failure"/>
+                <logger message="addRecuentoInventario respuesta: #[payload]" level="INFO" category="jmc_hh" doc:name="Logger"/>
+            </otherwise>
+        </choice>
+    </flow>
+</mule>

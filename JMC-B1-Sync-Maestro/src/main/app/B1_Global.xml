@@ -11,6 +11,9 @@ http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/htt
 http://www.springframework.org/schema/context http://www.springframework.org/schema/context/spring-context-current.xsd
 http://www.mulesoft.org/schema/mule/tls http://www.mulesoft.org/schema/mule/tls/current/mule-tls.xsd
 http://www.mulesoft.org/schema/mule/jms http://www.mulesoft.org/schema/mule/jms/current/mule-jms.xsd">
+
+	<custom-transformer name="transformJSON" class="sapb1masterpoll.JSONCleaner" doc:name="Java"/>
+	<custom-transformer name="BuildOrdersAndUpdate" class="sapb1masterpoll.OrdersFillAndSplit" doc:name="Java"/>
 	<spring:beans>
 		<spring:bean id="ActiveMQLooper" name="ActiveMQLooper"
 			class="sapb1masterpoll.ActiveMQLooper">
@@ -50,14 +53,13 @@ http://www.mulesoft.org/schema/mule/jms http://www.mulesoft.org/schema/mule/jms/
 
 	<http:request-config name="HTTP_Request_Configuration"
 		host="${sapB1.host}" port="${sapB1.port}" basePath="/b1s/v1/"
-		enableCookies="true" doc:name="HTTP Request Configuration" protocol="HTTPS">
-		<tls:context enabledProtocols="TLSv1,TLSv1.1,TLSv1.2">
-			<tls:trust-store path="keystore.jks" password="123456"
-				type="jks" insecure="true" />
-		</tls:context>
+		enableCookies="true" doc:name="HTTP Request Configuration" protocol="HTTPS" responseTimeout="300000">
+        <tls:context enabledProtocols="TLSv1,TLSv1.1,TLSv1.2">
+            <tls:trust-store path="keystore.jks" password="123456" type="jks" insecure="true"/>
+        </tls:context>
 	</http:request-config>
 	<http:listener-config name="HTTP_Listener_Configuration"
-		host="0.0.0.0" port="8081" basePath="login" doc:name="HTTP Listener Configuration" />
+		host="0.0.0.0" port="8085" basePath="login" doc:name="HTTP Listener Configuration" />
 	<jms:activemq-xa-connector
 		persistentDelivery="true" name="Active_MQ_Queue" specification="1.1"
 		username="${sapB1.activeMQ.user}" password="${sapB1.activeMQ.pass}"

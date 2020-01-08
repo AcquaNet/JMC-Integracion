@@ -43,14 +43,43 @@ public class WhileLoop implements Callable {
 		ArrayList<HashMap<String, Object>> resultArray = new ArrayList<HashMap<String, Object>>();
 		MuleEvent event = null;
 
-		String startUrl = (String) flowVars.get("startURL");
-		String flowName = (String) flowVars.get("flowReference");
+		String startUrl = (String) flowVars.get("Fetch_startURL");
+		String flowName = (String) flowVars.get("Fetch_flowReference");
+		String createDate = (String) flowVars.get("Fetch_CreateDate");
+		HashMap<String, Object> updateDate = message.getInvocationProperty("Fetch_update");
+		HashMap<String, String> createDateValid = message.getInvocationProperty("Fetch_CreateDateList");
+		Boolean addCreateDate = Boolean.valueOf(createDateValid.get(message.getInvocationProperty("Fetch_requestPath")));
+		String javaFilter = "";
+		if (addCreateDate) 
+		{
+			LOG.info("CreateDate is enabled for" + message.getInvocationProperty("Fetch_requestPath"));
+			javaFilter = "(UpdateDate gt '" + (String) updateDate.get("UpdateDate") + "' or UpdateDate eq '"
+					+ (String) updateDate.get("UpdateDate") + "' and UpdateTime gt '"
+					+ (String) updateDate.get("UpdateTime") + "' or UpdateDate eq null and CreateDate ge '"+createDate+"')";	
+		}
+		else
+		{
+			LOG.info("CreateDate is disabled for" + message.getInvocationProperty("Fetch_requestPath"));
+			javaFilter = "(UpdateDate gt '" + (String) updateDate.get("UpdateDate") + "' or UpdateDate eq '"
+					+ (String) updateDate.get("UpdateDate") + "' and UpdateTime gt '"
+					+ (String) updateDate.get("UpdateTime") + "' or UpdateDate eq null)";
+		}
+		LOG.info("javaFilter: "+javaFilter);
 		int SkipCounter = 0;
-		flowVars.put("SkipCounter", SkipCounter);
+		flowVars.put("Fetch_SkipCounter", SkipCounter);
+		flowVars.put("javaFilter", javaFilter);
 		event = invokeMuleFlow(message, eventContext.getMuleContext(), flowName, flowVars);
+		
 		if (!event.getMessage().getPayload().getClass().equals(HashMap.class)) {
 			event.getMessage().setPayload(StringToJSON.jsonToMap((JSONObject) event.getMessage().getPayload()));
 		}
+		if (event.getMessage().getInboundProperty("http.status").equals(400))
+		{
+			LOG.info("Error 400 on data Fetch for "+flowVars.get("Fetch_requestPath"));
+			LOG.info("Result from SL: "+event.getMessage().getPayloadAsString());
+		}
+		
+		
 		HashMap<String, Object> pyload = (HashMap<String, Object>) event.getMessage().getPayload();
 		if (((ArrayList<HashMap<String, Object>>) pyload.get("value")).size() == 0) {
 			LOG.info("JAVA.WhileLoop.56: No results");
@@ -58,7 +87,7 @@ public class WhileLoop implements Callable {
 
 		}
 		if (!hasMoreResults(event)) {
-			//System.out.println("Has no more results");
+			// System.out.println("Has no more results");
 			LOG.info("JAVA.WhileLoop.62: hasMoreResults false");
 			HashMap<String, Object> getResult = (HashMap<String, Object>) event.getMessage().getPayload();
 			ArrayList<HashMap<String, Object>> odataResutls = (ArrayList<HashMap<String, Object>>) getResult
@@ -66,64 +95,94 @@ public class WhileLoop implements Callable {
 			for (HashMap<String, Object> result : odataResutls) {
 				resultArray.add(result);
 			}
-		}
-		while (hasMoreResults(event)) {
-			LOG.info("JAVA.WhileLoop.71: hasMoreResults true");
-			HashMap<String, Object> getResult = (HashMap<String, Object>) event.getMessage().getPayload();
-			ArrayList<HashMap<String, Object>> odataResutls = (ArrayList<HashMap<String, Object>>) getResult
-					.get("value");
-			int i = resultArray.size();
-			for (HashMap<String, Object> result : odataResutls) {
-				resultArray.add(result);
-			}
-			LOG.info("Ammount of results picked up on this loop: "+(resultArray.size()-i));
-			// "odata.nextLink":
-			// "/b1s/v1/Items?$select=UpdateDate,ItemCode,ItemName&$skip=20"
-			event = null;
+		} else {
+			while (hasMoreResults(event)) {
+				LOG.info("JAVA.WhileLoop.71: hasMoreResults true");
+				HashMap<String, Object> getResult = (HashMap<String, Object>) event.getMessage().getPayload();
+				ArrayList<HashMap<String, Object>> odataResutls = (ArrayList<HashMap<String, Object>>) getResult
+						.get("value");
+				int i = resultArray.size();
+				for (HashMap<String, Object> result : odataResutls) {
+					resultArray.add(result);
+				}
+				LOG.info("Ammount of results picked up on this loop: " + (resultArray.size() - i));
+				// "odata.nextLink":
+				// "/b1s/v1/Items?$select=UpdateDate,ItemCode,ItemName&$skip=20"
+				event = null;
 
-			if ((String) getResult.get("odata.nextLink") != null) {
-				String url = (String) getResult.get("odata.nextLink");
-				
-				url = java.net.URLDecoder.decode(url, "UTF-8");
-				//System.out.println("URL TO COMPLIE TO:" + url);
-				Pattern patt = Pattern
-						.compile("\\/b1s\\/v1\\/" + flowVars.get("requestPath") + "\\?\\$filter=(.+)\\&\\$skip=(.+)");
-				Matcher match = patt.matcher(url);
-				//System.out.println(patt.pattern());
-				//System.out.println("status: " + match.find());
-				if (match.matches()) {
-					SkipCounter = Integer.valueOf(match.group(2));
-					flowVars.put("skipCounter", SkipCounter);
-					LOG.info("JAVA.WhileLoop.97: Current skip count "+SkipCounter);
-					if (SkipCounter < 5000) {
-						LOG.info("JAVA.WhileLoop.99: Invoking a new request");
-						event = invokeMuleFlow(message, eventContext.getMuleContext(), flowName, flowVars);
+				if ((String) getResult.get("odata.nextLink") != null) {
+					String url = (String) getResult.get("odata.nextLink");
+
+					url = java.net.URLDecoder.decode(url, "UTF-8");
+					// System.out.println("URL TO COMPLIE TO:" + url);
+					Pattern patt = Pattern.compile(
+							"\\/b1s\\/v1\\/" + flowVars.get("Fetch_requestPath") + "\\?\\$filter=(.+)\\&\\$skip=(.+)");
+					Matcher match = patt.matcher(url);
+					// System.out.println(patt.pattern());
+					// System.out.println("status: " + match.find());
+					if (match.matches()) {
+						SkipCounter = Integer.valueOf(match.group(2));
+						flowVars.put("Fetch_SkipCounter", SkipCounter);
+						LOG.info("JAVA.WhileLoop.97: Current skip count " + SkipCounter);
+						if (SkipCounter < 500) {
+							LOG.info("JAVA.WhileLoop.99: Invoking a new request");
+							event = invokeMuleFlow(message, eventContext.getMuleContext(), flowName, flowVars);
+							if (event.getMessage().getInboundProperty("http.status").equals(400))
+							{
+								LOG.info("Error 400 on data Fetch for "+flowVars.get("Fetch_requestPath"));
+								LOG.info("Result from SL: "+event.getMessage().getPayloadAsString());
+							}
+						} else {
+							LOG.info("JAVA.WhileLoop.101: Count exceeded 5000. Stopping.");
+						}
+					}
+				} else {
+					LOG.info("JAVA.WhileLoop.110: odata.nextLink not present.");
+					String str = StringToJSON.javaToJSONToString(getResult);
+					LOG.info("JAVA.WhileLoop.112: Result recived: " + str);
+				}
+				if (event != null) {
+					LOG.info("JAVA.WhileLoop.115: Loop is finished, starting next one.");
+				} else {
+					LOG.info("JAVA.WhileLoop.115: Loop is finished, next event is null.");
+					String str = StringToJSON.javaToJSONToString(getResult);
+					// LOG.info("JAVA.WhileLoop.121: Result recived: "+str);
+				}
+			}
+
+			if (event != null) {
+				if (event.getMessage() != null) {
+					
+					HashMap<String, Object> getResult = (HashMap<String, Object>) event.getMessage().getPayload();
+					if (getResult != null) {
+					ArrayList<HashMap<String, Object>> odataResutls = (ArrayList<HashMap<String, Object>>) getResult
+							.get("value");
+					int i = resultArray.size();
+					for (HashMap<String, Object> result : odataResutls) {
+						resultArray.add(result);
+					}
+
+					LOG.info("Ammount of results picked up on outgoing loop: " + (resultArray.size() - i));
 					}
 					else
 					{
-						LOG.info("JAVA.WhileLoop.101: Count exceeded 5000. Stopping.");
+						LOG.info("WhileLoop.123: getResult is null");
 					}
 				}
+				else
+				{
+					LOG.info("WhileLoop.123: Message is null");
+				}
+				
+
+			} else {
+				LOG.info("WhileLoop.123:Event is null");
 			}
-			else
-			{
-				LOG.info("JAVA.WhileLoop.110: odata.nextLink not present.");
-				String str = StringToJSON.javaToJSONToString(getResult);
-				LOG.info("JAVA.WhileLoop.112: Result recived: "+str);
-			}
-			if (event != null) {
-				LOG.info("JAVA.WhileLoop.115: Loop is finished, starting next one.");
-			}
-			else
-			{
-				LOG.info("JAVA.WhileLoop.115: Loop is finished, next event is null.");
-				String str = StringToJSON.javaToJSONToString(getResult);
-				LOG.info("JAVA.WhileLoop.121: Result recived: "+str);
-			}
+
 		}
-		LOG.info("JAVA.WhileLoop.124: While Loop Finished. Returning "+resultArray.size()+" Results");
-		//results.put("value", resultArray);
-		eventContext.getMessage().setInvocationProperty("resultFromLoop", resultArray);
+		LOG.info("JAVA.WhileLoop.124: While Loop Finished. Returning " + resultArray.size() + " Results");
+		// results.put("value", resultArray);
+		eventContext.getMessage().setInvocationProperty("Fetch_resultFromLoop", resultArray);
 		return resultArray;
 
 	}
@@ -152,30 +211,25 @@ public class WhileLoop implements Callable {
 					if (((HashMap<String, Object>) event.getMessage().getPayload()).get("odata.nextLink") != null) {
 						LOG.info("JAVA.WhileLoop.153: hasMoreResults returns true");
 						return true;
-					}
-					else
-					{
+					} else {
 						LOG.info("JAVA.WhileLoop.156: odata.nextLink is null");
-						LOG.info("JAVA.WhileLoop.157: Payload: "+event.getMessage().getPayloadAsString());
+						// LOG.info("JAVA.WhileLoop.157: Payload:
+						// "+event.getMessage().getPayloadAsString());
 					}
-				}
-				else
-				{
+				} else {
 					LOG.info("JAVA.WhileLoop.162: Class isnt a HashMap");
-					LOG.info("JAVA.WhileLoop.163: Payload: "+event.getMessage().getPayloadAsString());
+					// LOG.info("JAVA.WhileLoop.163: Payload:
+					// "+event.getMessage().getPayloadAsString());
 				}
-			}
-			else
-			{
+			} else {
 				LOG.info("JAVA.WhileLoop.168: Payload is null");
-				LOG.info("JAVA.WhileLoop.169: Payload: "+event.getMessage().getPayloadAsString());
+				// LOG.info("JAVA.WhileLoop.169: Payload:
+				// "+event.getMessage().getPayloadAsString());
 			}
-		}
-		else
-		{
+		} else {
 			LOG.info("JAVA.WhileLoop.159: Event is null");
 		}
-		
+
 		LOG.info("JAVA.WhileLoop.179: hasMoreResults returns false");
 		return false;
 	}

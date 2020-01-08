@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<mule xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:smtps="http://www.mulesoft.org/schema/mule/smtps" xmlns:smtp="http://www.mulesoft.org/schema/mule/smtp" xmlns:pop3="http://www.mulesoft.org/schema/mule/pop3" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+<mule xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:smtps="http://www.mulesoft.org/schema/mule/smtps" xmlns:smtp="http://www.mulesoft.org/schema/mule/smtp" xmlns:pop3="http://www.mulesoft.org/schema/mule/pop3" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
 	xmlns:spring="http://www.springframework.org/schema/beans" 
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
@@ -8,9 +8,41 @@ http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/cor
 http://www.mulesoft.org/schema/mule/pop3 http://www.mulesoft.org/schema/mule/pop3/current/mule-pop3.xsd
 http://www.mulesoft.org/schema/mule/smtp http://www.mulesoft.org/schema/mule/smtp/current/mule-smtp.xsd
 http://www.mulesoft.org/schema/mule/smtps http://www.mulesoft.org/schema/mule/smtps/current/mule-smtps.xsd
-http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd">
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd">
+    		<custom-transformer name="saveToFile" class="sapb1masterpoll.saveToFile" doc:name="Java"/>
+		<custom-transformer name="pickupFromFile" class="sapb1masterpoll.pickupFromFile" doc:name="Java"/>
+    <smtp:gmail-connector name="Gmail" contentType="text/html" validateConnections="true" doc:name="Gmail"/>
+     
     <flow name="B1_Sync_EmailReportingFlow">
-        <set-payload value="&lt;html&gt;  #['\n']&lt;head&gt;  #['\n']&lt;meta http-equiv=&quot;Content-Type&quot; content=&quot;text/html; charset=UTF-8&quot; /&gt;  #['\n']&lt;title&gt;Error en distribucion de datos JMC&lt;/title&gt; #['\n']&lt;/head&gt; #['\n']&lt;body  style=&quot;margin: 0px; padding: 20px; font-family:Verdana; font-size:14px;&quot;&gt;  #['\n']&lt;h3&gt;Error encontrado&lt;/h3&gt;   #['\n']&lt;p&gt;#[message.inboundProperties[&quot;http.status&quot;]] - #[message.inboundProperties[&quot;http.reason&quot;]]&lt;/p&gt;  #['\n']&lt;h3&gt;En el metodo&lt;/h3&gt;   #['\n']&lt;p&gt;#[flowVars.RESTType] - #[flowVars.RequestURL] - #[flowVars.ObjectID]&lt;/p&gt;  #['\n']&lt;h3&gt;En el destino&lt;/h3&gt;   #['\n']&lt;p&gt;#[flowVars.destination]&lt;/p&gt;  #['\n']&lt;h3&gt;Respuesta de Service Layer&lt;/h3&gt;  #['\n']&lt;p&gt;#[message.payloadAs(java.lang.String)]&lt;/p&gt;  #['\n']&lt;h3&gt;JSON Enviado:&lt;/h3&gt;   #['\n']&lt;p&gt;#[flowVars.messageSaved]&lt;/p&gt; #['\n']&lt;/body&gt; #['\n']&lt;/html&gt; " doc:name="Set Payload"/>
-        <smtp:outbound-endpoint host="smtp.mailtrap.io" port="2525" user="bb144be7e19354" password="a54bc71c88decc" responseTimeout="10000" doc:name="SMTP"   to="tsbreuer@gmail.com" from="tsbreuer@gmail.com" subject="Notificacion de error en Service Layer" mimeType="text/html"/>
+        <set-payload value="#['\n']&lt;h3&gt;Error encontrado&lt;/h3&gt;   #['\n']&lt;p&gt;#[message.inboundProperties[&quot;http.status&quot;]] - #[message.inboundProperties[&quot;http.reason&quot;]] - #[flowVars.ErrorCodeReason]&lt;/p&gt;  #['\n']&lt;h3&gt;En el metodo&lt;/h3&gt;   #['\n']&lt;p&gt;#[flowVars.RESTType] - #[flowVars.dist_RequestURL] - #[flowVars.ObjectID]&lt;/p&gt;  #['\n']&lt;h3&gt;En el destino&lt;/h3&gt;   #['\n']&lt;p&gt;#[flowVars.destination]&lt;/p&gt;  #['\n']&lt;h3&gt;Respuesta de Service Layer&lt;/h3&gt;  #['\n']&lt;p&gt;#[message.payloadAs(java.lang.String)]&lt;/p&gt;  #['\n']&lt;h3&gt;JSON Enviado:&lt;/h3&gt;   #['\n']&lt;p&gt;#[flowVars.messageSaved]&lt;/p&gt; #['\n'] -----" doc:name="Set Payload" encoding="UTF-8" mimeType="text/html"/>
+        <transformer ref="saveToFile" doc:name="saveToFile"/>
+    </flow>
+    <flow name="B1_Sync_SaveReportFlow">
+        <transformer ref="pickupFromFile" doc:name="pickupFromFile"/>
+        <choice doc:name="Choice">
+            <when expression="#[payload != null]">
+                <logger message="Reporting to email all errors" level="INFO" category="jmc.log" doc:name="Logger"/>
+                <set-payload value="&lt;html&gt;  #['\n']&lt;head&gt;  #['\n']&lt;meta http-equiv=&quot;Content-Type&quot; content=&quot;text/html; charset=UTF-8&quot; /&gt;  #['\n']&lt;title&gt;Error en distribucion de datos JMC&lt;/title&gt; #['\n']&lt;/head&gt; #['\n']&lt;body  style=&quot;margin: 0px; padding: 20px; font-family:Verdana; font-size:14px;&quot;&gt;#['\n']#[payload] &lt;/body&gt; #['\n']&lt;/html&gt; " doc:name="Set Payload" mimeType="text/html" encoding="UTF-8"/>
+                <smtp:outbound-endpoint host="smtp.gmail.com" port="587" user="alertas.sincronizacion.jmc@gmail.com" password="Corporit1" responseTimeout="10000" doc:name="SMTP"   to="alertas.sincronizacion.jmc@gmail.com" from="alertas.sincronizacion.jmc@gmail.com" subject="Notificacion de error de Service Layer" mimeType="text/html" connector-ref="Gmail"/>
+            </when>
+            <otherwise>
+                <logger message="Flow finished without email reports" level="INFO" category="jmc.log" doc:name="Logger"/>
+            </otherwise>
+        </choice>
+    </flow>
+    <flow name="B1_Sync_ReportOVResult">
+        <set-payload value="&lt;head&gt;
+&lt;style&gt;
+table, th, td {
+  border: 1px solid black;
+  border-collapse: collapse;
+}
+&lt;/style&gt;
+&lt;/head&gt;
+&lt;body&gt;
+#[flowVars.EmailBody]
+&lt;/body&gt;" mimeType="text/html" doc:name="Set Payload"/>
+        <smtp:outbound-endpoint host="smtp.gmail.com" port="587" user="alertas.sincronizacion.jmc@gmail.com" password="Corporit1" connector-ref="Gmail" to="#[flowVars.EmailTarget]" from="alertas.sincronizacion.jmc@gmail.com" subject="#[flowVars.EmailSubject]" responseTimeout="10000" mimeType="text/html" doc:name="SMTP" cc="alertas.sincronizacion.jmc@gmail.com"/>
     </flow>
 </mule>
