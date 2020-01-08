@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:spring="http://www.springframework.org/schema/beans" 
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd">
+    <flow name="b1_hh_getOrdenesAbiertas">
+        <http:listener config-ref="HTTP_Listener_Configuration" path="getOrdenesAbiertas" allowedMethods="POST" doc:name="HTTP"/>
+        <logger message="getStockUbicacion Input: #[message.payloadAs(java.lang.String)]" level="INFO" doc:name="Logger" category="jmc_hh"/>
+        <expression-component doc:name="save info"><![CDATA[payload = acqua.util.JSONUtil.stringToMap(message.payloadAs(java.lang.String));
+flowVars.sociedad = payload.sociedad;
+]]></expression-component>
+        <flow-ref name="b1_hh_global_setDBInfo" doc:name="set DB info "/>
+
+        <enricher source="#[payload]" target="#[flowVars.result]" doc:name="Message Enricher">
+            <transformer ref="fetchAllOrdenesAlmacen" doc:name="Fetch Orden Abierta"/>
+        </enricher>
+        <choice doc:name="Choice">
+            <when expression="#[flowVars.result.getClass() != String ? flowVars.result.size() &gt; 0 : false]">
+                <set-payload value="{&quot;resultado&quot;: true, &quot;Orders&quot;:#[acqua.util.JSONUtil.javaListToJSONToString(flowVars.result)]}" doc:name="Set Payload OK"/>
+            </when>
+            <when expression="#[flowVars.result.getClass() != String ? false : true]">
+                <set-payload value="{&quot;resultado&quot;:false, &quot;mensaje&quot;: &quot;error de base de datos: #[flowVars.docNum]&quot;}" doc:name="error base de datos"/>
+            </when>
+            <otherwise>
+                <set-payload value="{&quot;resultado&quot;:false, &quot;mensaje&quot;:&quot;no existe una orden abierta&quot;}" doc:name="Set Payload Failure"/>
+            </otherwise>
+        </choice>
+        <logger message="getStockUbicacion respuesta: #[payload]" level="INFO" doc:name="Logger" category="jmc_hh"/>
+    </flow>
+</mule>

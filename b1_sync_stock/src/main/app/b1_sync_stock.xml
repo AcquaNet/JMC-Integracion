@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:tls="http://www.mulesoft.org/schema/mule/tls"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:spring="http://www.springframework.org/schema/beans" 
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.mulesoft.org/schema/mule/tls http://www.mulesoft.org/schema/mule/tls/current/mule-tls.xsd
+http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd">
+    <custom-transformer name="SapHanaConnector" class="b1_sync_stock.ODBCConnector" doc:name="Java"/>
+    <http:request-config name="HTTP_Request_Configuration"
+		host="${sapB1.host}" port="${sapB1.port}" basePath="/b1s/v1/"
+		enableCookies="true" doc:name="HTTP Request Configuration" protocol="HTTPS" connectionIdleTimeout="300000000" responseTimeout="300000000">
+        <tls:context enabledProtocols="TLSv1,TLSv1.1,TLSv1.2">
+            <tls:trust-store path="keystore.jks" password="123456" type="jks" insecure="true"/>
+        </tls:context>
+	</http:request-config>
+    <flow name="b1_sync_stock_main" processingStrategy="synchronous">
+        <poll doc:name="Poll">
+            <fixed-frequency-scheduler frequency="300" startDelay="1" timeUnit="SECONDS"/>
+            <logger level="INFO" doc:name="Logger" category="jmc.log" message="Poll started"/>
+        </poll>
+        <expression-component doc:name="Expression"><![CDATA[flowVars.fileDate =  sapb1masterpoll.saveToFile.getCurrentDate();
+flowVars.fileTime =  sapb1masterpoll.saveToFile.getCurrentTime();
+]]></expression-component>
+        <flow-ref name="b1_sync_stock_init" doc:name="init settings"/>
+        <flow-ref name="b1_sync_stock_fetch" doc:name="Fetch Changes"/>
+        <flow-ref name="b1_sync_stock_login" doc:name="Login to Holding"/>
+        <flow-ref name="b1_sync_stock_send_documents" doc:name="Send Documents"/>
+
+        <logger doc:name="Logger" level="INFO" message="Finished syncronizing stock" category="jmc.log"/>
+        <flow-ref name="B1_Sync_SaveReportFlow" doc:name="Flow Reference"/>
+    </flow>
+    <flow name="b1_sync_stock_init" processingStrategy="synchronous">
+        <set-variable variableName="destinations" value="${sapB1.destinations}" doc:name="Set Destinations"/>
+        <set-variable variableName="loginDestinations" value="${sapB1.destinationsConnections}" doc:name="Set Login Destinations"/>
+        <expression-component doc:name="Convert Login Destinations"><![CDATA[flowVars.loginDestinations = b1_sync_stock.StringToJSON.stringToMap(flowVars.loginDestinations);
+flowVars.TableDestinations = b1_sync_stock.StringToJSON.stringToMap("${sapB1.Orders.DestinationsStock}");]]></expression-component>
+        <expression-component doc:name="set db login"><![CDATA[flowVars.DBUser = ${sapB1.DBUser};
+flowVars.DBPass = ${sapB1.DBPass};
+flowVars.DBConnection = ${sapB1.DBConnection};
+flowVars.warehouseMatch = ${sapB1.warehouseMatch};]]></expression-component>
+        <expression-component doc:name=" set data"><![CDATA[flowVars.updateDate = "2019-04-14";
+flowVars.Origin = ${sapB1.DBOrigin};]]></expression-component>
+
+    </flow>
+    <flow name="b1_sync_stock_fetch" processingStrategy="synchronous">
+        <expression-component doc:name="Create placeholder list for documents"><![CDATA[flowVars.DocumentSaved = b1_sync_stock.WorkUtils.createList();]]></expression-component>
+
+        <foreach collection="#[flowVars.destinations.split(',')]" doc:name="For Each Destination">
+            <expression-component doc:name="set destination to flow var"><![CDATA[flowVars.Destination = payload;]]></expression-component>
+            <expression-component doc:name="Get UpdateDate"><![CDATA[flowVars.update = b1_sync_stock.CurrentTimeSaver.getUpdateTime("STOCK_"+flowVars.Destination);]]></expression-component>
+            <expression-component doc:name="Set Update Date"><![CDATA[flowVars.updateDate = flowVars.update.UpdateDate;
+flowVars.updateTime = flowVars.update.UpdateTime;]]></expression-component>
+
+            <transformer ref="SapHanaConnector" doc:name="Fetch News from DB"/>
+            <expression-component doc:name="Save documents to list"><![CDATA[flowVars.DocumentSaved  = b1_sync_stock.WorkUtils.combineLists(payload,flowVars.DocumentSaved);]]></expression-component>
+        </foreach>
+    </flow>
+    <flow name="b1_sync_stock_login" processingStrategy="synchronous">
+        <set-payload value="{  &quot;CompanyDB&quot;:  &quot;${sapB1.DB}&quot;,  &quot;UserName&quot;: &quot;${sapB1.user}&quot;,  &quot;Password&quot;: &quot;${sapB1.pass}&quot; }" doc:name="Set Payload for login"/>
+        <http:request config-ref="HTTP_Request_Configuration" path="Login" method="POST" doc:name="Login"/>
+        <expression-component doc:name="Save B1Session"><![CDATA[flowVars.B1Session =b1_sync_stock.StringToJSON.stringToMap(message.payloadAs(java.lang.String));]]></expression-component>
+    </flow>
+    <flow name="b1_sync_stock_send_documents" processingStrategy="synchronous">
+        <foreach collection="flowVars.DocumentSaved" doc:name="For Each">
+            <logger message="Enviando documento numero #[flowVars.counter]" level="INFO" category="jmc.log" doc:name="Logger"/>
+            <logger message="Payload enviado #[payload]" level="INFO" category="jmc.log" doc:name="document"/>
+            <expression-component doc:name="Save payload for error"><![CDATA[flowVars.messageSaved=payload;]]></expression-component>
+            <http:request config-ref="HTTP_Request_Configuration" path="InventoryPostings" method="POST" doc:name="Send Document to POST">
+                <http:success-status-code-validator values="200..299,400"/>
+            </http:request>
+            <choice doc:name="Choice">
+            <when expression="#[message.inboundProperties['http.status'] == 400]">
+                <logger message="Error when updating time for element. Exception: #[message.payloadAs(java.lang.String)]" level="INFO" category="jmc.log" doc:name="Patch failed"/>
+                <expression-component doc:name="Set flowvars for emailReporting"><![CDATA[flowVars.RESTType = "POST";
+flowVars.RequestURL = "InventoryPostings";
+flowVars.ObjectID = "None";
+flowVars.destination = "JMCG_DEV";]]></expression-component>
+                <flow-ref name="B1_Sync_EmailReportingFlow" doc:name="EmailReport"/>
+            </when>
+            <otherwise>
+                <logger message="Patch OK" category="jmc.log" doc:name="Patch OK"/>
+            </otherwise>
+        </choice>
+        </foreach>
+    </flow>
+</mule>

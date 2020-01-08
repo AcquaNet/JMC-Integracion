@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:spring="http://www.springframework.org/schema/beans" 
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd">
+    <flow name="b1_hh_addCodigoBarras">
+        <http:listener config-ref="HTTP_Listener_Configuration" path="addCodigoBarras" allowedMethods="POST" doc:name="HTTP"/>
+        <logger message="Input addCodigoBarras: #[message.payloadAs(java.lang.String)]" level="INFO" category="jmc_hh" doc:name="Logger"/>
+        <expression-component doc:name="set variables from input"><![CDATA[payload = acqua.util.JSONUtil.stringToMap(message.payloadAs(java.lang.String));
+flowVars.destination = payload.sociedad;
+flowVars.codigo = payload.codigo;
+flowVars.barcode = payload.codigobarras;]]></expression-component>
+        <flow-ref name="b1_hh_loginToSAP" doc:name="loginToSAP"/>
+        <choice doc:name="check if login OK">
+            <when expression="#[flowVars.loginResult.equals(&quot;OK&quot;)]">
+                <set-payload value="{  &quot;ItemNo&quot; : &quot;#[flowVars.codigo]&quot;,  &quot;Barcode&quot; : &quot;#[flowVars.barcode]&quot;,  &quot;UoMEntry&quot;: 1, &quot;FreeText&quot;: &quot;Agregado por HH&quot; }" doc:name="set Payload for barcode add"/>
+                <logger message="Payload enviado a SAP: #[message.payloadAs(java.lang.String)]" level="INFO" category="jmc_hh" doc:name="Logger"/>
+                <http:request config-ref="HTTP_Request_Configuration" path="BarCodes" method="POST" doc:name="Add new barcode">
+                    <http:success-status-code-validator values="200..299,400,404"/>
+                </http:request>
+                <choice doc:name="Copy_of_Choice">
+                    <when expression="#[message.inboundProperties['http.status'] == 400]">
+                        <expression-component doc:name="Expression"><![CDATA[payload = acqua.util.JSONUtil.stringToMap(message.payloadAs(java.lang.String));]]></expression-component>
+                        <set-payload value="{ &quot;resultado&quot;:false, &quot;mensaje&quot;:&quot;#[acqua.util.WorkUtils.replaceAll(payload.error.message.value)]&quot; }" doc:name="set Payload for failure 400"/>
+                    </when>
+                    <when expression="#[message.inboundProperties['http.status'] &gt; 400]">
+                        <set-payload value="{ &quot;resultado&quot;:false, &quot;mensaje&quot;:&quot;#[acqua.util.WorkUtils.replaceAll(message.payloadAs(java.lang.String))]&quot; }" doc:name="set answer for failure generic"/>
+                    </when>
+                    <otherwise>
+                        <set-payload value="{&quot;resultado&quot;:true}" doc:name="Set Payload for ok"/>
+                    </otherwise>
+                </choice>
+            </when>
+
+            <otherwise>
+                <set-payload value="{  &quot;resultado&quot;:false,&quot;mensaje&quot;:&quot;Fallo el login. Checkear logs.&quot; } " doc:name="Set Payload"/>
+            </otherwise>
+        </choice>
+        <logger message="addCodigoBarras respuesta: #[payload]" level="INFO" category="jmc_hh" doc:name="Logger"/>
+    </flow>
+</mule>

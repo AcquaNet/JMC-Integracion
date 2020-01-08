@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns:tls="http://www.mulesoft.org/schema/mule/tls"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:spring="http://www.springframework.org/schema/beans" 
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.mulesoft.org/schema/mule/tls http://www.mulesoft.org/schema/mule/tls/current/mule-tls.xsd
+http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd">
+    <http:listener-config name="HTTP_Listener_Configuration" host="0.0.0.0" port="8081" basePath="/b1/hh/v1" connectionIdleTimeout="60000" doc:name="HTTP Listener Configuration"/>
+    
+    <!--  Transformers customs para levantar datos de Base de Datos -->
+    <!--  Generales -->
+    <custom-transformer name="fetchUserTable" class="acqua.util.odbc.FetchUserTable" doc:name="Java"/>
+	<custom-transformer name="fetchWarehouseSublevels" class="acqua.util.odbc.FetchWarehouseSublevels" doc:name="Java"/>
+	<custom-transformer name="fetchWarehouses" class="acqua.util.odbc.FetchWarehouses" doc:name="Java"/>
+	<custom-transformer name="fetchSociedadesJMC" class="acqua.util.odbc.FetchSociedadesJMC" doc:name="Java"/>
+	<custom-transformer name="fetchOrdenesRecuento" class="acqua.util.odbc.FetchOrdenesRecuento" doc:name="Java"/>
+	<custom-transformer name="fetchInfoByBarCode" class="acqua.util.odbc.FetchInfoByBarCode" doc:name="Java"/>
+	<custom-transformer name="fetchArticuloByCode" class="acqua.util.odbc.FetchArticuloByCode" doc:name="Java"/>
+    <custom-transformer name="fetchLineasOrdenRecuento" class="acqua.util.odbc.FetchLineasOrdenRecuento" doc:name="Java"/>
+	<custom-transformer name="fetchPickingOrder" class="acqua.util.odbc.FetchPickingOrder" doc:name="Java"/>
+	<custom-transformer name="fetchPickingOrderLines" class="acqua.util.odbc.FetchPickingOrderLines" doc:name="Java"/>
+	<custom-transformer name="fetchStockArticulo" class="acqua.util.odbc.FetchStockArticulo" doc:name="Java"/>
+	<custom-transformer name="fetchStockUbicacion" class="acqua.util.odbc.FetchStockUbicacion" doc:name="Java"/>
+	<custom-transformer name="fetchStockAlmacen" class="acqua.util.odbc.FetchStockAlmacen" doc:name="Java"/>
+	<custom-transformer name="fetchArticulosValidos" class="acqua.util.odbc.FetchArticulosValidos" doc:name="Java"/>
+	<custom-transformer name="fetchOperacion" class="acqua.util.odbc.FetchOperacion" doc:name="Java"/>
+	<custom-transformer name="fetchPickListLines" class="acqua.util.odbc.FetchPickListLines" doc:name="Java"/>
+	<custom-transformer name="fetchOrdenesAlmacen" class="acqua.util.odbc.FetchOrdenesAlmacen" doc:name="Java"/>
+	<custom-transformer name="fetchAllOrdenesAlmacen" class="acqua.util.odbc.FetchAllOrdenesAlmacen" doc:name="Java"/>
+	<custom-transformer name="fetchAlmacenOrden" class="acqua.util.odbc.FetchAlmacenOrden" doc:name="Java"/>
+	
+	
+	<!-- Transformadores de Body para armar ordenes -->
+	<custom-transformer name="BuildRecuentoInventario" class="acqua.util.Transform.BuildRecuentoInventario" doc:name="Java"/>
+	<custom-transformer name="BuildConteoInventario" class="acqua.util.Transform.BuildConteoInventario" doc:name="Java"/>
+	<custom-transformer name="BuildTransferencia" class="acqua.util.Transform.BuildTransferencia" doc:name="Java"/>
+	
+	<!-- Transformadores de Datos -->
+	<custom-transformer name="UpdatePickList" class="acqua.util.Transform.UpdatePickList" doc:name="Java"/>
+
+	
+	<!-- Especiales -->
+	<custom-transformer name="fetchAbsEntry" class="acqua.util.odbc.interno.FetchAbsEntry" doc:name="Java"/>
+	<custom-transformer name="fetchUoMCode" class="acqua.util.odbc.interno.FetchUoMCode" doc:name="Java"/>
+	<custom-transformer name="fetchBatch" class="acqua.util.odbc.interno.FetchBatch" doc:name="Java"/>
+	<custom-transformer name="fetchSocietyID" class="acqua.util.odbc.interno.FetchSocietyID" doc:name="Java"/>
+	<custom-transformer name="FetchCurrentStock" class="acqua.util.odbc.interno.FetchCurrentStock" doc:name="Java"/>
+	<custom-transformer name="ConsolidarRecuentoEntradaMercancia" class="acqua.util.Transform.ConsolidarRecuentoEntradaMercancia" doc:name="Java"/>
+	<custom-transformer name="LeerRecuentoEntradaMercancia" class="acqua.util.Transform.LeerRecuentoEntradaMercancia" doc:name="Java"/>
+	
+	
+	<http:request-config name="HTTP_Request_Configuration"
+		host="${sapB1.host}" port="${sapB1.port}" basePath="/b1s/v1/"
+		enableCookies="true" doc:name="HTTP Request Configuration" protocol="HTTPS" responseTimeout="120000">
+        <tls:context enabledProtocols="TLSv1,TLSv1.1,TLSv1.2">
+            <tls:trust-store path="trust.jks" password="12345" type="jks" insecure="true"/>
+        </tls:context>
+	</http:request-config>
+    <flow name="b1_hh_global_setDBInfo">
+        <expression-component doc:name="Expression"><![CDATA[flowVars.DBUser = ${sapB1.DBUser};
+flowVars.DBPass = ${sapB1.DBPass};
+flowVars.DBConnection = ${sapB1.DBConnection};
+flowVars.DBInfo = ${sapB1.DBInfo};]]></expression-component>
+    </flow>
+</mule>

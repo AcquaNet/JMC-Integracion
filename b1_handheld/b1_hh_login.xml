@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:spring="http://www.springframework.org/schema/beans" 
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd">
+    <flow name="b1_hh_loginToSAP">
+        <set-variable variableName="destinations" value="${sapB1.destinations}" doc:name="set destinations"/>
+        <choice doc:name="Choice">
+            <when expression="#[flowVars.destinations.contains(flowVars.destination)]">
+                <logger message="Destination is okay, logging in" level="INFO" category="jmc_hh.log" doc:name="Destination OK"/>
+                <set-variable variableName="loginDestinations" value="${sapB1.destinationsConnections}" doc:name="Save Destination Login Options"/>
+                <expression-component doc:name="Set Login Info"><![CDATA[flowVars.destinations = flowVars.destinations.split(',');
+flowVars.loginDestinations =acqua.util.JSONUtil.stringToMap(flowVars.loginDestinations);
+]]></expression-component>
+                <set-payload value="#[flowVars.loginDestinations[flowVars.destination]]" doc:name="Set login"/>
+                <flow-ref name="sapB1LoginFlow" doc:name="Login flow"/>
+                <expression-component doc:name="set answer"><![CDATA[flowVars.loginResult = "OK";]]></expression-component>
+            </when>
+            <otherwise>
+                <logger message="The destination is not loaded" level="INFO" category="jmc_hh.log" doc:name="Destination Error"/>
+                <expression-component doc:name="set answer"><![CDATA[flowVars.loginResult = "NO";]]></expression-component>
+            </otherwise>
+        </choice>
+        <exception-strategy ref="CatchExceptionStrategy" doc:name="Reference Exception Strategy"/>
+    </flow>
+    <flow name="sapB1LoginFlow" processingStrategy="synchronous">
+        <logger message="Iniciando session a #[payload]" level="INFO" category="jmc_hh.log" doc:name="Logger"/>
+        <http:request config-ref="HTTP_Request_Configuration" path="Login" method="POST" doc:name="Login"/>
+        <expression-component doc:name="Save Session"><![CDATA[flowVars.B1Session =acqua.util.JSONUtil.stringToMap(message.payloadAs(java.lang.String));]]></expression-component>
+        <logger message="Login OK, guardados datos de B1SESSION a variable" level="INFO" category="jmc_hh.log" doc:name="Logger"/>
+    </flow>
+</mule>

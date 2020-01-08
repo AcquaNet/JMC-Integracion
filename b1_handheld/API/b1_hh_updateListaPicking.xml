@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:spring="http://www.springframework.org/schema/beans" 
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd">
+    <flow name="b1_hh_updatePickListFlow">
+        <http:listener config-ref="HTTP_Listener_Configuration" path="updateListaPicking" allowedMethods="POST" doc:name="HTTP"/>
+        <logger message="updateListaPicking recibido: #[message.payloadAs(java.lang.String)]" level="INFO" doc:name="Logger" category="jmc_hh"/>
+        <flow-ref name="b1_hh_updateListaPicking_settings" doc:name="Set up everything"/>
+        <flow-ref name="b1_hh_loginToSAP" doc:name="login to SAP"/>
+        <flow-ref name="b1_hh_updateListaPicking_FetchDocument" doc:name="Fetch Document to Update"/>
+        <expression-component doc:name="Transform Payload"><![CDATA[payload = acqua.util.JSONUtil.stringToMap(message.payloadAs(java.lang.String));
+flowVars.pickListMd5 = acqua.util.MD5Util.StringToMD5(payload);]]></expression-component>
+        <expression-component doc:name="Extract to flowVar"><![CDATA[flowVars.listaDeArticulos = flowVars.inputData.listaDeArticulos;]]></expression-component>
+        <enricher source="#[payload]" target="#[flowVars.PickListAbs]" doc:name="Fetch Location AbsEntry">
+            <transformer ref="fetchPickListLines" doc:name="Fetch Pick List Lines AbsEntry"/>
+        </enricher>
+        <transformer ref="UpdatePickList" doc:name="Update Fetched Pick List"/>
+        <expression-component doc:name="save data"><![CDATA[payload = acqua.util.JSONUtil.javaToJSONToString(payload);]]></expression-component>
+        <flow-ref name="b1_hh_updatePickList_SendDocument" doc:name="send Document"/>
+        <choice doc:name="check if result was true">
+            <when expression="#[flowVars.resultado == true]">
+                <expression-component doc:name="Expression"><![CDATA[flowVars.answerFromSAP = payload;]]></expression-component>
+                <flow-ref name="b1_hh_updateListaPicking_FetchDocument" doc:name="fetch changed doc"/>
+                <expression-component doc:name="Expression"><![CDATA[payload = acqua.util.JSONUtil.stringToMap(message.payloadAs(java.lang.String));
+flowVars.newMd5 = acqua.util.MD5Util.StringToMD5(payload);]]></expression-component>
+                <choice doc:name="check if pick list changed">
+                    <when expression="#[flowVars.pickListMd5 == flowVars.newMd5]">
+                        <set-payload value="{&quot;resultado&quot; : false, &quot;mensaje&quot; : &quot;la picklist no fue actualizada&quot;}" doc:name="Set Payload"/>
+                    </when>
+                    <otherwise>
+                        <expression-component doc:name="Expression"><![CDATA[payload = flowVars.answerFromSAP;]]></expression-component>
+                    </otherwise>
+                </choice>
+            </when>
+            <otherwise>
+                <logger message="empty" level="DEBUG" doc:name="Logger" category="jmc_hh"/>
+            </otherwise>
+        </choice>
+        <logger message="Respuesta a HH: #[payload]" level="INFO" doc:name="Logger" category="jmc_hh"/>
+    </flow>
+    <flow name="b1_hh_updateListaPicking_settings">
+        <expression-component doc:name="Convert and save payload"><![CDATA[flowVars.inputData = acqua.util.JSONUtil.stringToMap(message.payloadAs(java.lang.String));
+payload = flowVars.inputData;
+flowVars.entorno = payload.entorno;]]></expression-component>
+        <expression-component doc:name="Split"><![CDATA[flowVars.id = acqua.util.PickListParser.parseString(payload.codigobarra);
+flowVars.socID = flowVars.id.id;
+flowVars.pickCode = flowVars.id.code;
+flowVars.id = null;]]></expression-component>
+        <flow-ref name="b1_hh_global_setDBInfo" doc:name="Copy_of_set DB info "/>
+
+        <enricher source="#[payload]" target="#[flowVars.sociedad]" doc:name="Fetch Sociedad">
+            <transformer ref="fetchSocietyID" doc:name="Fetch Society Code"/>
+        </enricher>
+        <expression-component doc:name="set login to SAP "><![CDATA[flowVars.destination = flowVars.sociedad;]]></expression-component>
+    </flow>
+    <flow name="b1_hh_updateListaPicking_FetchDocument">
+        <http:request config-ref="HTTP_Request_Configuration" path="PickLists(#[flowVars.pickCode])" method="GET" doc:name="fetch Pick List"/>
+        <logger message="PickList levantada: #[message.payloadAs(java.lang.String)]" level="INFO" doc:name="Logger" category="jmc_hh"/>
+
+    </flow>
+    <flow name="b1_hh_updatePickList_SendDocument">
+        <logger message="updateListaPicking - enviando a SAP: #[payload]" level="INFO" doc:name="Logger"/>
+        <choice doc:name="Choice">
+            <when expression="#[flowVars.loginResult.equals(&quot;OK&quot;)]">
+                <set-payload value="#[payload]" doc:name="Set saved document as payload"/>
+                <http:request config-ref="HTTP_Request_Configuration" path="PickLists(#[flowVars.pickCode])" method="PUT" doc:name="Update inventory counting">
+                    <http:success-status-code-validator values="200..299,400"/>
+                </http:request>
+                <choice doc:name="Choice">
+                    <when expression="#[message.inboundProperties['http.status'] == 200 || message.inboundProperties['http.status'] == 204]">
+                        <expression-component doc:name="Answer"><![CDATA[payload = acqua.util.JSONUtil.stringToMap(message.payloadAs(java.lang.String));
+flowVars.resultado = true;]]></expression-component>
+                        <set-payload value="{&quot;resultado&quot;:true}" doc:name="Set Payload"/>
+                    </when>
+                    <when expression="#[message.inboundProperties['http.status'] == 400]">
+                        <expression-component doc:name="Set variables for report"><![CDATA[flowVars.status = message.inboundProperties["http.status"];
+flowVars.reason = message.inboundProperties["http.reason"];
+flowVars.payloadSent = flowVars.documentSaved;
+flowVars.responseRecived = message.payloadAs(java.lang.String);
+flowVars.method = "updateListaPicking";
+flowVars.requestURL = "PUT";
+flowVars.resultado = false;]]></expression-component>
+                        <expression-component doc:name="Convert to hash"><![CDATA[payload = acqua.util.JSONUtil.stringToMap(message.payloadAs(java.lang.String));
+]]></expression-component>
+                        <set-payload value="{&quot;resultado&quot; : false, &quot;mensaje&quot;:&quot;#[acqua.util.WorkUtils.replaceAll(payload.error.message.value)]&quot;}" doc:name="Set Payload"/>
+                        <expression-component doc:name="save payload"><![CDATA[flowVars.savePayloadForAnswer = payload;]]></expression-component>
+
+                        <flow-ref name="B1_Sync_EmailReportingFlow" doc:name="Email report"/>
+                        <expression-component doc:name="re-set payload"><![CDATA[payload = flowVars.savePayloadForAnswer;]]></expression-component>
+
+                    </when>
+                    <otherwise>
+
+                        <expression-component doc:name="Set variables for report"><![CDATA[flowVars.status = message.inboundProperties["http.status"];
+flowVars.reason = message.inboundProperties["http.reason"];
+flowVars.payloadSent = flowVars.documentSaved;
+flowVars.responseRecived = message.payloadAs(java.lang.String);
+flowVars.method = "updateListaPicking";
+flowVars.requestURL = "PUT";
+flowVars.resultado = false;]]></expression-component>
+                        <flow-ref name="B1_Sync_EmailReportingFlow" doc:name="Email Report"/>
+                        <set-payload value="{&quot;resultado&quot; : false, &quot;mensaje&quot;:&quot;#[acqua.util.WorkUtils.replaceAll(message.payloadAs(java.lang.String))]&quot;}" doc:name="Set Payload"/>
+                    </otherwise>
+                </choice>
+            </when>
+            <otherwise>
+                <set-payload value="{  &quot;resultado&quot;:false,&quot;mensaje&quot;:&quot;Fallo el login. Checkear logs.&quot; } " doc:name="Set answer for failure"/>
+            </otherwise>
+        </choice>
+    </flow>
+</mule>

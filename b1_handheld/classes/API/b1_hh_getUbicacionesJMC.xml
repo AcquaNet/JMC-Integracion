@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:spring="http://www.springframework.org/schema/beans" 
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd">
+    <flow name="b1_hh_getAreasByDepositoFlow">
+        <http:listener config-ref="HTTP_Listener_Configuration" path="getUbicacionesJMC" allowedMethods="POST" doc:name="HTTP"/>
+        <expression-component doc:name="Save input information"><![CDATA[flowVars.input = acqua.util.JSONUtil.stringToMap(message.payloadAs(java.lang.String));
+payload = acqua.util.WorkUtils.newHashMap();
+payload.value = flowVars.input;
+payload.response = "The input data is return in value.";]]></expression-component>
+        <flow-ref name="b1_hh_global_setDBInfo" doc:name="Copy_of_set DB info "/>
+        <transformer ref="fetchWarehouseSublevels" doc:name="fetchWarehouseSubLevels"/>
+        <expression-component doc:name="Convert answer to JSON"><![CDATA[payload = acqua.util.JSONUtil.javaListToJSONToString(payload);]]></expression-component>
+        <logger message="Returning getUbicacionesJMC #[payload]" level="INFO" doc:name="Logger" category="jmc_hh"/>
+    </flow>
+</mule>
