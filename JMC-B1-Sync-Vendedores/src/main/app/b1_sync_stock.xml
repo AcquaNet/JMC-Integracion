@@ -1,0 +1,180 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:schedulers="http://www.mulesoft.org/schema/mule/schedulers" xmlns:tls="http://www.mulesoft.org/schema/mule/tls"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:spring="http://www.springframework.org/schema/beans" 
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.mulesoft.org/schema/mule/tls http://www.mulesoft.org/schema/mule/tls/current/mule-tls.xsd
+http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/schedulers http://www.mulesoft.org/schema/mule/schedulers/current/mule-schedulers.xsd">
+    <custom-transformer name="transformJSON" class="sapb1masterpoll.JSONCleaner" doc:name="Java"/>
+    <http:request-config name="HTTP_Request_Configuration"
+		host="${sapB1.host}" port="${sapB1.port}" basePath="/b1s/v1/"
+		enableCookies="true" doc:name="HTTP Request Configuration" protocol="HTTPS" connectionIdleTimeout="300000000" responseTimeout="300000000">
+        <tls:context enabledProtocols="TLSv1,TLSv1.1,TLSv1.2">
+            <tls:trust-store path="keystore.jks" password="123456" type="jks" insecure="true"/>
+        </tls:context>
+	</http:request-config>
+    <http:listener-config name="HTTP_Listener_Configuration" host="0.0.0.0" port="9000" basePath="/sync" doc:name="HTTP Listener Configuration"/>
+    <flow name="b1_sync_stockFlow">
+        <http:listener config-ref="HTTP_Listener_Configuration" path="vendedores" allowedMethods="GET" doc:name="HTTP"/>
+        <flow-ref name="b1_sync_stock_main" doc:name="Flow Reference"/>
+        <flow-ref name="B1_Sync_SetErrors" doc:name="Flow Reference"/>
+    </flow>
+    <flow name="b1_sync_stock_main" processingStrategy="synchronous">
+        <poll doc:name="Poll">
+            <schedulers:cron-scheduler expression="0 0 0 1/1 * ? *"/>
+            <logger level="INFO" doc:name="Logger" category="jmc.log" message="Poll started"/>
+        </poll>
+        <expression-component doc:name="set vars for email"><![CDATA[flowVars.fileDate =  sapb1masterpoll.saveToFile.getCurrentDate();
+flowVars.fileTime =  sapb1masterpoll.saveToFile.getCurrentTime();
+]]></expression-component>
+        <flow-ref name="b1_sync_stock_init" doc:name="init settings"/>
+        <flow-ref name="b1_sync_stock_login" doc:name="Login to Holding"/>
+        <flow-ref name="b1_sync_stock_fetch" doc:name="Fetch Changes"/>
+        <flow-ref name="b1_sync_opln_sendDocuments" doc:name="Send Documents"/>
+        <flow-ref name="B1_Sync_SaveReportFlow" doc:name="send email"/>
+
+        <logger doc:name="Logger" level="INFO" message="Finished syncronizing stock" category="jmc.log"/>
+    </flow>
+    <flow name="b1_sync_stock_init" processingStrategy="synchronous">
+        <set-variable variableName="destinations" value="${sapB1.destinations}" doc:name="Set Destinations"/>
+        <set-variable variableName="loginDestinations" value="${sapB1.destinationsConnections}" doc:name="Set Login Destinations"/>
+        <expression-component doc:name="Convert Login Destinations"><![CDATA[flowVars.loginDestinations = b1_sync_stock.StringToJSON.stringToMap(flowVars.loginDestinations);
+flowVars.TableDestinations = b1_sync_stock.StringToJSON.stringToMap("${sapB1.Orders.Destinations}");]]></expression-component>
+        <expression-component doc:name="set db login"><![CDATA[flowVars.DBUser = ${sapB1.DBUser};
+flowVars.DBPass = ${sapB1.DBPass};
+flowVars.DBConnection = ${sapB1.DBConnection};
+]]></expression-component>
+
+
+    </flow>
+    <flow name="b1_sync_stock_fetch" processingStrategy="synchronous">
+        <expression-component doc:name="Expression"><![CDATA[flowVars.Fetch_requestPath = "SalesPersons";
+flowVars.Fetch_UniqueID = "SalesEmployeeCode";]]></expression-component>
+        <set-variable variableName="Fetch_requestType" value="After" doc:name="requestType"/>
+        <flow-ref name="GetDataForDates" doc:name="GetDataForDates"/>
+
+    </flow>
+    <flow name="b1_sync_stock_login" processingStrategy="synchronous">
+        <set-payload value="{  &quot;CompanyDB&quot;:  &quot;${sapB1.DB}&quot;,  &quot;UserName&quot;: &quot;${sapB1.user}&quot;,  &quot;Password&quot;: &quot;${sapB1.pass}&quot; }" doc:name="Set Payload for login"/>
+        <flow-ref name="sapB1LoginFlow" doc:name="Flow Reference"/>
+
+    </flow>
+    <flow name="GetMoreResultsBetween" processingStrategy="synchronous">
+        <http:request config-ref="HTTP_Request_Configuration" path="#[flowVars.Fetch_requestPath]" method="GET" doc:name="Fetch Next Batch of Results">
+            <http:request-builder>
+                <http:query-param paramName="$skip" value="#[flowVars.Fetch_SkipCounter]"/>
+                <http:header headerName="Set-Cookie" value="B1SESSION=#[flowVars.Fetch_B1Session.SessionId]; path=/b1s; "/>
+            </http:request-builder>
+        </http:request>
+        <expression-component doc:name="Transform result to HashMap"><![CDATA[payload = sapb1masterpoll.StringToJSON.stringToMap(message.payloadAs(java.lang.String));]]></expression-component>
+    </flow>
+    <flow name="GetDataForDates" processingStrategy="synchronous">
+        <set-variable variableName="Fetch_resultFromLoop" value="#[sapb1masterpoll.WorkUtils.createList()]" doc:name="Pre-Set Variable"/>
+        <choice doc:name="Choice">
+            <when expression="#[true]">
+                <expression-component doc:name="Set which flow to loop between"><![CDATA[flowVars.Fetch_flowReference = "GetMoreResultsBetween";]]></expression-component>
+                <component class="sapb1masterpoll.WhileLoop" doc:name="WhileLoop"/>
+                <expression-component doc:name="Save Payload"><![CDATA[payload =flowVars.Fetch_resultFromLoop;
+]]></expression-component>
+            </when>
+            <otherwise>
+                <logger message="empty info" level="INFO" doc:name="RequestType Not Specified" category="jmc.log"/>
+            </otherwise>
+        </choice>
+        <expression-component doc:name="set payload to result"><![CDATA[payload = flowVars.Fetch_resultFromLoop;]]></expression-component>
+        <logger message="Finished Getting Info" level="INFO" doc:name="Logger" category="jmc.log"/>
+    </flow>
+    <flow name="b1_sync_opln_sendDocuments">
+        <expression-component doc:name="Expression"><![CDATA[flowVars.payloadMessage = payload;]]></expression-component>
+        <foreach collection="#[flowVars.destinations.split(',')]" doc:name="For Each Destination">
+            <logger message="Inicio de loop de #[payload]" level="INFO" category="jmc.log" doc:name="Logger"/>
+            <expression-component doc:name="Swap destinaton and Payload"><![CDATA[flowVars.destination = payload;
+payload=flowVars.payloadMessage;]]></expression-component>
+            <set-payload value="#[flowVars.loginDestinations[flowVars.destination]]" doc:name="Set Login Details to Payload"/>
+            <flow-ref name="sapB1LoginFlow" doc:name="Login"/>
+            <logger message="Inicio de loop de #[payload] de #[flowVars.destination]" level="INFO" doc:name="Logger" category="jmc.log"/>
+            <expression-component doc:name="Set UniqueID"><![CDATA[flowVars.UniqueID = "SalesEmployeeCode";
+flowVars.UniqueType = "SalesPersons";
+flowVars.requestPath = "SalesPersons";]]></expression-component>
+            <foreach collection="#[flowVars.payloadMessage;]" doc:name="For Each">
+                <flow-ref name="B1_Sync_ProcessQueue" doc:name="Sync Distribute"/>
+            </foreach>
+        </foreach>
+    </flow>
+    <flow name="sapB1LoginFlow" processingStrategy="synchronous">
+        <logger message="Iniciando session a #[payload]" level="INFO" category="jmc.log" doc:name="Logger"/>
+        <http:request config-ref="HTTP_Request_Configuration" path="Login" method="POST" doc:name="HTTP"/>
+        <expression-component doc:name="Save Session"><![CDATA[flowVars.Fetch_B1Session =sapb1masterpoll.StringToJSON.stringToMap(message.payloadAs(java.lang.String));]]></expression-component>
+        <logger message="Login OK, guardados datos de B1SESSION a variable" level="INFO" category="jmc.log" doc:name="Logger"/>
+        <choice-exception-strategy doc:name="Choice Exception Strategy">
+            <catch-exception-strategy when="#[exception.cause.toString().contains('Timeout exceeded')]" doc:name="Timeout on Login">
+                <expression-component doc:name="Expression"><![CDATA[flowVars.Fetch_RESTType = "POST";
+flowVars.Fetch_shortURL = "LOGIN";
+flowVars.Fetch_RequestURL = "-";
+flowVars.Fetch_ObjectID = "-";
+flowVars.Fetch_destination = "JMCG_DEV2";
+flowVars.Fetch_messageSaved = "Error al loguear en SAP.";
+flowVars.ErrorCodeReason = "Timeout al intentar loguear a SAP";]]></expression-component>
+                <flow-ref name="B1_Sync_EmailReportingFlow" doc:name="Log timeout issue"/>
+                <flow-ref name="B1_Sync_SaveReportFlow" doc:name="Send email report"/>
+            </catch-exception-strategy>
+        </choice-exception-strategy>
+    </flow>
+    <flow name="B1_Sync_ProcessQueue" processingStrategy="synchronous">
+        <logger message="Inicio de processamiento de mensaje" level="INFO" doc:name="Logger" category="jmc.log"/>
+        <expression-component doc:name="Save Message to FlowVar"><![CDATA[flowVars.identificador = payload.SalesEmployeeCode;
+flowVars.messageSaved =payload;]]></expression-component>
+        <logger message="El identificador es U_identificador=#[flowVars.identificador] destino=#[flowVars.destination]" level="INFO" category="jmc.log" doc:name="Logger"/>
+        <expression-component doc:name="Set the Link to hit for Master"><![CDATA[flowVars.requestURL = flowVars.requestPath+"("+flowVars.identificador+")";
+]]></expression-component>
+        <logger message="Request URL: #[flowVars.requestURL]" level="INFO" category="jmc.log" doc:name="Logger"/>
+        <http:request config-ref="HTTP_Request_Configuration" path="#[flowVars.requestURL]" method="GET" doc:name="Check if it exists on Destination">
+            <http:request-builder>
+                <http:header headerName="Set-Cookie" value="B1SESSION=#[flowVars.Fetch_B1Session.SessionId]; path=/b1s; "/>
+            </http:request-builder>
+            <http:success-status-code-validator values="200..299,404"/>
+        </http:request>
+        <expression-component doc:name="Transform Payload"><![CDATA[payload = sapb1masterpoll.StringToJSON.stringToMap(message.payloadAs(java.lang.String));
+flowVars.originalRequest = flowVars.requestURL;]]></expression-component>
+        <choice doc:name="Check if exists">
+            <when expression="#[message.inboundProperties['http.status'] != 404]">
+                <logger message="Exists" level="INFO" category="jmc.log" doc:name="Ignore, Request URL is fine"/>
+                <expression-component doc:name="Align with rest"><![CDATA[flowVars.RESTType="PATCH";
+]]></expression-component>
+            </when>
+            <otherwise>
+                <logger message="doesnt exist" level="INFO" category="jmc.log" doc:name="Document"/>
+                <expression-component doc:name="Align with rest"><![CDATA[flowVars.RESTType="POST";
+flowVars.requestURL = flowVars.requestPath;]]></expression-component>
+            </otherwise>
+        </choice>
+        <logger message="Link de HTTP Request GET: #[flowVars.requestURL]" level="INFO" category="jmc.log" doc:name="Logger"/>
+        <expression-component doc:name="Expression"><![CDATA[payload=flowVars.messageSaved;
+payload = sapb1masterpoll.StringToJSON.javaToJSONToString(payload);]]></expression-component>
+        <transformer ref="transformJSON" doc:name="Fix JSON"/>
+        <logger message="Body enviado: #[payload]" level="INFO" doc:name="Logger" category="jmc.log"/>
+
+        <http:request config-ref="HTTP_Request_Configuration" path="#[flowVars.requestURL]" method="#[flowVars.RESTType]" doc:name="Send the patch or post to database">
+            <http:request-builder>
+                <http:header headerName="Set-Cookie" value="B1SESSION=#[flowVars.Fetch_B1Session.SessionId]; path=/b1s; "/>
+
+            </http:request-builder>
+            <http:success-status-code-validator values="200..299,400"/>
+        </http:request>
+        <choice doc:name="Choice">
+            <when expression="#[message.inboundProperties['http.status'] == 400]">
+                <logger message="Fallo. Error: #[message.payloadAs(java.lang.String)]" level="INFO" doc:name="fail" category="jmc.log"/>
+                <flow-ref name="B1_Sync_EmailReportingFlow" doc:name="Flow Reference"/>
+            </when>
+            <otherwise>
+                <logger message="Mensaje Actualizado en destino, setear OK" level="INFO" category="jmc.log" doc:name="ok"/>
+            </otherwise>
+        </choice>
+
+    </flow>
+
+</mule>

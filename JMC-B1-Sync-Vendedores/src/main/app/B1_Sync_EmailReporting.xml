@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:metadata="http://www.mulesoft.org/schema/mule/metadata" xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns:db="http://www.mulesoft.org/schema/mule/db" xmlns:smtps="http://www.mulesoft.org/schema/mule/smtps" xmlns:smtp="http://www.mulesoft.org/schema/mule/smtp" xmlns:pop3="http://www.mulesoft.org/schema/mule/pop3" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:spring="http://www.springframework.org/schema/beans" 
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/pop3 http://www.mulesoft.org/schema/mule/pop3/current/mule-pop3.xsd
+http://www.mulesoft.org/schema/mule/smtp http://www.mulesoft.org/schema/mule/smtp/current/mule-smtp.xsd
+http://www.mulesoft.org/schema/mule/smtps http://www.mulesoft.org/schema/mule/smtps/current/mule-smtps.xsd
+http://www.mulesoft.org/schema/mule/db http://www.mulesoft.org/schema/mule/db/current/mule-db.xsd
+http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd">
+    		<custom-transformer name="saveToFile" class="sapb1masterpoll.saveToFile" doc:name="Java"/>
+		<custom-transformer name="pickupFromFile" class="sapb1masterpoll.pickupFromFile" doc:name="Java"/>
+     <smtp:gmail-connector name="SMTP" contentType="text/html" validateConnections="true" doc:name="Gmail"/>
+    <flow name="B1_Sync_EmailReportingFlow">
+        <set-payload value="#['\n']&lt;h3&gt;Error encontrado&lt;/h3&gt;   #['\n']&lt;p&gt;#[message.inboundProperties[&quot;http.status&quot;]] - #[message.inboundProperties[&quot;http.reason&quot;]] - #[flowVars.ErrorCodeReason]&lt;/p&gt;  #['\n']&lt;h3&gt;En el metodo&lt;/h3&gt;   #['\n']&lt;p&gt;#[flowVars.RESTType] - #[flowVars.RequestURL] - #[flowVars.ObjectID]&lt;/p&gt;  #['\n']&lt;h3&gt;En el destino&lt;/h3&gt;   #['\n']&lt;p&gt;#[flowVars.destination]&lt;/p&gt;  #['\n']&lt;h3&gt;Respuesta de Service Layer&lt;/h3&gt;  #['\n']&lt;p&gt;#[message.payloadAs(java.lang.String)]&lt;/p&gt;  #['\n']&lt;h3&gt;JSON Enviado:&lt;/h3&gt;   #['\n']&lt;p&gt;#[flowVars.messageSaved]&lt;/p&gt; #['\n'] -----" doc:name="Set Payload" encoding="UTF-8" mimeType="text/html"/>
+        <transformer ref="saveToFile" doc:name="saveToFile"/>
+    </flow>
+    <flow name="B1_Sync_SaveReportFlow">
+        <transformer ref="pickupFromFile" doc:name="pickupFromFile"/>
+        <choice doc:name="Choice">
+            <when expression="#[payload != null]">
+                <logger message="Reporting to email all errors" level="INFO" category="jmc.log" doc:name="Logger"/>
+                <set-payload value="&lt;html&gt;  #['\n']&lt;head&gt;  #['\n']&lt;meta http-equiv=&quot;Content-Type&quot; content=&quot;text/html; charset=UTF-8&quot; /&gt;  #['\n']&lt;title&gt;Error en distribucion de datos JMC&lt;/title&gt; #['\n']&lt;/head&gt; #['\n']&lt;body  style=&quot;margin: 0px; padding: 20px; font-family:Verdana; font-size:14px;&quot;&gt;#['\n']#[payload] &lt;/body&gt; #['\n']&lt;/html&gt; " doc:name="Set Payload" mimeType="text/html" encoding="UTF-8"/>
+                <smtp:outbound-endpoint host="smtp.gmail.com" port="587" user="alertas.sincronizacion.jmc@gmail.com" password="Corporit1" responseTimeout="10000" doc:name="SMTP"   to="alertas.sincronizacion.jmc@gmail.com" from="alertas.sincronizacion.jmc@gmail.com" subject="Notificacion de error en Sync Vendedores" mimeType="text/html" connector-ref="SMTP"/><logger message="Error HTML: #[payload]" level="INFO" category="jmc_email.log" doc:name="Logger"/>
+            </when>
+            <otherwise>
+                <logger message="Flow finished without email reports" level="INFO" category="jmc.log" doc:name="Logger"/>
+            </otherwise>
+        </choice>
+    </flow>
+        <flow name="B1_Sync_SetErrors">
+        <transformer ref="pickupFromFile" doc:name="Copy_of_pickupFromFile"/>
+        <choice doc:name="Copy_of_Choice">
+            <when expression="#[payload != null]">
+                <logger message="Reporting to email all errors" level="INFO" category="jmc.log" doc:name="Copy_of_Logger"/>
+                <set-payload value="&lt;html&gt;  #['\n']&lt;head&gt;  #['\n']&lt;meta http-equiv=&quot;Content-Type&quot; content=&quot;text/html; charset=UTF-8&quot; /&gt;  #['\n']&lt;title&gt;Error en distribucion de datos JMC&lt;/title&gt; #['\n']&lt;/head&gt; #['\n']&lt;body  style=&quot;margin: 0px; padding: 20px; font-family:Verdana; font-size:14px;&quot;&gt;
+&lt;h1&gt; Errores encontrados en sincronizaci&#243;n &lt;/h1&gt;
+#['\n']#[payload] &lt;/body&gt; #['\n']&lt;/html&gt; " encoding="UTF-8" mimeType="text/html" doc:name="Copy_of_Set Payload"/>
+            </when>
+            <otherwise>
+                <logger message="Flow finished without email reports" level="INFO" category="jmc.log" doc:name="Copy_of_Logger"/>
+                <set-payload value="&lt;!DOCTYPE html&gt; &lt;head&gt; &lt;meta http-equiv=&quot;Content-Type&quot; content=&quot;text/html; charset=UTF-8&quot;&gt; &lt;title&gt;Sincronizacion Vendedores&lt;/title&gt; &lt;/head&gt; &lt;body&gt; &lt;h1&gt; Terminada la sincronizaci&#243;n sin errores&lt;/h1&gt; &lt;/body&gt; &lt;/html&gt;" doc:name="Set Payload"/>
+            </otherwise>
+        </choice>
+    </flow>
+</mule>

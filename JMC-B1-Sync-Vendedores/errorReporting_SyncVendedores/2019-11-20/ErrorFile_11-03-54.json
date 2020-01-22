@@ -1,0 +1,189 @@
+
+<h3>Error encontrado</h3>   
+<p>400 - Bad Request - null</p>  
+<h3>En el metodo</h3>   
+<p>POST - SalesPersons - null</p>  
+<h3>En el destino</h3>   
+<p>KA_GDEV6</p>  
+<h3>Respuesta de Service Layer</h3>  
+<p>{
+   "error" : {
+      "code" : -2035,
+      "message" : {
+         "lang" : "en-us",
+         "value" : "This entry already exists in the following tables (ODBC -2035)"
+      }
+   }
+}
+</p>  
+<h3>JSON Enviado:</h3>   
+<p>{U_Marca7=NB, U_Marca6=ME, U_Marca9=VA, SalesEmployeeCode=1148, U_Marca8=SP, U_Marca3=GO, U_Marca2=FO, U_Marca5=JO, U_Marca4=JH, SalesEmployeeName=CIRILLO MAPIS FAUSTO EZEUIEL, U_BOY_50_BRKO=null, Locked=tNO, U_Marca11=null, Active=tYES, U_Marca10=null, Remarks=null, U_Marca1=BK, CommissionGroup=0, EmployeeID=null, CommissionForSalesEmployee=0.0}</p> 
+ -----
+
+<h3>Error encontrado</h3>   
+<p>400 - Bad Request - null</p>  
+<h3>En el metodo</h3>   
+<p>POST - SalesPersons - null</p>  
+<h3>En el destino</h3>   
+<p>KA_GDEV6</p>  
+<h3>Respuesta de Service Layer</h3>  
+<p>{
+   "error" : {
+      "code" : -2035,
+      "message" : {
+         "lang" : "en-us",
+         "value" : "This entry already exists in the following tables (ODBC -2035)"
+      }
+   }
+}
+</p>  
+<h3>JSON Enviado:</h3>   
+<p>{U_Marca7=NB, U_Marca6=ME, U_Marca9=VA, SalesEmployeeCode=1149, U_Marca8=SP, U_Marca3=GO, U_Marca2=FO, U_Marca5=JO, U_Marca4=JH, SalesEmployeeName=DOS SANTOS DARIO GABRIEL, U_BOY_50_BRKO=null, Locked=tNO, U_Marca11=null, Active=tYES, U_Marca10=null, Remarks=null, U_Marca1=BK, CommissionGroup=0, EmployeeID=null, CommissionForSalesEmployee=0.0}</p> 
+ -----
+
+<h3>Error encontrado</h3>   
+<p>400 - Bad Request - null</p>  
+<h3>En el metodo</h3>   
+<p>POST - SalesPersons - null</p>  
+<h3>En el destino</h3>   
+<p>KA_GDEV6</p>  
+<h3>Respuesta de Service Layer</h3>  
+<p>{
+   "error" : {
+      "code" : -2035,
+      "message" : {
+         "lang" : "en-us",
+         "value" : "This entry already exists in the following tables (ODBC -2035)"
+      }
+   }
+}
+</p>  
+<h3>JSON Enviado:</h3>   
+<p>{U_Marca7=NB, U_Marca6=ME, U_Marca9=VA, SalesEmployeeCode=1150, U_Marca8=SP, U_Marca3=GO, U_Marca2=FO, U_Marca5=JO, U_Marca4=JH, SalesEmployeeName=GARCIA ANDREA ELISABETH, U_BOY_50_BRKO=null, Locked=tNO, U_Marca11=null, Active=tYES, U_Marca10=null, Remarks=null, U_Marca1=BK, CommissionGroup=0, EmployeeID=null, CommissionForSalesEmployee=0.0}</p> 
+ -----
+
+<h3>Error encontrado</h3>   
+<p>400 - Bad Request - null</p>  
+<h3>En el metodo</h3>   
+<p>POST - SalesPersons - null</p>  
+<h3>En el destino</h3>   
+<p>KA_GDEV6</p>  
+<h3>Respuesta de Service Layer</h3>  
+<p>{
+   "error" : {
+      "code" : -2035,
+      "message" : {
+         "lang" : "en-us",
+         "value" : "This entry already exists in the following tables (ODBC -2035)"
+      }
+   }
+}
+</p>  
+<h3>JSON Enviado:</h3>   
+<p>{U_Marca7=NB, U_Marca6=ME, U_Marca9=VA, SalesEmployeeCode=1151, U_Marca8=SP, U_Marca3=GO, U_Marca2=FO, U_Marca5=JO, U_Marca4=JH, SalesEmployeeName=BLANCO SABRINA LAURA, U_BOY_50_BRKO=null, Locked=tNO, U_Marca11=null, Active=tYES, U_Marca10=null, Remarks=null, U_Marca1=BK, CommissionGroup=0, EmployeeID=null, CommissionForSalesEmployee=0.0}</p> 
+ -----
+
+<h3>Error encontrado</h3>   
+<p>400 - Bad Request - null</p>  
+<h3>En el metodo</h3>   
+<p>POST - SalesPersons - null</p>  
+<h3>En el destino</h3>   
+<p>KA_GDEV6</p>  
+<h3>Respuesta de Service Layer</h3>  
+<p>{
+   "error" : {
+      "code" : -2035,
+      "message" : {
+         "lang" : "en-us",
+         "value" : "This entry already exists in the following tables (ODBC -2035)"
+      }
+   }
+}
+</p>  
+<h3>JSON Enviado:</h3>   
+<p>{U_Marca7=NB, U_Marca6=ME, U_Marca9=VA, SalesEmployeeCode=1152, U_Marca8=SP, U_Marca3=GO, U_Marca2=FO, U_Marca5=JO, U_Marca4=JH, SalesEmployeeName=RODRIGUEZ UGARTE GUADALUPE, U_BOY_50_BRKO=null, Locked=tNO, U_Marca11=null, Active=tYES, U_Marca10=null, Remarks=null, U_Marca1=BK, CommissionGroup=0, EmployeeID=null, CommissionForSalesEmployee=0.0}</p> 
+ -----
+
+<h3>Error encontrado</h3>   
+<p>400 - Bad Request - null</p>  
+<h3>En el metodo</h3>   
+<p>POST - SalesPersons - null</p>  
+<h3>En el destino</h3>   
+<p>KA_GDEV6</p>  
+<h3>Respuesta de Service Layer</h3>  
+<p>{
+   "error" : {
+      "code" : -2035,
+      "message" : {
+         "lang" : "en-us",
+         "value" : "This entry already exists in the following tables (ODBC -2035)"
+      }
+   }
+}
+</p>  
+<h3>JSON Enviado:</h3>   
+<p>{U_Marca7=NB, U_Marca6=ME, U_Marca9=VA, SalesEmployeeCode=1153, U_Marca8=SP, U_Marca3=GO, U_Marca2=FO, U_Marca5=JO, U_Marca4=JH, SalesEmployeeName=CEJAS FLORENCIA NOEMI, U_BOY_50_BRKO=null, Locked=tNO, U_Marca11=null, Active=tYES, U_Marca10=null, Remarks=null, U_Marca1=BK, CommissionGroup=0, EmployeeID=null, CommissionForSalesEmployee=0.0}</p> 
+ -----
+
+<h3>Error encontrado</h3>   
+<p>400 - Bad Request - null</p>  
+<h3>En el metodo</h3>   
+<p>POST - SalesPersons - null</p>  
+<h3>En el destino</h3>   
+<p>KA_GDEV6</p>  
+<h3>Respuesta de Service Layer</h3>  
+<p>{
+   "error" : {
+      "code" : -2035,
+      "message" : {
+         "lang" : "en-us",
+         "value" : "This entry already exists in the following tables (ODBC -2035)"
+      }
+   }
+}
+</p>  
+<h3>JSON Enviado:</h3>   
+<p>{U_Marca7=NB, U_Marca6=ME, U_Marca9=VA, SalesEmployeeCode=1154, U_Marca8=SP, U_Marca3=GO, U_Marca2=FO, U_Marca5=JO, U_Marca4=JH, SalesEmployeeName=NANNIZZI LUDMILA AGOSTINA, U_BOY_50_BRKO=null, Locked=tNO, U_Marca11=null, Active=tYES, U_Marca10=null, Remarks=null, U_Marca1=BK, CommissionGroup=0, EmployeeID=null, CommissionForSalesEmployee=0.0}</p> 
+ -----
+
+<h3>Error encontrado</h3>   
+<p>400 - Bad Request - null</p>  
+<h3>En el metodo</h3>   
+<p>POST - SalesPersons - null</p>  
+<h3>En el destino</h3>   
+<p>SI_GGEV6</p>  
+<h3>Respuesta de Service Layer</h3>  
+<p>{
+   "error" : {
+      "code" : -2035,
+      "message" : {
+         "lang" : "en-us",
+         "value" : "This entry already exists in the following tables (ODBC -2035)"
+      }
+   }
+}
+</p>  
+<h3>JSON Enviado:</h3>   
+<p>{U_Marca7=null, U_Marca6=null, U_Marca9=null, SalesEmployeeCode=1, U_Marca8=null, U_Marca3=null, U_Marca2=NB, U_Marca5=null, U_Marca4=null, SalesEmployeeName=01, U_BOY_50_BRKO=null, Locked=tNO, U_Marca11=null, Active=tYES, U_Marca10=null, Remarks=null, U_Marca1=JO, CommissionGroup=0, EmployeeID=null, CommissionForSalesEmployee=0.0}</p> 
+ -----
+
+<h3>Error encontrado</h3>   
+<p>400 - Bad Request - null</p>  
+<h3>En el metodo</h3>   
+<p>POST - SalesPersons - null</p>  
+<h3>En el destino</h3>   
+<p>SI_GGEV6</p>  
+<h3>Respuesta de Service Layer</h3>  
+<p>{
+   "error" : {
+      "code" : -2035,
+      "message" : {
+         "lang" : "en-us",
+         "value" : "This entry already exists in the following tables (ODBC -2035)"
+      }
+   }
+}
+</p>  
+<h3>JSON Enviado:</h3>   
+<p>{U_Marca7=null, U_Marca6=VA, U_Marca9=null, SalesEmployeeCode=2, U_Marca8=null, U_Marca3=ME, U_Marca2=JO, U_Marca5=SP, U_Marca4=NB, SalesEmployeeName=CESAR ROJAS, U_BOY_50_BRKO=null, Locked=tNO, U_Marca11=null, Active=tYES, U_Marca10=null, Remarks=null, U_Marca1=JH, CommissionGroup=0, EmployeeID=null, CommissionForSalesEmployee=0.0}</p> 
+ -----
