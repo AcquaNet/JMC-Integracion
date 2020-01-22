@@ -86,7 +86,7 @@ public class WhileLoop implements Callable {
 					url = java.net.URLDecoder.decode(url, "UTF-8");
 					// System.out.println("URL TO COMPLIE TO:" + url);
 					Pattern patt = Pattern.compile(
-							"\\/b1s\\/v1\\/" + "Projects" + "\\?\\$skip=(.+)");
+							"\\/b1s\\/v1\\/" + "U_TPLAN" + "\\?\\$skip=(.+)");
 					Matcher match = patt.matcher(url);
 					// System.out.println(patt.pattern());
 					// System.out.println("status: " + match.find());
@@ -163,8 +163,7 @@ public class WhileLoop implements Callable {
 						return true;
 					} else {
 						LOG.info("JAVA.WhileLoop.156: odata.nextLink is null");
-						// LOG.info("JAVA.WhileLoop.157: Payload:
-						// "+event.getMessage().getPayloadAsString());
+						LOG.info("JAVA.WhileLoop.157: Payload:"+event.getMessage().getPayloadAsString());
 					}
 				} else {
 					LOG.info("JAVA.WhileLoop.162: Class isnt a HashMap");

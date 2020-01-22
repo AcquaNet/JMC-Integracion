@@ -150,7 +150,7 @@ flowVars.requestURL = flowVars.requestPath;]]></expression-component>
         <logger message="Link de HTTP Request GET: #[flowVars.requestURL]" level="INFO" category="jmc.log" doc:name="Logger"/>
         <expression-component doc:name="Expression"><![CDATA[payload=flowVars.messageSaved;
 payload = sapb1masterpoll.StringToJSON.javaToJSONToString(payload);]]></expression-component>
-        <transformer ref="transformJSON" doc:name="Fix JSON"/>
+        <expression-component doc:name="Expression"><![CDATA[flowVars.messageSaved=payload;]]></expression-component>
         <logger message="Body enviado: #[payload]" level="INFO" doc:name="Logger" category="jmc.log"/>
 
         <http:request config-ref="HTTP_Request_Configuration" path="#[flowVars.requestURL]" method="#[flowVars.RESTType]" doc:name="Send the patch or post to database">
