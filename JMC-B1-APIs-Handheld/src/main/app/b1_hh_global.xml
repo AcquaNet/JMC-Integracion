@@ -32,7 +32,7 @@ http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/m
 	<custom-transformer name="fetchOrdenesAlmacen" class="acqua.util.odbc.FetchOrdenesAlmacen" doc:name="Java"/>
 	<custom-transformer name="fetchAllOrdenesAlmacen" class="acqua.util.odbc.FetchAllOrdenesAlmacen" doc:name="Java"/>
 	<custom-transformer name="fetchAlmacenOrden" class="acqua.util.odbc.FetchAlmacenOrden" doc:name="Java"/>
-	
+	<custom-transformer name="fetchDepositosTransferencias" class="acqua.util.odbc.FetchDepositosTransferencias" doc:name="Java"/>
 	
 	<!-- Transformadores de Body para armar ordenes -->
 	<custom-transformer name="BuildRecuentoInventario" class="acqua.util.Transform.BuildRecuentoInventario" doc:name="Java"/>
