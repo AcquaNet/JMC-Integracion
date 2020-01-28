@@ -575,10 +575,11 @@ public class OrdersFillAndSplit extends AbstractMessageTransformer implements Mu
 				else
 				{
 					HashMap<String,Object> order = new HashMap<>();
-					order.put("order", map.get("DocNum"));
+					order.put("orden", map.get("DocNum"));
 					order.put("completadas", new ArrayList<String>());
 					ArrayList<String> sociedades = new ArrayList<>();
 					sociedades.add((String) map.get("destination"));
+					order.put("sociedades", sociedades);
 					ordenMatching.put(""+map.get("DocNum"), order);
 					
 				}
@@ -588,9 +589,13 @@ public class OrdersFillAndSplit extends AbstractMessageTransformer implements Mu
 			// Loopeo los documentos originales para registrarlos
 			for (String docNum : ordenMatching.keySet()) {
 				HashMap<String,Object> orden = (HashMap<String, Object>) ordenMatching.get(docNum);
-				HashMap<String, Object> flowVars = new HashMap<String, Object>();
-				flowVars.put("payloadForOrden", orden);
-				invokeMuleFlow(message, muleContext, "b1_sync_ov_iniciarOrden", flowVars);
+				HashMap<String, Object> ordenflowVars = new HashMap<String, Object>();
+				Set<String> vars2 = message.getInvocationPropertyNames();
+				for (String str : vars2) {
+					ordenflowVars.put(str, message.getInvocationProperty(str));
+				}
+				ordenflowVars.put("payloadForOrden", orden);
+				invokeMuleFlow(message, muleContext, "b1_sync_ov_iniciarOrden",  ordenflowVars);
 			}
 			
 			return returnDocuments;

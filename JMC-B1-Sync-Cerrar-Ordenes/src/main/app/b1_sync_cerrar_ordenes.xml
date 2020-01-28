@@ -7,7 +7,7 @@
 http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
 http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
 http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd">
-    <http:listener-config name="HTTP_Listener_Configuration" host="0.0.0.0" port="9003" basePath="/b1/v1" doc:name="HTTP Listener Configuration"/>
+    <http:listener-config name="HTTP_Listener_Configuration" host="0.0.0.0" port="9004" basePath="/b1/v1" doc:name="HTTP Listener Configuration"/>
         <custom-transformer name="saveToFile" class="util.saveToFile" doc:name="Java"/>
         <custom-transformer name="saveToNewFile" class="util.saveToNewFile" doc:name="Java"/>
 		<custom-transformer name="pickupFromFile" class="util.pickupFromFile" doc:name="Java"/>

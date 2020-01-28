@@ -9,16 +9,20 @@ http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/htt
 http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd">
     <http:request-config name="OvClosure" host="127.0.0.1" port="9004" basePath="/b1/v1" doc:name="HTTP Request Configuration"/>
     <flow name="b1_sync_ov_iniciarOrden">
-        <expression-component doc:name="Expression"><![CDATA[payload = acqua.util.JSONUtil.stringToMap(flowVars.payloadForOrden);]]></expression-component>
+        <expression-component doc:name="Expression"><![CDATA[payload = acqua.util.JSONUtil.javaToJSONToString(flowVars.payloadForOrden);]]></expression-component>
         <http:request config-ref="OvClosure" path="registrarNuevaOrden" method="POST" doc:name="HTTP"/>
     </flow>
     <flow name="b1_sync_ov_registrarOrden">
-        <expression-component doc:name="Expression"><![CDATA[payload = "{ \"order\": "+flowVars.identificador+", \"sociedad\": \""+flowVars.destination+"\"}";]]></expression-component>
+        <expression-component doc:name="Expression"><![CDATA[payload = "{ \"orden\": "+flowVars.identificador+", \"sociedad\": \""+flowVars.destination+"\"}";]]></expression-component>
         <http:request config-ref="OvClosure" path="sociedadFinalizada" method="POST" doc:name="HTTP"/>
         <expression-component doc:name="Expression"><![CDATA[payload = acqua.util.JSONUtil.stringToMap(message.payloadAs(java.lang.String));]]></expression-component>
         <choice doc:name="Choice">
             <when expression="#[payload.finished]">
                 <logger message="OV Terminada de sincronizar" level="INFO" category="jmc.log" doc:name="Logger"/>
+                <flow-ref name="B1_Sync_LoginToParent" doc:name="Flow Reference"/>
+                <http:request config-ref="HTTP_Request_Configuration" path="Orders(#[flowVars.saveOrden])/Close" method="POST" doc:name="HTTP">
+                    <http:success-status-code-validator values="200..299,400,404"/>
+                </http:request>
             </when>
             <otherwise>
                 <logger message="OV Aun no terminada de sincronizar" level="INFO" category="jmc.log" doc:name="Logger"/>

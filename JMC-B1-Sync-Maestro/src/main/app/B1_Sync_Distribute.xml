@@ -107,7 +107,9 @@ sapb1masterpoll.ActiveMQManager.closeSession(flowVars.ActiveMQSession);]]></expr
         <expression-component doc:name="Save Message to FlowVar"><![CDATA[flowVars.identificador = payload.DocNum;
 payload.U_identificador = payload.DocNum;
 payload = sapb1masterpoll.WorkUtils.removeStandardPrice(payload);
-flowVars.messageSaved =payload;]]></expression-component>
+flowVars.messageSaved =payload;
+flowVars.saveOrden = payload.DocEntrySaved;
+payload.DocEntrySaved = null;]]></expression-component>
         <logger message="El identificador es U_identificador=#[flowVars.identificador] destino=#[flowVars.destination]" level="INFO" category="jmc.log" doc:name="Logger"/>
         <choice doc:name="Check if its a document">
             <when expression="#[flowVars.UniqueType.equals('String')]">

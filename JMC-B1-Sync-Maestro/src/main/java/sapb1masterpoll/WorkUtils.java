@@ -102,6 +102,7 @@ public class WorkUtils {
 			py.remove("DocNum");
 		}
 		if (py.containsKey("DocEntry")) {
+			py.put("DocEntrySaved", py.get("DocEntry"));
 			py.remove("DocEntry");
 		}
 		// if (py.containsKey("BarCode")) {
