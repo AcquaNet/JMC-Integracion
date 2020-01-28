@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:spring="http://www.springframework.org/schema/beans" 
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd">
+    <http:request-config name="OvClosure" host="127.0.0.1" port="9004" basePath="/b1/v1" doc:name="HTTP Request Configuration"/>
+    <flow name="b1_sync_ov_iniciarOrden">
+        <expression-component doc:name="Expression"><![CDATA[payload = acqua.util.JSONUtil.stringToMap(flowVars.payloadForOrden);]]></expression-component>
+        <http:request config-ref="OvClosure" path="registrarNuevaOrden" method="POST" doc:name="HTTP"/>
+    </flow>
+    <flow name="b1_sync_ov_registrarOrden">
+        <expression-component doc:name="Expression"><![CDATA[payload = "{ \"order\": "+flowVars.identificador+", \"sociedad\": \""+flowVars.destination+"\"}";]]></expression-component>
+        <http:request config-ref="OvClosure" path="sociedadFinalizada" method="POST" doc:name="HTTP"/>
+        <expression-component doc:name="Expression"><![CDATA[payload = acqua.util.JSONUtil.stringToMap(message.payloadAs(java.lang.String));]]></expression-component>
+        <choice doc:name="Choice">
+            <when expression="#[payload.finished]">
+                <logger message="OV Terminada de sincronizar" level="INFO" category="jmc.log" doc:name="Logger"/>
+            </when>
+            <otherwise>
+                <logger message="OV Aun no terminada de sincronizar" level="INFO" category="jmc.log" doc:name="Logger"/>
+            </otherwise>
+        </choice>
+    </flow>
+</mule>

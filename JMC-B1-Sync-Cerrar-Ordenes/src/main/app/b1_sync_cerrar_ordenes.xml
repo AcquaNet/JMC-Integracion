@@ -1,0 +1,56 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:spring="http://www.springframework.org/schema/beans" 
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd">
+    <http:listener-config name="HTTP_Listener_Configuration" host="0.0.0.0" port="9003" basePath="/b1/v1" doc:name="HTTP Listener Configuration"/>
+        <custom-transformer name="saveToFile" class="util.saveToFile" doc:name="Java"/>
+        <custom-transformer name="saveToNewFile" class="util.saveToNewFile" doc:name="Java"/>
+		<custom-transformer name="pickupFromFile" class="util.pickupFromFile" doc:name="Java"/>
+		
+    <flow name="b1_sync_cerrar_ordenesFlow">
+    
+        <http:listener config-ref="HTTP_Listener_Configuration" path="registrarNuevaOrden" allowedMethods="POST" doc:name="HTTP"/>
+        <expression-component doc:name="Expression"><![CDATA[payload = acqua.util.JSONUtil.stringToMap(message.payloadAs(java.lang.String));
+flowVars.orden = payload.orden;
+flowVars.sociedades = payload.sociedades;
+flowVars.completadas = payload.completadas;]]></expression-component>
+        <transformer ref="saveToNewFile" doc:name="save to new file"/>
+        <set-payload value="{&quot;result&quot;:true}" mimeType="text/json" doc:name="Set Payload"/>
+    </flow>
+    <flow name="b1_sync_cerrar_ordenesFlow1">
+        <http:listener config-ref="HTTP_Listener_Configuration" path="sociedadFinalizada" allowedMethods="POST" doc:name="HTTP"/>
+        <expression-component doc:name="parse input json"><![CDATA[payload = acqua.util.JSONUtil.stringToMap(message.payloadAs(java.lang.String));
+flowVars.orden = payload.orden;
+flowVars.sociedad = payload.sociedad;]]></expression-component>
+        <transformer ref="pickupFromFile" doc:name="pickup order"/>
+        <expression-component doc:name="parse order json"><![CDATA[payload = acqua.util.JSONUtil.stringToMap(message.payloadAs(java.lang.String));
+flowVars.orden = payload.orden;
+flowVars.sociedades = payload.sociedades;
+flowVars.completadas = payload.completadas;]]></expression-component>
+        <choice doc:name="Choice">
+            <when expression="#[flowVars.sociedades.contains(&quot;inexistente&quot;)]">
+                <logger message="Orden  #[flowVars.orden] no esta registrada" level="INFO" doc:name="Logger"/>
+            </when>
+            <otherwise>
+                <logger message="empty logger" doc:name="Logger"/>
+                <expression-component doc:name="add soc to completed"><![CDATA[flowVars.completadas = acqua.util.WorkUtils.addStringToList(flowVars.completadas,flowVars.sociedad);]]></expression-component>
+                <transformer ref="saveToFile" doc:name="update order file"/>
+            </otherwise>
+        </choice>
+        <choice doc:name="Choice">
+            <when expression="#[flowVars.completadas.containsAll(flowVars.sociedades)]">
+                <logger level="INFO" doc:name="Completada" message="Orden #[flowVars.orden] Esta Completa"/>
+                <set-payload value="{&quot;finished&quot;:true}" mimeType="text/json" doc:name="Set Payload"/>
+            </when>
+            <otherwise>
+                <logger level="INFO" doc:name="Pendiente" message="Orden  #[flowVars.orden] Esta Pendiente"/>
+                <set-payload value="{&quot;finished&quot;:false}" mimeType="text/json" doc:name="Set Payload"/>
+            </otherwise>
+        </choice>
+    </flow>
+</mule>

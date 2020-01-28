@@ -559,6 +559,40 @@ public class OrdersFillAndSplit extends AbstractMessageTransformer implements Mu
 				}
 
 			} // Fin loop updateDocuments de actualizar
+			
+			// Documentos listos para sync, iniciar las ordenes para el cerrador
+			
+			HashMap<String,Object> ordenMatching = new HashMap<>();
+			
+			for (HashMap<String,Object> map : returnDocuments) {
+				if (ordenMatching.containsKey(""+map.get("DocNum"))){
+					HashMap<String,Object> order = (HashMap<String, Object>) ordenMatching.get(""+map.get("DocNum"));
+					ArrayList<String> sociedades = (ArrayList<String>) order.get("sociedades");
+					sociedades.add((String) map.get("destination"));
+					order.put("sociedades", sociedades);
+					ordenMatching.put(""+map.get("DocNum"), order);
+				}
+				else
+				{
+					HashMap<String,Object> order = new HashMap<>();
+					order.put("order", map.get("DocNum"));
+					order.put("completadas", new ArrayList<String>());
+					ArrayList<String> sociedades = new ArrayList<>();
+					sociedades.add((String) map.get("destination"));
+					ordenMatching.put(""+map.get("DocNum"), order);
+					
+				}
+			}
+			
+			
+			// Loopeo los documentos originales para registrarlos
+			for (String docNum : ordenMatching.keySet()) {
+				HashMap<String,Object> orden = (HashMap<String, Object>) ordenMatching.get(docNum);
+				HashMap<String, Object> flowVars = new HashMap<String, Object>();
+				flowVars.put("payloadForOrden", orden);
+				invokeMuleFlow(message, muleContext, "b1_sync_ov_iniciarOrden", flowVars);
+			}
+			
 			return returnDocuments;
 
 		} catch (Exception e) {

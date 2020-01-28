@@ -191,6 +191,14 @@ flowVars.messageSaved = payload;]]></expression-component>
         <choice doc:name="Choice">
             <when expression="#[message.inboundProperties['http.status'] &lt; 400]">
                 <logger message="Mensaje Actualizado en destino, setear OK. Status: #[message.inboundProperties['http.status']" level="INFO" category="jmc.log" doc:name="Logger"/>
+                <choice doc:name="Choice">
+                    <when expression="#[flowVars.dist_requestPath.equals(&quot;Orders&quot;)]">
+                        <flow-ref name="b1_sync_ov_registrarOrden" doc:name="Flow Reference"/>
+                    </when>
+                    <otherwise>
+                        <logger message="empty logger" doc:name="Logger"/>
+                    </otherwise>
+                </choice>
 
             </when>
             <otherwise>
