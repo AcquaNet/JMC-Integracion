@@ -218,6 +218,10 @@ public class OrdersFillAndSplit extends AbstractMessageTransformer implements Mu
 								emailAnswerBody = emailAnswerBody + "	<tr>\r\n" + "		<th>'" + codigo
 										+ "'</th>\r\n" + "		<th>" + value + "</th>\r\n" + "	</tr>";
 								emailIssue = true;
+								LOG.info("Item has insufficient items. Line: Codigo"+codigo+" | Value: "+value);
+							}
+							else {
+								LOG.info("Item "+codigo+" was fully allocated");
 							}
 
 							// Devolvemos al stock global la linea actualizada
@@ -241,6 +245,13 @@ public class OrdersFillAndSplit extends AbstractMessageTransformer implements Mu
 					if (emailIssue) {
 						newDocument.put("EmailIssue", true);
 						newDocument.put("EmailBody", emailAnswerBody);
+						
+						LOG.info("Email issue logged for "+newDocument.get("DocNum") + " | "+emailAnswerBody);
+					}
+					else
+					{
+						newDocument.put("EmailIssue", false);
+						LOG.info("No email issue for "+newDocument.get("DocNum"));
 					}
 					updateDocuments.add(newDocument);
 				}
@@ -462,8 +473,28 @@ public class OrdersFillAndSplit extends AbstractMessageTransformer implements Mu
 				}
 
 			} // Fin documentos
-
+			
+			ArrayList<HashMap<String,Object>> fixedUpdateDocuments = new ArrayList<>();
 			for (HashMap<String, Object> document : updateDocuments) {
+				Boolean bool = (Boolean) document.get("EmailIssue");
+				if (bool != null) {
+				if (!bool) {
+					for (HashMap<String,Object> documentLine : (ArrayList<HashMap<String,Object>>) document.get("DocumentLines")) {
+						if (documentLine.get("WarehouseCode").equals("01")) {
+							LOG.info("Missing items but no emailIssue detected for "+document.get("DocNum")+", forcing it");
+							document.put("EmailIssue", true);
+							document.put("EmailBody", "Error from debug, check logs");
+						}
+					}
+				}
+				fixedUpdateDocuments.add(document);
+				}
+				else
+				{
+					LOG.info("Null emailIssue detected, error?");
+				}
+			}
+			for (HashMap<String, Object> document : fixedUpdateDocuments) {
 				// Build up for invocation
 				AtomicInteger counter = new AtomicInteger(0);
 				List<Object> smollist = ((ArrayList<HashMap<String, Object>>) document.get("DocumentLines")).stream()
@@ -476,7 +507,17 @@ public class OrdersFillAndSplit extends AbstractMessageTransformer implements Mu
 					});
 					counter.getAndIncrement();
 				});
+				
+				
 				String email = getEmailFromDocumentId((Integer) document.get("DocEntry"), manager, dbPadre);
+				Boolean emailIssue = false;
+				String body = "";
+				if (document.get("EmailIssue") != null) {
+					if (document.get("EmailIssue").equals(true)) {
+						emailIssue = true;
+						body = (String) document.get("EmailBody");
+					}
+				}
 				String flowName = "B1_Sync_ReportOVResult";
 
 				// Remove info
@@ -522,12 +563,12 @@ public class OrdersFillAndSplit extends AbstractMessageTransformer implements Mu
 				
 				if (!email.equals("no email")) {
 					// Si Falto asignar stock
-					if (document.containsKey("EmailIssue")) {
+					if (emailIssue) {
 						String EmailBody = "<p>La orden de venta no se actualizó " + "correctamente en JMCGROUP,"
 								+ " por favor revisar los siguientes artículos tengan la cantidad faltante:\r\n</p>"
 								+ "<table style=\"width:50%;\">\r\n" + "	<tr>\r\n"
 								+ "		<th>Numero de Articulo</th>\r\n" + "		<th>Cantidad</th>\r\n" + "	</tr>"
-								+ (String) document.get("EmailBody") + "" + "</table>";
+								+ body + "" + "</table>";
 						String EmailSubject = "Resultado de Asignación de Almacenes de Orden de Venta "
 								+ document.get("DocNum");
 						String EmailTarget = email;
