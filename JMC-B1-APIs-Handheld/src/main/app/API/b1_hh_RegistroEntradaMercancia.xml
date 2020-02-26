@@ -1,16 +1,25 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<mule xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+<mule xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
 	xmlns:spring="http://www.springframework.org/schema/beans" 
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
 http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
-http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd">
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd">
     <flow name="b1_hh_RegistroEntradaMercanciaFlow">
         <http:listener config-ref="HTTP_Listener_Configuration" path="/RegistroEntradaMercancia" allowedMethods="POST" doc:name="HTTP"/>
+        <logger message="Input RegistroEntradaMercancia: #[payload]" level="INFO" doc:name="Logger"/>
         <expression-component doc:name="Transform payload"><![CDATA[payload = acqua.util.JSONUtil.stringToMap(message.payloadAs(java.lang.String));]]></expression-component>
         <transformer ref="ConsolidarRecuentoEntradaMercancia" doc:name="Transformer Reference"/>
-        <set-payload value="{&quot;resultado&quot;:#[payload], &quot;mensaje&quot;: &quot;Revisar log de EntradaMercancia&quot;}" doc:name="Set Payload"/>
-        <logger message="RegistroEntradaMercancia" level="INFO" category="jmc_hh" doc:name="Logger"/>
+        <choice doc:name="Choice">
+            <when expression="#[payload]">
+                <set-payload value="{&quot;resultado&quot;:#[payload], &quot;mensaje&quot;: &quot;Archivo creado&quot;}" doc:name="payload true"/>
+            </when>
+            <otherwise>
+                <set-payload value="{&quot;resultado&quot;:#[payload], &quot;mensaje&quot;: &quot;Revisar log de EntradaMercancia&quot;}" doc:name="payload false"/>
+            </otherwise>
+        </choice>
+        <logger message="RegistroEntradaMercancia completado" level="INFO" category="jmc_hh" doc:name="Logger"/>
     </flow>
 </mule>
