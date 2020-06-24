@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:spring="http://www.springframework.org/schema/beans" 
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd">
+    <flow name="b1_hh_BorrarEntradaMercanciaFlow">
+        <http:listener config-ref="HTTP_Listener_Configuration" path="/BorrarEntradaMercancia" allowedMethods="POST" doc:name="HTTP"/>
+        <logger message="Input BorrarEntradaMercancia: #[payload]" level="INFO" doc:name="Logger"/>
+        <expression-component doc:name="Transform payload"><![CDATA[payload = acqua.util.JSONUtil.stringToMap(message.payloadAs(java.lang.String));
+flowVars.inputData = payload;
+flowVars.sociedad = payload.sociedad;
+flowVars.codigo = payload.codigo;]]></expression-component>
+        <transformer ref="BorrarRecuentoEntradaMercancia" doc:name="Transformer Reference"/>
+        <choice doc:name="Choice">
+            <when expression="#[payload]">
+                <set-payload value="{&quot;resultado&quot;:#[payload], &quot;mensaje&quot;: &quot;Archivo borrado&quot;}" doc:name="payload true"/>
+            </when>
+            <otherwise>
+                <set-payload value="{&quot;resultado&quot;:#[payload], &quot;mensaje&quot;: &quot;No existia el archivo&quot;}" doc:name="payload false"/>
+            </otherwise>
+        </choice>
+        <logger message="BorrarEntradaMercancia completado" level="INFO" category="jmc_hh" doc:name="Logger"/>
+    </flow>
+</mule>

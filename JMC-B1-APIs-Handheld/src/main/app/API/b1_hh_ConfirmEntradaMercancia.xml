@@ -42,6 +42,7 @@ flowVars.destination = flowVars.sociedad;]]></expression-component>
                 <choice doc:name="Choice">
                     <when expression="#[message.inboundProperties['http.status'] &lt; 300]">
                         <expression-component doc:name="Answer"><![CDATA[payload = acqua.util.JSONUtil.stringToMap(message.payloadAs(java.lang.String));]]></expression-component>
+                        <transformer ref="BorrarRecuentoEntradaMercancia" doc:name="OK, borrar recuentro"/>
                         <set-payload value="{&quot;resultado&quot;:true}" doc:name="Set Payload"/>
                     </when>
                     <when expression="#[message.inboundProperties['http.status'] == 400]">

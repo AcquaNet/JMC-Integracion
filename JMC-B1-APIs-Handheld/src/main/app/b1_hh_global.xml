@@ -51,7 +51,7 @@ http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/m
 	<custom-transformer name="FetchCurrentStock" class="acqua.util.odbc.interno.FetchCurrentStock" doc:name="Java"/>
 	<custom-transformer name="ConsolidarRecuentoEntradaMercancia" class="acqua.util.Transform.ConsolidarRecuentoEntradaMercancia" doc:name="Java"/>
 	<custom-transformer name="LeerRecuentoEntradaMercancia" class="acqua.util.Transform.LeerRecuentoEntradaMercancia" doc:name="Java"/>
-	
+	<custom-transformer name="BorrarRecuentoEntradaMercancia" class="acqua.util.Transform.BorrarRecuentoEntradaMercancia" doc:name="Java"/>
 	
 	<http:request-config name="HTTP_Request_Configuration"
 		host="${sapB1.host}" port="${sapB1.port}" basePath="/b1s/v1/"

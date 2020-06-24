@@ -40,7 +40,7 @@ flowVars.TableDestinations = b1_sync_stock.StringToJSON.stringToMap("${sapB1.Ord
         <expression-component doc:name="set db login"><![CDATA[flowVars.DBUser = ${sapB1.DBUser};
 flowVars.DBPass = ${sapB1.DBPass};
 flowVars.DBConnection = ${sapB1.DBConnection};
-flowVars.warehouseMatch = ${sapB1.warehouseMatch};]]></expression-component>
+]]></expression-component>
         <expression-component doc:name=" set data"><![CDATA[flowVars.updateDate = "2019-04-14";
 flowVars.Origin = ${sapB1.DBOrigin};]]></expression-component>
 

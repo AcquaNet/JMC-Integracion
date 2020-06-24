@@ -1,0 +1,40 @@
+{
+  "data": [
+    {
+      "codigo": "NB.C.LF.F.LI.V.0816. 55.GRAZ",
+      "cantidad": 2.0
+    },
+    {
+      "codigo": "NB.C.LF.F.LI.V.0816. 60.GRAZ",
+      "cantidad": 3.0
+    },
+    {
+      "codigo": "NB.C.LF.F.LI.V.0816. 65.GRAZ",
+      "cantidad": 2.0
+    },
+    {
+      "codigo": "NB.C.LF.F.LI.V.0816. 70.GRAZ",
+      "cantidad": 1.0
+    },
+    {
+      "codigo": "NB.C.RN.M.LI.V.0159.100.RL",
+      "cantidad": 2.0
+    },
+    {
+      "codigo": "NB.C.RN.M.LI.V.0159.105.RL",
+      "cantidad": 1.0
+    },
+    {
+      "codigo": "NB.C.RN.M.LI.V.0159.110.RL",
+      "cantidad": 2.0
+    },
+    {
+      "codigo": "NB.C.RN.M.LI.V.0159.115.RL",
+      "cantidad": 3.0
+    },
+    {
+      "codigo": "NB.C.RN.M.LI.V.0159.120.RL",
+      "cantidad": 1.0
+    }
+  ]
+}

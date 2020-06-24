@@ -16,7 +16,7 @@ import org.mule.transformer.AbstractMessageTransformer;
 
 import acqua.util.JSONUtil;
 
-public class LeerRecuentoEntradaMercancia extends AbstractMessageTransformer {
+public class BorrarRecuentoEntradaMercancia extends AbstractMessageTransformer {
 	@SuppressWarnings("unused")
 	private static final Logger LOG = Logger.getLogger("jmc_hh.log");
 
@@ -46,43 +46,12 @@ public class LeerRecuentoEntradaMercancia extends AbstractMessageTransformer {
 		if (!file.exists()) {
 			// If it doesnt...
 				LOG.info("No existe el archivo "+fileName);
-				return null;
+				return false;
 		} else {
-			// If it already exists
-			try {
-				// Read exisitng file info
-				FileInputStream existingFile = new FileInputStream(file);
-				String existingJSON = "";
-				int content;
-				while ((content = existingFile.read()) != -1) {
-					// convert to char and append
-					existingJSON = existingJSON + (char) content;
-					// System.out.print((char) content);
-				}
-
-				existingFile.close();
-				//file.delete(); No queremos borrarlo al instante
-				
-				// Convert JSON to Map and return data
-				HashMap<String, Object> inputMap = (HashMap<String, Object>) acqua.util.JSONUtil
-						.stringToMap(existingJSON);
-				if (inputMap == null) {
-					return null;
-				}
-				// Convert JSON to usable ArrayList
-				ArrayList<HashMap<String, Object>> existingItems = (ArrayList<HashMap<String, Object>>) inputMap
-						.get("data");
-				if (existingItems.size() == 0) {
-					return null;
-				}
-				return existingItems;
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
+			file.delete(); // No queremos borrarlo al instante - Si queremos
+			return true;
 
 		}
-
-		return null;
 	}
 	
 }

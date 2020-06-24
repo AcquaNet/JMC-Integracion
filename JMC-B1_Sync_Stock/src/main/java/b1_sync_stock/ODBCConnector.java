@@ -41,10 +41,12 @@ public class ODBCConnector extends AbstractMessageTransformer {
 		Connection connect = manager.connect();
 		if (connect == null) {
 			return "Error Connecting to DB. Check Logs";
-		} else {
-			System.out.println("Connection to HANA successful!");
 		}
-
+		else
+		{
+		System.out.println("Connection to HANA successful!");
+		}
+		
 		try {
 			// Create a statement to call
 			Statement query1St = manager.createStatement();
@@ -52,13 +54,12 @@ public class ODBCConnector extends AbstractMessageTransformer {
 			String destination = message.getInvocationProperty("Destination");
 			String origin = message.getInvocationProperty("Origin");
 			String fullDestination = destination;
-			String warehouseMatch = message.getInvocationProperty("warehouseMatch");
 			HashMap<String, String> destinationMap = message.getInvocationProperty("TableDestinations");
 			// Check which Items are Inventory enabled from Destination and Holding
 			String query1 = "SELECT \"ItemCode\",\"InvntItem\" FROM " + destination + ".OITM";
 			String query2 = "SELECT \"ItemCode\",\"InvntItem\" FROM " + origin + ".OITM";
 			LOG.info("Item Info Q: " + query1);
-			LOG.info("Item Info Q2: " + query2);
+			LOG.info("Item Info Q: " + query1);
 			ResultSet stockEnabled = query1St.executeQuery(query1);
 
 			// Save a HashMap of all the Items that are inventory enabled
@@ -67,18 +68,16 @@ public class ODBCConnector extends AbstractMessageTransformer {
 			Statement query2St = manager.createStatement();
 			ResultSet stockEnabledHolding = query2St.executeQuery(query2);
 
-			String queryLote = "SELECT \"ItemCode\", \"WhsCode\", \"OnHand\" FROM "
-					+ origin + ".OITW WHERE \"WhsCode\" in " + warehouseMatch + ""
-					+ " AND \"OnHand\" > 0";
-			LOG.info("Item Count Q: "+queryLote);
+			
+			String queryLote = "SELECT \"ItemCode\",\"InvntItem\" FROM " + origin + ".OITM";
 			Statement queryLoteSt = manager.createStatement();
 			ResultSet parseStockLoteVentas = queryLoteSt.executeQuery(queryLote);
-
+			
 			// Save a HashMap of all the Items that are inventory enabled
 			HashMap<String, Boolean> invItemsHolding = parseInventoryResults(stockEnabledHolding);
-
-			HashMap<String, Object> stockLoteVentas = parseStockLoteVentas(parseStockLoteVentas);
-
+			
+			HashMap<String, Boolean> stockLoteVentas = parseStockLoteVentas(parseStockLoteVentas);
+			
 			// Dont syncronize if the item is not enabled in holding, will cause an error.
 			// Also, if the item doesnt exist
 			for (String val : invItems.keySet()) {
@@ -101,48 +100,46 @@ public class ODBCConnector extends AbstractMessageTransformer {
 			// Get the last updated Date YYYY-MM-DD
 			String updateDate = message.getInvocationProperty("updateDate");
 			String updateTime = message.getInvocationProperty("updateTime");
-
+			
 			DateTimeFormatter inputFormatter = DateTimeFormat.forPattern("HH-mm-ss");
 			DateTimeFormatter outputFormatter = DateTimeFormat.forPattern("HHmm");
 			DateTime dateTime = inputFormatter.parseDateTime(updateTime);
 			String formattedUpdateTime = outputFormatter.print(dateTime.getMillis());
-
+			
 			// Get all Item Stocks from DB
-
+			
 			// Full STR
 			// https://stackoverflow.com/questions/58507324/filtering-out-duplicate-entires-for-older-rows
-			// SELECT * FROM (SELECT T0.\"ItemCode\", T0.\"WhsCode\", T0.\"OnHand\",
-			// T0.\"IsCommited\", T0.\"OnOrder\", T1.\"DocDate\", T1.\"DocTime\",
-			// ROW_NUMBER() OVER (PARTITION BY T0.\"ItemCode\" ORDER BY T1.\"DocTime\" DESC)
-			// AS RN FROM KA_DEV6.OITW T0JOIN KA_DEV6.OINM T1 ON T0.\"WhsCode\" = '01' AND
-			// T0.\"ItemCode\" = T1.\"ItemCode\" WHERE T1.\"DocDate\" > '2019-10-20' OR
-			// (T1.\"DocDate\" = '2019-10-20' AND T1.\"DocTime\" >= '1025')) X WHERE RN = 1
-			String str = "SELECT * FROM " + "("
+			// SELECT * FROM (SELECT T0.\"ItemCode\", T0.\"WhsCode\", T0.\"OnHand\", T0.\"IsCommited\", T0.\"OnOrder\", T1.\"DocDate\", T1.\"DocTime\", ROW_NUMBER() OVER (PARTITION BY   T0.\"ItemCode\" ORDER BY  T1.\"DocTime\" DESC) AS RN FROM KA_DEV6.OITW T0JOIN KA_DEV6.OINM T1 ON T0.\"WhsCode\" = '01' AND T0.\"ItemCode\" = T1.\"ItemCode\" WHERE  T1.\"DocDate\" > '2019-10-20' OR (T1.\"DocDate\" = '2019-10-20' AND T1.\"DocTime\" >= '1025')) X WHERE RN = 1
+			String str = "SELECT * FROM "
+					+ "("
 					+ "SELECT T0.\"ItemCode\", T0.\"WhsCode\", T0.\"OnHand\", T0.\"IsCommited\", T0.\"OnOrder\", T1.\"DocDate\", T1.\"DocTime\", T2.\"LastPurPrc\", "
 					+ " ROW_NUMBER() OVER (PARTITION BY T0.\"ItemCode\" "
-					+ "ORDER BY T1.\"DocDate\",T1.\"DocTime\" DESC) AS RN " + "FROM " + destination + ".OITW T0 JOIN "
-					+ destination + ".OINM T1 " + "ON T0.\"WhsCode\" = '01' AND T0.\"ItemCode\" = T1.\"ItemCode\" "
-					+ "JOIN " + destination + ".OITM T2 ON T0.\"ItemCode\" = T2.\"ItemCode\" "
-					+ "WHERE T1.\"DocDate\" > '" + updateDate + "' OR (T1.\"DocDate\" = '" + updateDate
-					+ "' AND T1.\"DocTime\" >= '" + formattedUpdateTime + "')" + ") X WHERE RN = 1 "
+					+ "ORDER BY T1.\"DocDate\",T1.\"DocTime\" DESC) AS RN "
+					+ "FROM "+destination+".OITW T0 JOIN "+destination+".OINM T1 "
+					+ "ON T0.\"WhsCode\" = '01' AND T0.\"ItemCode\" = T1.\"ItemCode\" "
+					+ "JOIN "+destination+".OITM T2 ON T0.\"ItemCode\" = T2.\"ItemCode\" "
+					+ "WHERE T1.\"DocDate\" > '"+updateDate+"' OR (T1.\"DocDate\" = '"+updateDate+"' AND T1.\"DocTime\" >= '"+formattedUpdateTime+"')"
+					+ ") X WHERE RN = 1 "
 					+ "ORDER BY \"DocDate\", \"DocTime\" DESC";
 			LOG.info("Query: " + str);
 			ResultSet Items = manager.executeQuery(str);
-
+			
+			
 			// Parse results as array list ordered by date from oldest (top) to newest
 			// (bottom)
 			ArrayList<HashMap<String, Object>> results = parseItemSelect(Items);
-			HashMap<String, String> newest = getNewestDate(results);
+			HashMap<String,String> newest = getNewestDate(results);
 			if (newest != null) {
 				try {
-					CurrentTimeSaver.setUpdateTime("STOCK_" + destination, newest.get("Time"), newest.get("Date"));
+					CurrentTimeSaver.setUpdateTime("STOCK_"+destination, newest.get("Time"),newest.get("Date") );
 				} catch (IOException e) {
 					e.printStackTrace();
 				}
 			}
 
 			destination = destinationMap.get(destination);
-
+			
 			String UoMEntryQuery = "SELECT \"IUoMEntry\",\"ItemCode\" FROM " + fullDestination + ".OITM";
 			// System.out.println("Query: " + UoMEntryQuery);
 			ResultSet querySet = manager.executeQuery(UoMEntryQuery);
@@ -153,24 +150,25 @@ public class ODBCConnector extends AbstractMessageTransformer {
 			HashMap<Integer, String> UoMCode = parseUoMCodeList(UoMCodeSet);
 			// LOG.info("Parsing done!");
 
-			HashMap<String, String> UoMCodeTable = new HashMap<>();
+			HashMap<String,String> UoMCodeTable = new HashMap<>();
 			for (String invCode : UoMEntryCodes.keySet()) {
 				UoMCodeTable.put(invCode, UoMCode.get(UoMEntryCodes.get(invCode)));
 			}
-
+			
 			ArrayList<HashMap<String, Object>> resultsWithUoM = parseItemSelect(Items);
-
-			for (HashMap<String, Object> itemMap : results) {
+			
+			for (HashMap<String,Object> itemMap : results) {
 				if (UoMEntryCodes.get((String) itemMap.get("ItemCode")) != -1) {
 					itemMap.put("UoMCode", UoMCodeTable.get(itemMap.get("ItemCode")));
-					// System.out.println("ItemCode: " + itemMap.get("ItemCode") + " - "+
-					// UoMCodeTable.get(itemMap.get("ItemCode")));
+					//System.out.println("ItemCode: " + itemMap.get("ItemCode") + " - "+ UoMCodeTable.get(itemMap.get("ItemCode")));
 					resultsWithUoM.add(itemMap);
-				} else {
+				}
+				else
+				{
 					resultsWithUoM.add(itemMap);
 				}
 			}
-
+			
 			// Create a hashmap to hold the arraylist
 			LOG.info("Total results: " + resultsWithUoM.size());
 			// System.out.println(message);
@@ -180,7 +178,7 @@ public class ODBCConnector extends AbstractMessageTransformer {
 			List<List<HashMap<String, Object>>> arraySplit = splitArray(resultsWithUoM, 300);
 			ArrayList<String> Documents = new ArrayList<String>();
 			for (List<HashMap<String, Object>> array : arraySplit) {
-				JSONObject doc = arrayToDocument(array, destination, invItems, stockLoteVentas);
+				JSONObject doc = arrayToDocument(array, destination, invItems);
 				if (doc != null) {
 					Documents.add(doc.toString());
 				}
@@ -193,21 +191,9 @@ public class ODBCConnector extends AbstractMessageTransformer {
 		}
 	}
 
-	private HashMap<String, Object> parseStockLoteVentas(ResultSet set) throws SQLException {
-		HashMap<String, Object> cantidadStock = new HashMap<>();
-		while (set.next() != false) {
-			if (cantidadStock.containsKey(set.getString("ItemCode"))) {
-				HashMap<String, Object> stockMap = (HashMap<String, Object>) cantidadStock
-						.get(set.getString("ItemCode"));
-				stockMap.put(set.getString("WhsCode"), set.getDouble("OnHand"));
-				cantidadStock.put(set.getString("ItemCode"), stockMap);
-			} else {
-				HashMap<String, Object> stockMap = new HashMap<>();
-				stockMap.put(set.getString("WhsCode"), set.getDouble("OnHand"));
-				cantidadStock.put(set.getString("ItemCode"), stockMap);
-			}
-		}
-		return cantidadStock;
+	private HashMap<String, Boolean> parseStockLoteVentas(ResultSet stockEnabledHolding) {
+		// TODO Auto-generated method stub
+		return null;
 	}
 
 	public HashMap<String, Integer> parseUoMList(ResultSet set) throws SQLException {
@@ -252,13 +238,13 @@ public class ODBCConnector extends AbstractMessageTransformer {
 			} else {
 				cal = calendar;
 				LOG.info("Date doesnt exist, date set: " + getDateFromCalendar(calendar));
-				LOG.info("Time doesnt exist, date set: " + getTimeFromCalendar(calendar));
+				LOG.info("Time doesnt exist, date set: "+getTimeFromCalendar(calendar));
 			}
 		}
 		if (cal == null) {
 			return null;
 		}
-		HashMap<String, String> returnInfo = new HashMap<>();
+		HashMap<String,String> returnInfo = new HashMap<>();
 		returnInfo.put("Date", getDateFromCalendar(cal));
 		returnInfo.put("Time", getTimeFromCalendar(cal));
 		LOG.info(returnInfo.toString());
@@ -266,23 +252,22 @@ public class ODBCConnector extends AbstractMessageTransformer {
 	}
 
 	public static String getTimeFromCalendar(Calendar cal) {
-		LOG.info("Hour: " + cal.get(Calendar.HOUR_OF_DAY));
-		LOG.info("Minute: " + (cal.get(Calendar.MINUTE)));
-		LOG.info("FormatH: " + String.format("%02d", cal.get(Calendar.HOUR_OF_DAY)));
-		return String.format("%02d", cal.get(Calendar.HOUR_OF_DAY)) + "-"
-				+ String.format("%02d", (cal.get(Calendar.MINUTE))) + "-" + "00";
+		LOG.info("Hour: "+cal.get(Calendar.HOUR_OF_DAY));
+		LOG.info("Minute: "+(cal.get(Calendar.MINUTE)));
+		LOG.info("FormatH: "+String.format("%02d", cal.get(Calendar.HOUR_OF_DAY)));
+		return String.format("%02d", cal.get(Calendar.HOUR_OF_DAY)) + "-" + String.format("%02d", (cal.get(Calendar.MINUTE))) + "-" + "00";
 	}
-
+	
 	public static String getDateFromCalendar(Calendar cal) {
 		return cal.get(Calendar.YEAR) + "-" + (cal.get(Calendar.MONTH) + 1) + "-" + cal.get(Calendar.DAY_OF_MONTH);
 	}
 
-	@SuppressWarnings("unchecked")
 	public static JSONObject arrayToDocument(List<HashMap<String, Object>> inputArray, String destination,
-			HashMap<String, Boolean> invItems, HashMap<String, Object> stockVentas) {
+			HashMap<String, Boolean> invItems) {
 		JSONObject obj = new JSONObject();
 		JSONArray array = new JSONArray();
-
+		
+		
 		LOG.info("New Document");
 		int i = 1;
 		for (HashMap<String, Object> map : inputArray) {
@@ -292,7 +277,7 @@ public class ODBCConnector extends AbstractMessageTransformer {
 			jsonMap.put("LineNumber", i);
 			jsonMap.put("ItemCode", (String) map.get("ItemCode"));
 			if (map.get("UoMCode") != null) {
-				jsonMap.put("UoMCode", (String) map.get("UoMCode"));
+				jsonMap.put("UoMCode", (String) map.get("UoMCode"));					
 			}
 			jsonMap.put("Price", map.get("Price"));
 			jsonMap.put("WarehouseCode", destination + "_" + (String) map.get("WharehouseCode"));
@@ -301,31 +286,23 @@ public class ODBCConnector extends AbstractMessageTransformer {
 			jsonMap.put("CountedQuantity", count);
 			if (invItems.get((String) map.get("ItemCode"))) {
 				// LOG.info("Line number: " + i);
-				Double cantidadDisponible = 0.0;
-				if (stockVentas.containsKey((String) map.get("ItemCode"))) {
-					if (((HashMap<String, Object>) stockVentas.get((String) map.get("ItemCode"))).containsKey(destination + "_" + (String) map.get("WharehouseCode"))) {
-						cantidadDisponible = (Double) ((HashMap<String, Object>) stockVentas
-								.get((String) map.get("ItemCode"))).get(destination + "_" + (String) map.get("WharehouseCode"));
-					}
-				}
+				
 				JSONArray BatchNumbers = new JSONArray();
 				JSONObject batchLine = new JSONObject();
 				batchLine.put("BatchNumber", "ventas");
-				batchLine.put("Quantity", count - cantidadDisponible);
+				batchLine.put("Quantity", count);
 				batchLine.put("BaseLineNumber", i);
 				BatchNumbers.put(batchLine);
 				jsonMap.put("InventoryPostingBatchNumbers", BatchNumbers);
 				
-				if (Double.valueOf((String) map.get("Price")) > 0) {
 				array.put(jsonMap);
 				i++;
-				}
 			}
+			
 
 		}
-		
 		obj.put("InventoryPostingLines", array);
-
+		
 		if (i == 1) {
 			return null;
 		}
@@ -394,24 +371,24 @@ public class ODBCConnector extends AbstractMessageTransformer {
 			count = (Double.valueOf((String) set.getString("OnHand")))
 					- (Double.valueOf((String) set.getString("IsCommited")))
 					+ (Double.valueOf((String) set.getString("OnOrder")));
-			map.put("CountedQuantity", Math.max(count, 0.0));
+			map.put("CountedQuantity", Math.max(count,0.0));
 			map.put("Price", set.getString("LastPurPrc"));
 			String date = (String) set.getString("DocDate");
 			int milTime = set.getInt("DocTime");
 			String rawTimestamp = String.format("%04d", milTime);
-
+			
 			DateTimeFormatter inputFormatter = DateTimeFormat.forPattern("HHmm");
 			DateTimeFormatter outputFormatter = DateTimeFormat.forPattern("HH:mm");
 			DateTime dateTime = inputFormatter.parseDateTime(rawTimestamp);
 			String formattedTimestamp = outputFormatter.print(dateTime.getMillis());
-			LOG.info("formatted Time: " + formattedTimestamp);
-			// System.out.println("Time: " + formattedTimestamp);
+			LOG.info("formatted Time: "+formattedTimestamp);
+			//System.out.println("Time: " + formattedTimestamp);
 			if (date != null) {
 				// System.out.println(date);
-				// 2019-09-30 00:00:00.000000000
+				//2019-09-30 00:00:00.000000000
 				String time = date.substring(0, 10);
-				time = time + " " + formattedTimestamp + ":00.000000000";
-				LOG.info("Time: " + time);
+				time = time + " "+formattedTimestamp+":00.000000000";
+				LOG.info("Time: "+ time);
 				SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd' 'HH:mm:ss.SSSSSSSSS");
 				Date dateObj = sdf.parse(time);
 				Calendar calendar = new GregorianCalendar();

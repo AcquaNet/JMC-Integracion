@@ -176,7 +176,7 @@ public class ActiveMQManager implements MuleContextNotificationListener<MuleCont
 	public static String getMessageFromQueue(String queue, MessageConsumer consumer) throws JMSException {
 		String message = null;
         
-        TextMessage reply = (TextMessage)consumer.receive(1000);
+        TextMessage reply = (TextMessage)consumer.receive(30000);
         if (reply != null)
         message = reply.getText();
         LOG.info("JAVA.ActiveMQManager.179: Mensaje levantado: "+message);
