@@ -298,11 +298,20 @@ flowVars.Fetch_messageSaved = "{}";]]></expression-component>
         <logger message="Order Code = #[payload.DocNum]" level="INFO" category="jmc.log" doc:name="Logger"/>
         <transformer ref="BuildOrdersAndUpdate" doc:name="Split Orders"/>
         <choice doc:name="Choice">
-            <when expression="#[payload.class.equals(java.util.HashMap)]">
+            <when expression="#[(payload != null) ? payload.class.equals(java.util.HashMap : false)]">
                 <logger message="Issue with split orders: #[payload]" level="ERROR" category="jmc.log" doc:name="Logger"/>
             </when>
             <otherwise>
-                <logger message="Total ammount of orders to sync: #[payload.size()]" level="INFO" category="jmc.log" doc:name="Logger"/>
+                <choice doc:name="Choice">
+                    <when expression="#[payload == null]">
+                        <set-payload value="#[[]]" doc:name="Set Payload"/>
+                        <logger message="Total ammount of orders to sync: null payload" level="INFO" category="jmc.log" doc:name="Logger"/>
+                    </when>
+                    <otherwise>
+                        <logger message="Total ammount of orders to sync: #[payload.size()]" level="INFO" category="jmc.log" doc:name="Logger"/>
+                    </otherwise>
+                </choice>
+
             </otherwise>
         </choice>
         <logger message="Variables: #[flowVars.Fetch_requestPath] - payload - #[flowVars.Fetch_OrderDestinations] - #[flowVars.DBPass] - #[flowVars.DBConnection] - #[flowVars.Fetch_ShortDestinations]" level="INFO" category="jmc.log" doc:name="Logger"/>
