@@ -138,6 +138,8 @@ public class FetchUserTable extends AbstractMessageTransformer {
 			if (roleResult.get("U_HHRecepcion").equals("Y")) {
 				response.put("recepcion", true);
 			}
+			// Include user role
+			response.put("rol", userResult.get("U_HHRol"));
 
 			if (true)
 				return response;
