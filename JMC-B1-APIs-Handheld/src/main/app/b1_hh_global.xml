@@ -61,6 +61,7 @@ http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/m
         </tls:context>
 	</http:request-config>
     <custom-transformer class="acqua.util.odbc.FetchUbicacionesLocal" name="fetchUbicacionesLocal" doc:name="Java"/>
+    <custom-transformer class="acqua.util.odbc.FetchUserRoles" name="FetchUserRoles" doc:name="Java"/>
     <flow name="b1_hh_global_setDBInfo">
         <expression-component doc:name="Expression"><![CDATA[flowVars.DBUser = ${sapB1.DBUser};
 flowVars.DBPass = ${sapB1.DBPass};
