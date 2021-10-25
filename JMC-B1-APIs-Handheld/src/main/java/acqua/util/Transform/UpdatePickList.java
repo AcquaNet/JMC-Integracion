@@ -24,6 +24,7 @@ public class UpdatePickList extends AbstractMessageTransformer {
 		ArrayList<HashMap<String, Object>> inputArticulos = message.getInvocationProperty("listaDeArticulos");
 		HashMap<String, Object> pickList = (HashMap<String, Object>) message.getPayload();
 		HashMap<Integer, Integer> BinAbsList = (HashMap<Integer, Integer>) message.getInvocationProperty("PickListAbs");
+		Integer cantBultos = (Integer) message.getInvocationProperty("cantBultos");
 		HashMap<String, Object> pickListCopy = new HashMap<>();
 		ArrayList<HashMap<String, Object>> pickLines = (ArrayList<HashMap<String, Object>>) pickList
 				.get("PickListsLines");
@@ -93,6 +94,7 @@ public class UpdatePickList extends AbstractMessageTransformer {
 		pickListCopy.put("Absoluteentry", pickList.get("Absoluteentry"));
 		pickListCopy.put("PickDate", pickList.get("PickDate"));
 		pickListCopy.put("UseBaseUnits", pickList.get("UseBaseUnits"));
+		pickListCopy.put("U_CantBultos", cantBultos);
 
 		return pickListCopy;
 	}
