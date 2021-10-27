@@ -40,7 +40,6 @@ public class BuildTransferencia extends AbstractMessageTransformer {
 			newMap.put("FromWarehouseCode", almacenOrigen);
 			newMap.put("WarehouseCode", almacenDestino);
 			
-			// Asignación de Lotes
 			Double cantidad = (Double) map.get("cantidad");
 			ArrayList<HashMap<String,Object>> BatchNumbers = new ArrayList<>();
 			

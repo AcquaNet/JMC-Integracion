@@ -26,7 +26,6 @@ public class FetchWarehouses extends AbstractMessageTransformer {
 		String user = message.getInvocationProperty("DBUser");
 		String password = message.getInvocationProperty("DBPass");
 		String connectionString = message.getInvocationProperty("DBConnection");
-		String userRole = message.getInvocationProperty("userRole");
 		HashMap<String, Object> input = message.getInvocationProperty("input");
 
 		String sociedad = (String) input.get("sociedad");
@@ -47,25 +46,15 @@ public class FetchWarehouses extends AbstractMessageTransformer {
 			manager.createStatement();
 			
 			// Query
-			String QueryRol = "SELECT \"Almacen\" FROM "+sociedad+".\"@ZHHALMACEN\" WHERE \"Rol\" = '"+ userRole + "'";
+			String QueryRol = "SELECT \"U_Rol\", \"U_Almacen\" FROM "+sociedad+".\"@ZHHALMACEN\"";
 			System.out.println("Query: " + QueryRol);
 			ResultSet querySetRole = manager.executeQuery(QueryRol);
 			
 			HashMap<String, Object> roleWResult = parseRoleWarehouses(querySetRole);
 			
-			ArrayList<String> whsList =  (ArrayList<String>) roleWResult.get("Warehouses");
-			
-			
-			
-			// Query
-			String Query = "SELECT \"WhsCode\", \"WhsName\" FROM "+sociedad+".OWHS WHERE \"WhsCode\" IN (" + String.join(",", whsList) + ")";
-			System.out.println("Query: " + Query);
-			ResultSet querySet = manager.executeQuery(Query);
-
-			HashMap<String, Object> queryResult = parseQuery(querySet);
 			LOG.info("Parsing done!");
 
-			response.put("result", queryResult.get("result"));
+			response.put("result", roleWResult.get("Warehouses"));
 			return response;
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -79,44 +68,12 @@ public class FetchWarehouses extends AbstractMessageTransformer {
 	}
 
 
-	public HashMap<String, Object> parseQuery(ResultSet set) throws SQLException {
-		int rows = 0;
-		HashMap<String, Object> map = new HashMap<String, Object>();
-		ArrayList<HashMap<String,String>> warehouses = new ArrayList<HashMap<String,String>>();
-		
-		while (set.next() != false) {
-			ResultSetMetaData rsmd = set.getMetaData();
-			int columnsNumber = rsmd.getColumnCount();
-			String rowResult = "";
-			for (int i = 1; i <= columnsNumber; i++) {
-				String result = set.getString(i);
-				String column = rsmd.getColumnName(i);
-				map.put(column, result);
-				rowResult = rowResult + "|" + column + ":" + result;
-			}
-			HashMap<String, String> whs = new HashMap<String,String>();
-			whs.put("WhsCode", set.getString(1));
-			whs.put("WhsName", set.getString(2));
-			warehouses.add(whs);
-			System.out.println(rowResult);
-			rows++;
-		}
-			if (rows == 0) {
-			map = new HashMap<String, Object>();
-			map.put("Error", true);
-			map.put("ErrorMessage", "No existen ubicaciones para este almacen");
-		}
-		map.put("result", warehouses);
-		return map;
-	}
-
 
 
 	public HashMap<String, Object> parseRoleWarehouses(ResultSet set) throws SQLException {
 		int rows = 0;
 		HashMap<String, Object> queryResult = new HashMap<String, Object>();
-		HashMap<String, Object> response = new HashMap<String, Object>();
-		ArrayList<String> whsList = new ArrayList<String>();
+		ArrayList<HashMap<String, Object>> response = new ArrayList<HashMap<String, Object>>();
 		
 		while (set.next() != false) {
 			ResultSetMetaData rsmd = set.getMetaData();
@@ -129,16 +86,20 @@ public class FetchWarehouses extends AbstractMessageTransformer {
 				rowResult = rowResult + "|" + column + ":" + result;
 				
 			}
-			whsList.add(set.getString(1));
+			HashMap<String, Object> whs = new HashMap<String,Object>();
+			whs.put("WhsCode", set.getString(1));
+			whs.put("WhsRol", set.getString(2));
+			response.add(whs);
 			System.out.println(rowResult);
 			rows++;
 		}
 		if (rows == 0) {
-			response.put("Error", true);
-			response.put("ErrorMessage", "No existen ubicaciones para este almacen");
+			queryResult = new HashMap<String, Object>();
+			queryResult.put("Error", true);
+			queryResult.put("ErrorMessage", "No existen ubicaciones para este almacen");
 		}
-		response.put("Warehouses", whsList);
-		return response;
+		queryResult.put("Warehouses", response);
+		return queryResult;
 	}
 		
 
