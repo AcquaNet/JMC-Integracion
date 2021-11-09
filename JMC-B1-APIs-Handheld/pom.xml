@@ -105,7 +105,15 @@
 
 
 	<dependencies>
-
+				
+		<!-- https://mvnrepository.com/artifact/com.fasterxml.jackson.dataformat/jackson-dataformat-csv -->
+		<dependency>
+		    <groupId>com.fasterxml.jackson.dataformat</groupId>
+		    <artifactId>jackson-dataformat-csv</artifactId>
+		    <version>2.8.9</version>
+		</dependency>	
+				
+		
 		<!-- https://mvnrepository.com/artifact/com.google.code.gson/gson -->
 		<dependency>
 			<groupId>com.google.code.gson</groupId>
@@ -118,6 +126,14 @@
 			<artifactId>sap-jdbc</artifactId>
 			<version>1.0</version>
 		</dependency>
+		
+       <!-- https://mvnrepository.com/artifact/com.opencsv/opencsv -->
+		<dependency>
+		    <groupId>com.opencsv</groupId>
+		    <artifactId>opencsv</artifactId>
+		    <version>5.5.2</version>
+		</dependency>
+		
 		<!-- https://mvnrepository.com/artifact/commons-codec/commons-codec -->
 		<dependency>
 			<groupId>commons-codec</groupId>
