@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:spring="http://www.springframework.org/schema/beans" 
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd">
+    <sub-flow name="create-file-parameters-jmc-picklist">
+        <expression-component doc:name="Setup parameters"><![CDATA[flowVars.csvFileDir = ${csvfile.directory};
+flowVars.csvFileDir = flowVars.csvFileDir.replaceAll("\\","\\\\");
+
+flowVars.csvFileName = ${csvfile.name.pick} + flowVars.pickCode;
+]]></expression-component>
+    </sub-flow>
+    <sub-flow name="create-file-parameters-jmc-counting">
+        <expression-component doc:name="Setup parameters"><![CDATA[flowVars.csvFileDir = ${csvfile.directory};
+flowVars.csvFileDir = flowVars.csvFileDir.replaceAll("\\","\\\\");
+
+flowVars.csvFileName = ${csvfile.name.counting} + flowVars.AbsEntry;
+]]></expression-component>
+    </sub-flow>
+    <flow name="create-file-in-folder-flow">
+        <logger message="Creating csv for Dir: #[flowVars.csvFileDir] Name: #[flowVars.csvFileName] Data: #[message.payloadAs(String)]" level="INFO" doc:name="Logger"/>
+        <expression-component doc:name="Convert and create file"><![CDATA[acqua.util.CSVUtil.csvWriter(payload,flowVars.csvFileDir,flowVars.csvFileName);]]></expression-component>
+        <logger level="INFO" doc:name="Logger" message="CSV File Done"/>
+    </flow>
+</mule>

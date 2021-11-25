@@ -37,7 +37,7 @@ public class CSVUtil {
 			csvMapper.writerFor(JsonNode.class).with(csvSchema).writeValue(new File(path + "/" + fileName + fileTimestamp + ".csv"), jsonTree);
 			
 		} catch (Exception e) {
-			// TODO Auto-generated catch block
+
 			System.out.println("Failed: " + e.getMessage());
 			LOG.error("CSVWriter Failed: " + e.getMessage());
 		} 
