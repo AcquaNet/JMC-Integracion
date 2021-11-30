@@ -27,12 +27,11 @@ public class FetchUbicacionesLocal extends AbstractMessageTransformer {
 		String user = message.getInvocationProperty("DBUser");
 		String password = message.getInvocationProperty("DBPass");
 		String connectionString = message.getInvocationProperty("DBConnection");
+		String sociedad = message.getInvocationProperty("sociedad");
 		
 		// Set request input
 		HashMap<String, Object> input = message.getInvocationProperty("input");
 		
-		// Set sociedad or db instance to target
-		String sociedad = (String) input.get("sociedad");
 		
 		// Create connection manager with all the db info (required)
 		ODBCManager manager = new ODBCManager(user, password, connectionString);

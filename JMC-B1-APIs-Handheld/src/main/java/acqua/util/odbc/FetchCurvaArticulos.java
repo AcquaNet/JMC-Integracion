@@ -2,7 +2,6 @@ package acqua.util.odbc;
 
 import java.sql.Connection;
 import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -14,11 +13,9 @@ import org.mule.transformer.AbstractMessageTransformer;
 
 import acqua.util.ODBCManager;
 
-public class FetchWarehouses extends AbstractMessageTransformer {
+public class FetchCurvaArticulos extends AbstractMessageTransformer {
 	private static final Logger LOG = Logger.getLogger("jmc_java.log");
 
-	//Remove for debug
-	@SuppressWarnings("unchecked")
 	@Override
 	public Object transformMessage(MuleMessage message, String outputEncoding) throws TransformerException {
 
@@ -26,9 +23,9 @@ public class FetchWarehouses extends AbstractMessageTransformer {
 		String user = message.getInvocationProperty("DBUser");
 		String password = message.getInvocationProperty("DBPass");
 		String connectionString = message.getInvocationProperty("DBConnection");
-		HashMap<String, Object> input = message.getInvocationProperty("input");
+		String codigo = message.getInvocationProperty("codigo");
+		String sociedad = message.getInvocationProperty("sociedad");
 
-		String sociedad = (String) input.get("sociedad");
 		// Create a connection manager with all the info
 		ODBCManager manager = new ODBCManager(user, password, connectionString);
 		// Connect to DB
@@ -44,18 +41,16 @@ public class FetchWarehouses extends AbstractMessageTransformer {
 		try {
 			// Create a statement to call
 			manager.createStatement();
-			
+
 			// Query
-			String QueryRol = "SELECT \"U_Rol\", \"U_Almacen\" FROM "+sociedad+".\"@ZHHALMACEN\"";
-			System.out.println("Query: " + QueryRol);
-			ResultSet querySetRole = manager.executeQuery(QueryRol);
-			
-			HashMap<String, Object> roleWResult = parseRoleWarehouses(querySetRole);
-			
+			String Query = "SELECT T0.\"Code\", T1.\"Code\" as Item, T1.\"Quantity\" FROM " + sociedad + ".\"OITT\" T0 INNER JOIN " + sociedad + ".\"ITT1\" T1 ON T0.\"Code\" = T1.\"Father\" WHERE T0.\"Code\" = '" + codigo + "'";
+			System.out.println("Query: " + Query);
+			ResultSet querySet = manager.executeQuery(Query);
+
+			HashMap<String, Object> queryResult = parseQuery(querySet);
 			LOG.info("Parsing done!");
 
-			response.put("result", roleWResult.get("Warehouses"));
-			return response;
+			return queryResult;
 		} catch (Exception e) {
 			e.printStackTrace();
 			if (e.getClass().getName().contains("SQLException")) {
@@ -67,38 +62,26 @@ public class FetchWarehouses extends AbstractMessageTransformer {
 		return null;
 	}
 
-
-	public HashMap<String, Object> parseRoleWarehouses(ResultSet set) throws SQLException {
+	public HashMap<String, Object> parseQuery(ResultSet set) throws SQLException {
 		int rows = 0;
-		HashMap<String, Object> queryResult = new HashMap<String, Object>();
-		ArrayList<HashMap<String, Object>> response = new ArrayList<HashMap<String, Object>>();
 		
+		ArrayList<HashMap<String, Object>> items = new ArrayList<HashMap<String, Object>>();
+		HashMap<String, Object> answer = new HashMap<String, Object>();
+
 		while (set.next() != false) {
-			ResultSetMetaData rsmd = set.getMetaData();
-			int columnsNumber = rsmd.getColumnCount();
-			String rowResult = "";
-			for (int i = 1; i <= columnsNumber; i++) {
-				String result = set.getString(i);
-				String column = rsmd.getColumnName(i);
-				queryResult.put(column, result);
-				rowResult = rowResult + "|" + column + ":" + result;
-				
-			}
-			HashMap<String, Object> whs = new HashMap<String,Object>();
-			whs.put("WhsCode", set.getString(1));
-			whs.put("WhsRol", set.getString(2));
-			response.add(whs);
-			System.out.println(rowResult);
+			HashMap<String, Object> row = new HashMap<String, Object>();
+			row.put("curva", set.getString(1));
+			row.put("item", set.getString(2));
+			row.put("cantidad", set.getString(3));
+			items.add(row);
+			// System.out.println(rowResult);
 			rows++;
 		}
 		if (rows == 0) {
-			queryResult = new HashMap<String, Object>();
-			queryResult.put("Error", true);
-			queryResult.put("ErrorMessage", "No existen ubicaciones para este almacen");
+			answer.put("Error", true);
+			answer.put("ErrorMessage", "No existen articulos para esta curva");
 		}
-		queryResult.put("Warehouses", response);
-		return queryResult;
+		answer.put("articulos", items);
+		return answer;
 	}
-		
-
 }

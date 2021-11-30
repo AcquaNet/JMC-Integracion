@@ -15,7 +15,7 @@ flowVars.code = message.inboundProperties.'http.query.params'.code
 payload.response = "The input data is return in value.";]]></expression-component>
         <flow-ref name="b1_hh_global_setDBInfo" doc:name="b1_hh_global_setDBInfo"/>
 
-		<transformer ref="FetchUserRoles" doc:name="FetchUserRoles"/>
+		<transformer ref="fetchUserRoles" doc:name="FetchUserRoles"/>
             
         <expression-component doc:name="Convert answer to JSON"><![CDATA[payload = acqua.util.JSONUtil.javaToJSONToString(payload);]]></expression-component>
         <logger message="Returning validateLogin #[payload]" level="INFO" doc:name="Logger" category="jmc_hh"/>

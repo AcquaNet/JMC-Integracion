@@ -11,6 +11,7 @@ flowVars.csvFileDir = flowVars.csvFileDir.replaceAll("\\","\\\\");
 
 flowVars.csvFileName = ${csvfile.name.pick} + flowVars.pickCode;
 ]]></expression-component>
+        <logger message="Subflow create-file-parameters-jmc-picklist ended." level="INFO" category="jmc_hh" doc:name="Logger"/>
     </sub-flow>
     <sub-flow name="create-file-parameters-jmc-counting">
         <expression-component doc:name="Setup parameters"><![CDATA[flowVars.csvFileDir = ${csvfile.directory};
@@ -18,10 +19,17 @@ flowVars.csvFileDir = flowVars.csvFileDir.replaceAll("\\","\\\\");
 
 flowVars.csvFileName = ${csvfile.name.counting} + flowVars.AbsEntry;
 ]]></expression-component>
+        <logger message="Subflow create-file-parameters-jmc-counting ended." level="INFO" category="jmc_hh" doc:name="Logger"/>
     </sub-flow>
     <flow name="create-file-in-folder-flow">
-        <logger message="Creating csv for Dir: #[flowVars.csvFileDir] Name: #[flowVars.csvFileName] Data: #[message.payloadAs(String)]" level="INFO" doc:name="Logger"/>
+        <logger message="Flow create-file-in-folder-flow ended" level="INFO" doc:name="Logger"/>
         <expression-component doc:name="Convert and create file"><![CDATA[acqua.util.CSVUtil.csvWriter(payload,flowVars.csvFileDir,flowVars.csvFileName);]]></expression-component>
-        <logger level="INFO" doc:name="Logger" message="CSV File Done"/>
+        <logger level="INFO" doc:name="Logger" message="Flow create-file-in-folder-flow ended" category="jmc_hh"/>
+        <catch-exception-strategy doc:name="Catch Exception Strategy">
+            <flow-ref name="create-file-in-folder-exception-flow" doc:name="create-file-in-folder-exception-flow"/>
+        </catch-exception-strategy>
     </flow>
+    <sub-flow name="create-file-in-folder-exception-flow">
+        <flow-ref name="#[flowVars.nextFlow]" doc:name="var nextFlow"/>
+    </sub-flow>
 </mule>
