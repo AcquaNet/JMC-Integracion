@@ -63,6 +63,7 @@ http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/m
     <custom-transformer class="acqua.util.odbc.FetchUbicacionesLocal" name="fetchUbicacionesLocal" doc:name="Java"/>
     <custom-transformer class="acqua.util.odbc.FetchUserRoles" name="fetchUserRoles" doc:name="Java"/>
     <custom-transformer class="acqua.util.odbc.FetchCurvaArticulos" name="fetchCurvaArticulos" doc:name="Java"/>
+    <custom-transformer class="acqua.util.Transform.BuildRecepcionEntradaMercancia" name="BuildRecepcionEntradaMercancia" doc:name="Java"/>
     <flow name="b1_hh_global_setDBInfo">
         <choice doc:name="Choice">
             <when expression="#[flowVars.DBUser != null]">

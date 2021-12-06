@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:spring="http://www.springframework.org/schema/beans" 
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd">
+    <flow name="b1_hh_addRecepcionMercaderia-main-flow">
+        <http:listener config-ref="HTTP_Listener_Configuration" path="/addRecepcionMercaderia" allowedMethods="POST" doc:name="HTTP"/>
+        <logger level="INFO" doc:name="Logger"/>
+        <expression-component doc:name="Expression"><![CDATA[payload = acqua.util.JSONUtil.stringToMap(message.payloadAs(String));
+flowVars.input = payload;
+flowVars.sociedad = payload.sociedad;]]></expression-component>
+        <flow-ref name="b1_hh_global_setDBInfo" doc:name="b1_hh_global_setDBInfo"/>
+        <transformer ref="BuildRecepcionEntradaMercancia" doc:name="Transformer Reference"/>
+        <flow-ref name="send-purchase-delivery-notes-subflow" doc:name="send-purchase-delivery-notes-subflow"/>
+        <logger level="INFO" doc:name="Logger"/>
+    </flow>
+    <sub-flow name="send-purchase-delivery-notes-subflow">
+        <http:request config-ref="HTTP_Request_Configuration" path="PurchaseDeliveryNotes" method="POST" doc:name="HTTP"/>
+    </sub-flow>
+</mule>

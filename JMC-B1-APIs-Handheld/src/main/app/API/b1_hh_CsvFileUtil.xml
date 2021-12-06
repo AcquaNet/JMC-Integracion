@@ -1,10 +1,11 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<mule xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+<mule xmlns:file="http://www.mulesoft.org/schema/mule/file" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
 	xmlns:spring="http://www.springframework.org/schema/beans" 
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
-http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd">
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd">
     <sub-flow name="create-file-parameters-jmc-picklist">
         <expression-component doc:name="Setup parameters"><![CDATA[flowVars.csvFileDir = ${csvfile.directory};
 flowVars.csvFileDir = flowVars.csvFileDir.replaceAll("\\","\\\\");
@@ -32,4 +33,8 @@ flowVars.csvFileName = ${csvfile.name.counting} + flowVars.AbsEntry;
     <sub-flow name="create-file-in-folder-exception-flow">
         <flow-ref name="#[flowVars.nextFlow]" doc:name="var nextFlow"/>
     </sub-flow>
+    <flow name="read-csv-file-flow">
+        <file:inbound-endpoint path="/tmp/test" responseTimeout="10000" doc:name="File"/>
+        <expression-component doc:name="Expression"><![CDATA[payload = acqua.util.CSVUtil.csvReader(message.payloadAs(String));]]></expression-component>
+    </flow>
 </mule>
