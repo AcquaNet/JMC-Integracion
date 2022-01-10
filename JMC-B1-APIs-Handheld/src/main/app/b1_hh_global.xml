@@ -66,7 +66,7 @@ http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/m
     <custom-transformer class="acqua.util.Transform.BuildRecepcionEntradaMercancia" name="BuildRecepcionEntradaMercancia" doc:name="Java"/>
     <flow name="b1_hh_global_setDBInfo">
         <choice doc:name="Choice">
-            <when expression="#[flowVars.DBUser != null]">
+            <when expression="#[flowVars.DBUser == null]">
                 <expression-component doc:name="Expression"><![CDATA[flowVars.DBUser = ${sapB1.DBUser};
 flowVars.DBPass = ${sapB1.DBPass};
 flowVars.DBConnection = ${sapB1.DBConnection};

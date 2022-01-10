@@ -38,7 +38,7 @@ public class SAPB1Connection {
 				System.out.println("Connection to HANA successful!");
 				Statement stmt = connection.createStatement();
 				// ResultSet resultSet = stmt.executeQuery("SELECT * FROM SD_DEV.OITW");
-				ResultSet resultSet = stmt.executeQuery("SELECT * FROM JMCG_DEV8.\"@ZHHROL\"");
+				ResultSet resultSet = stmt.executeQuery("SELECT \"ItemCode\", \"ItemName\", \"U_ARGNS_ITYPE\" FROM KA_DEV8.\"OITM\" WHERE \"U_ARGNS_ITYPE\" IS NOT NULL");
 				ResultSetMetaData rsmd = resultSet.getMetaData();
 				int columnsNumber = rsmd.getColumnCount();
 				while (resultSet.next()) {
@@ -46,7 +46,7 @@ public class SAPB1Connection {
 				        if (i > 1) System.out.print(",  ");
 				        String columnValue = resultSet.getString(i);
 				        String columnType = rsmd.getColumnTypeName(i);
-				        System.out.print(rsmd.getColumnName(i) +":"+ columnValue + ":" + columnType);
+				        System.out.print(rsmd.getColumnLabel(i) +":"+ columnValue + ":" + columnType);
 				    }
 				    System.out.println("");
 				}

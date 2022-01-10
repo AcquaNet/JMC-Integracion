@@ -43,7 +43,7 @@ public class FetchCurvaArticulos extends AbstractMessageTransformer {
 			manager.createStatement();
 
 			// Query
-			String Query = "SELECT T0.\"Code\", T1.\"Code\" as Item, T1.\"Quantity\" FROM " + sociedad + ".\"OITT\" T0 INNER JOIN " + sociedad + ".\"ITT1\" T1 ON T0.\"Code\" = T1.\"Father\" WHERE T0.\"Code\" = '" + codigo + "'";
+			String Query = "SELECT T0.\"Code\", T1.\"Code\" as Item, T1.\"Quantity\" FROM " + sociedad + ".\"OITT\" T0 INNER JOIN " + sociedad + ".\"ITT1\" T1 ON T0.\"Code\" = T1.\"Father\" WHERE T0.\"Code\" IN ('" + codigo + "')";
 			System.out.println("Query: " + Query);
 			ResultSet querySet = manager.executeQuery(Query);
 
@@ -62,6 +62,7 @@ public class FetchCurvaArticulos extends AbstractMessageTransformer {
 		return null;
 	}
 
+	@SuppressWarnings("unchecked")
 	public HashMap<String, Object> parseQuery(ResultSet set) throws SQLException {
 		int rows = 0;
 		
@@ -72,7 +73,7 @@ public class FetchCurvaArticulos extends AbstractMessageTransformer {
 			HashMap<String, Object> row = new HashMap<String, Object>();
 			row.put("curva", set.getString(1));
 			row.put("item", set.getString(2));
-			row.put("cantidad", set.getString(3));
+			row.put("cantidad", Double.valueOf(set.getString(3)));
 			items.add(row);
 			// System.out.println(rowResult);
 			rows++;
@@ -81,7 +82,32 @@ public class FetchCurvaArticulos extends AbstractMessageTransformer {
 			answer.put("Error", true);
 			answer.put("ErrorMessage", "No existen articulos para esta curva");
 		}
-		answer.put("articulos", items);
+		
+		HashMap<String, Object> distinctCurvas = new HashMap<String, Object>();
+		
+		for (int i=0; i < items.size(); i++) {
+			String curva = (String) items.get(i).get("curva");
+			
+			items.get(i).remove("curva");
+			HashMap<String, Object> curvaElement = (HashMap<String, Object>) items.get(i);
+			if (!distinctCurvas.containsKey(curva)) {
+				ArrayList<Object> elementArray = new ArrayList<Object>();
+				elementArray.add(curvaElement);
+				distinctCurvas.put(curva, elementArray);
+			} else
+			{
+				ArrayList<Object> elementArray = new ArrayList<Object>();
+				elementArray.add(curvaElement);
+				
+				ArrayList<Object> curvaElements = (ArrayList<Object>) distinctCurvas.get(curva);
+				
+				curvaElements.addAll(elementArray);
+				distinctCurvas.put(curva,  curvaElements);
+			}
+			
+		}
+		
+		answer.put("articulos", distinctCurvas);
 		return answer;
 	}
 }
