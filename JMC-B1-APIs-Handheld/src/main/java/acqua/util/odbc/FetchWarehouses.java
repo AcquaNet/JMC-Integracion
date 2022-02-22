@@ -26,9 +26,8 @@ public class FetchWarehouses extends AbstractMessageTransformer {
 		String user = message.getInvocationProperty("DBUser");
 		String password = message.getInvocationProperty("DBPass");
 		String connectionString = message.getInvocationProperty("DBConnection");
-		HashMap<String, Object> input = message.getInvocationProperty("input");
 
-		String sociedad = (String) input.get("sociedad");
+		String sociedad = (String) message.getInvocationProperty("DBInfo");
 		// Create a connection manager with all the info
 		ODBCManager manager = new ODBCManager(user, password, connectionString);
 		// Connect to DB
