@@ -16,7 +16,7 @@ flowVars.codigo = payload.codigo;
 flowVars.sociedad = payload.sociedad;]]></expression-component>
 		<http:request config-ref="HTTP_Request_Configuration" path="PurchaseOrders" method="GET" doc:name="HTTP">
 			<http:request-builder>
-				<http:query-param paramName="$filter" value="DocNum eq 48"/>
+                <http:query-param paramName="$filter" value="DocNum%20eq$20#[vars.codigo]"/>
 			</http:request-builder>
 		</http:request>
 
