@@ -23,9 +23,10 @@ flowVars.foliohasta = payload.foliohasta;]]></expression-component>
         <choice doc:name="Choice">
             <when expression="#[payload != null]">
                 <flow-ref name="b1_hh_loginToSAP" doc:name="b1_hh_loginToSAP"/>
+                <set-variable variableName="filtro" value="#[&quot;DocNum%20eq$20&quot;  + flowVars.codigo]" doc:name="Set Filtro"/>
                 <http:request config-ref="HTTP_Request_Configuration" path="PurchaseOrders" method="GET" doc:name="HTTP - Get Purshase Orden">
                     <http:request-builder>
-                        <http:query-param paramName="$filter" value="DocNum%20eq$20#[flowVars.codigo]"/>
+                        <http:query-param paramName="$filter" value="#[flowVars.filtro]"/>
                     </http:request-builder>
                 </http:request>
                 <expression-component doc:name="save PUR"><![CDATA[flowVars.purchaseOrder = acqua.util.JSONUtil.stringToMap(payload);]]></expression-component>
