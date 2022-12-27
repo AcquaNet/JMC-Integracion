@@ -13,7 +13,11 @@ http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/m
         <expression-component doc:name="Convert and save payload"><![CDATA[payload = acqua.util.JSONUtil.stringToMap(message.payloadAs(java.lang.String));
 flowVars.inputData = payload;
 flowVars.sociedad = payload.sociedad;
-flowVars.codigo = payload.codigo;]]></expression-component>
+flowVars.codigo = payload.codigo;
+flowVars.puntoventa = payload.puntoventa;
+flowVars.letra = payload.letra;
+flowVars.foliodesde = payload.foliodesde;
+flowVars.foliohasta = payload.foliohasta;]]></expression-component>
         <transformer ref="LeerRecuentoEntradaMercancia" doc:name="Leer datos entrada"/>
         <choice doc:name="Choice">
             <when expression="#[payload != null]">
