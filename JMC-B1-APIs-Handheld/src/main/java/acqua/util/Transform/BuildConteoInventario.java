@@ -15,10 +15,15 @@ public class BuildConteoInventario extends AbstractMessageTransformer {
 	@Override
 	public Object transformMessage(MuleMessage message, String outputEncoding) throws TransformerException {
 		
-		ArrayList<HashMap<String,Object>> articulos = (ArrayList<HashMap<String, Object>>) message.getPayload();
+		ArrayList<HashMap<String,Object>> articulos = (ArrayList<HashMap<String, Object>>) message.getInvocationProperty("consolidado");
+		HashMap<String,Object> purchaseOrder = (HashMap<String, Object>) message.getInvocationProperty("purchaseOrder");
 		String sociedad = (String) message.getInvocationProperty("sociedad");
 		String operacion = (String) message.getInvocationProperty("codigo");
-		
+		String puntoventa = (String) message.getInvocationProperty("puntoventa");
+		String letra = (String) message.getInvocationProperty("letra");
+		String foliodesde = (String) message.getInvocationProperty("foliodesde");
+		String foliohasta = (String) message.getInvocationProperty("foliohasta"); 
+  
 		HashMap<String,Object> Documento = new HashMap<>();
 		ArrayList<Object> CountingLines = new ArrayList<>();
 		

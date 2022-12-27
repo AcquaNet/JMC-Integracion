@@ -19,12 +19,20 @@ flowVars.letra = payload.letra;
 flowVars.foliodesde = payload.foliodesde;
 flowVars.foliohasta = payload.foliohasta;]]></expression-component>
         <transformer ref="LeerRecuentoEntradaMercancia" doc:name="Leer datos entrada"/>
+        <expression-component doc:name="save consolidado"><![CDATA[flowVars.consolidado = payload;]]></expression-component>
         <choice doc:name="Choice">
             <when expression="#[payload != null]">
+                <flow-ref name="b1_hh_loginToSAP" doc:name="b1_hh_loginToSAP"/>
+                <http:request config-ref="HTTP_Request_Configuration" path="PurchaseOrders" method="GET" doc:name="HTTP - Get Purshase Orden">
+                    <http:request-builder>
+                        <http:query-param paramName="$filter" value="DocNum%20eq$20#[flowVars.codigo]"/>
+                    </http:request-builder>
+                </http:request>
+                <expression-component doc:name="save PUR"><![CDATA[flowVars.purchaseOrder = acqua.util.JSONUtil.stringToMap(payload);]]></expression-component>
                 <transformer ref="BuildConteoInventario" doc:name="Build Conteo Inventario"/>
                 <expression-component doc:name="save data"><![CDATA[flowVars.documentSaved = acqua.util.JSONUtil.javaToJSONToString(payload);
 flowVars.destination = flowVars.sociedad;]]></expression-component>
-                <flow-ref name="b1_hh_loginToSAP" doc:name="b1_hh_loginToSAP"/>
+
                 <flow-ref name="b1_hh_entradaMercancia_SendDocument" doc:name="b1_hh_entradaMercancia_SendDocument"/>
                 <logger message="#[payload]" level="INFO" doc:name="Logger" category="jmc_hh"/>
             </when>
