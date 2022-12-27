@@ -7,23 +7,24 @@
   <classpathentry kind="src" path="src/test/munit" output="target/test-classes" excluding="**/*.java"/>
   <classpathentry kind="src" path="src/test/resources" output="target/test-classes" excluding="**/*.java"/>
   <classpathentry kind="output" path="target/classes"/>
-  <classpathentry kind="var" path="M2_REPO/commons-lang/commons-lang/2.6/commons-lang-2.6.jar">
+  <classpathentry kind="var" path="M2_REPO/commons-beanutils/commons-beanutils/1.9.4/commons-beanutils-1.9.4.jar"/>
+  <classpathentry kind="var" path="M2_REPO/org/apache/commons/commons-collections4/4.4/commons-collections4-4.4.jar"/>
+  <classpathentry kind="var" path="M2_REPO/commons-lang/commons-lang/2.6/commons-lang-2.6.jar" sourcepath="M2_REPO/commons-lang/commons-lang/2.6/commons-lang-2.6-sources.jar">
     <attributes>
       <attribute value="test" name="org.mule.tooling.scope"/>
     </attributes>
   </classpathentry>
-  <classpathentry kind="var" path="M2_REPO/org/apache/commons/commons-lang3/3.0/commons-lang3-3.0.jar">
-    <attributes>
-      <attribute value="test" name="org.mule.tooling.scope"/>
-    </attributes>
-  </classpathentry>
+  <classpathentry kind="var" path="M2_REPO/org/apache/commons/commons-lang3/3.12.0/commons-lang3-3.12.0.jar"/>
+  <classpathentry kind="var" path="M2_REPO/commons-logging/commons-logging/1.2/commons-logging-1.2.jar" sourcepath="M2_REPO/commons-logging/commons-logging/1.2/commons-logging-1.2-sources.jar"/>
+  <classpathentry kind="var" path="M2_REPO/org/apache/commons/commons-text/1.9/commons-text-1.9.jar"/>
   <classpathentry kind="var" path="M2_REPO/com/google/code/gson/gson/2.8.5/gson-2.8.5.jar"/>
-  <classpathentry kind="var" path="M2_REPO/org/mockito/mockito-all/1.8.2/mockito-all-1.8.2.jar">
+  <classpathentry kind="var" path="M2_REPO/com/fasterxml/jackson/dataformat/jackson-dataformat-csv/2.8.9/jackson-dataformat-csv-2.8.9.jar"/>
+  <classpathentry kind="var" path="M2_REPO/org/mockito/mockito-all/1.8.2/mockito-all-1.8.2.jar" sourcepath="M2_REPO/org/mockito/mockito-all/1.8.2/mockito-all-1.8.2-sources.jar">
     <attributes>
       <attribute value="test" name="org.mule.tooling.scope"/>
     </attributes>
   </classpathentry>
-  <classpathentry kind="var" path="M2_REPO/com/mulesoft/modules/mule-interceptor-module/3.9.1/mule-interceptor-module-3.9.1.jar">
+  <classpathentry kind="var" path="M2_REPO/com/mulesoft/modules/mule-interceptor-module/3.9.1/mule-interceptor-module-3.9.1.jar" sourcepath="M2_REPO/com/mulesoft/modules/mule-interceptor-module/3.9.1/mule-interceptor-module-3.9.1-sources.jar">
     <attributes>
       <attribute value="test" name="org.mule.tooling.scope"/>
     </attributes>
@@ -53,13 +54,14 @@
       <attribute value="test" name="org.mule.tooling.scope"/>
     </attributes>
   </classpathentry>
+  <classpathentry kind="var" path="M2_REPO/com/opencsv/opencsv/5.5.2/opencsv-5.5.2.jar"/>
   <classpathentry kind="var" path="M2_REPO/com/sap/jdbc/sap-jdbc/1.0/sap-jdbc-1.0.jar"/>
-  <classpathentry kind="var" path="M2_REPO/xerces/xercesImpl/2.9.1/xercesImpl-2.9.1.jar">
+  <classpathentry kind="var" path="M2_REPO/xerces/xercesImpl/2.9.1/xercesImpl-2.9.1.jar" sourcepath="M2_REPO/xerces/xercesImpl/2.9.1/xercesImpl-2.9.1-sources.jar">
     <attributes>
       <attribute value="test" name="org.mule.tooling.scope"/>
     </attributes>
   </classpathentry>
-  <classpathentry kind="var" path="M2_REPO/xml-apis/xml-apis/1.3.04/xml-apis-1.3.04.jar">
+  <classpathentry kind="var" path="M2_REPO/xml-apis/xml-apis/1.3.04/xml-apis-1.3.04.jar" sourcepath="M2_REPO/xml-apis/xml-apis/1.3.04/xml-apis-1.3.04-sources.jar">
     <attributes>
       <attribute value="test" name="org.mule.tooling.scope"/>
     </attributes>
