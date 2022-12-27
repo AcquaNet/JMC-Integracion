@@ -21,11 +21,11 @@ public class BuildConteoInventario extends AbstractMessageTransformer {
 	public Object transformMessage(MuleMessage message, String outputEncoding) throws TransformerException {
 		
 		ArrayList<HashMap<String,Object>> articulos = (ArrayList<HashMap<String, Object>>) message.getInvocationProperty("consolidado");
-		HashMap<String,Long> articulosHM = new HashMap<String,Long>();
+		HashMap<String,Object> articulosHM = new HashMap<String,Object>();
 		 
 		for(HashMap<String,Object> articulo: articulos)
 		{
-			articulosHM.put((String) articulo.get("codigo"), (Long) articulo.get("cantidad")); 
+			articulosHM.put((String) articulo.get("codigo"), (Object) articulo.get("cantidad")); 
 		}
 		 
 		HashMap<String,Object> purchaseOrder = (HashMap<String, Object>) message.getInvocationProperty("purchaseOrder");
@@ -69,15 +69,13 @@ public class BuildConteoInventario extends AbstractMessageTransformer {
 							
 							for (Entry<String, Object> lin : linea.entrySet()) {
 								
-								String keyLineaValue = val.getKey();
-								Object lineaValue = val.getValue();
+								String keyLineaValue = lin.getKey();
+								Object lineaValue = lin.getValue();
 								
 								nuevaLinea.put(keyLineaValue, lineaValue);
 								
 							}
-							
-							
-							
+							 
 							((ArrayList<HashMap<String,Object>>) documento.get("DocumentLines")).add(nuevaLinea); 
 							
 						} 
