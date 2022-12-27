@@ -1,7 +1,12 @@
 package acqua.util.Transform;
 
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.HashMap;
+import java.util.Map.Entry;
+import java.util.Set;
 
 import org.apache.log4j.Logger;
 import org.mule.api.MuleMessage;
@@ -16,42 +21,103 @@ public class BuildConteoInventario extends AbstractMessageTransformer {
 	public Object transformMessage(MuleMessage message, String outputEncoding) throws TransformerException {
 		
 		ArrayList<HashMap<String,Object>> articulos = (ArrayList<HashMap<String, Object>>) message.getInvocationProperty("consolidado");
+		HashMap<String,Long> articulosHM = new HashMap<String,Long>();
+		 
+		for(HashMap<String,Object> articulo: articulos)
+		{
+			articulosHM.put((String) articulo.get("codigo"), (Long) articulo.get("cantidad")); 
+		}
+		 
 		HashMap<String,Object> purchaseOrder = (HashMap<String, Object>) message.getInvocationProperty("purchaseOrder");
 		String sociedad = (String) message.getInvocationProperty("sociedad");
-		String operacion = (String) message.getInvocationProperty("codigo");
+		String codigo = (String) message.getInvocationProperty("codigo");
 		String puntoventa = (String) message.getInvocationProperty("puntoventa");
 		String letra = (String) message.getInvocationProperty("letra");
 		String foliodesde = (String) message.getInvocationProperty("foliodesde");
 		String foliohasta = (String) message.getInvocationProperty("foliohasta"); 
   
-		HashMap<String,Object> Documento = new HashMap<>();
-		ArrayList<Object> CountingLines = new ArrayList<>();
+		HashMap<String,Object> documento = new HashMap<>(); 
 		
-		int i = 0;
-		for (HashMap<String,Object> map : articulos) {
-			HashMap<String,Object> LineMap = new HashMap<>();
-			LineMap.put("LineNumber", i);
-			LineMap.put("ItemCode", map.get("codigo"));
-			LineMap.put("WarehouseCode", "103");
-			LineMap.put("Counted", "tYES");
-			LineMap.put("CountedQuantity", map.get("cantidad"));
-			ArrayList<Object> InventoryCountingBatchNumbers = new ArrayList<>();
-				HashMap<String,Object> firstMap = new HashMap<>();
-				firstMap.put("BatchNumber", operacion);
-				firstMap.put("Quantity", map.get("cantidad"));
-				firstMap.put("BaseLineNumber", i);
-				InventoryCountingBatchNumbers.add(firstMap);
-			LineMap.put("InventoryCountingBatchNumbers", InventoryCountingBatchNumbers);
+		DateFormat df = new SimpleDateFormat("yyyy-MM-dd");
+		String dateToday = df.format(new Date());
+		
+		documento.put("odata.etag", purchaseOrder.get("odata.metadata"));
+		
+		documento.put("DocumentLines", new ArrayList<HashMap<String,Object>>());
+		
+		ArrayList<HashMap<String,Object>> values = (ArrayList<HashMap<String, Object>>) purchaseOrder.get("value");
+		
+		if(!values.isEmpty())
+		{
 			
-			CountingLines.add(LineMap);
+			HashMap<String, Object> valor = values.get(0);
+			 
+			for (Entry<String, Object> val : valor.entrySet()) {
+				
+				String keyValue = val.getKey();
+				Object vale = val.getValue();
+				
+				if(keyValue.equals("DocumentLines"))
+				{
+					ArrayList<HashMap<String,Object>> lineas =  (ArrayList<HashMap<String, Object>>) vale;
+					 
+					for(HashMap<String,Object> linea: lineas)
+					{
+						if(articulosHM.containsKey(linea.get("ItemCode"))){
+						
+							HashMap<String,Object> nuevaLinea = new HashMap<>();
+							
+							for (Entry<String, Object> lin : linea.entrySet()) {
+								
+								String keyLineaValue = val.getKey();
+								Object lineaValue = val.getValue();
+								
+								nuevaLinea.put(keyLineaValue, lineaValue);
+								
+							}
+							
+							
+							
+							((ArrayList<HashMap<String,Object>>) documento.get("DocumentLines")).add(nuevaLinea); 
+							
+						} 
+						
+					}
+					
+					
+				} else
+				{
+					documento.put(keyValue, vale);
+				}
+				  
+			}
 			
-			i++;
+			documento.replace("Comments", "Basado en Pedidos " + codigo);
+			documento.replace("U_NroCompEsp", documento.get("NumAtCard"));
+			documento.remove("Reference1");
+			documento.remove("JournalMemo");
+			documento.remove("DocObjectCode");
+			documento.remove("DocTotal");
+			documento.replace("PointOfIssueCode",puntoventa);
+			documento.replace("Letter",puntoventa);
+			documento.replace("FolioNumberFrom",foliodesde);
+			documento.replace("FolioNumberTo",foliohasta);
+			documento.replace("DocDate",dateToday);
+			documento.replace("DocDueDate",dateToday);
+			documento.replace("TaxDate",dateToday);
+			documento.replace("CreationDate",dateToday);
+			documento.replace("UpdateDate",dateToday);
+			documento.replace("Series","17");
+			documento.replace("FinancialPeriod","11");
+			documento.replace("WareHouseUpdateType","dwh_OrdersFromVendors");
+			documento.replace("U_NroCompEsp","");
+			
+			((HashMap<String, Object>) documento.get("TaxExtension")).replace("NFRef", "Basado en Pedidos " + codigo);
+			
+			
 		}
-		
-		
-		Documento.put("InventoryCountingLines", CountingLines);
-		
-		return Documento;
+		  
+		return documento;
 	}
 	
 	
