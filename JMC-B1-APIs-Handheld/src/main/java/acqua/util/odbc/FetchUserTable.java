@@ -6,7 +6,6 @@ import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.util.HashMap;
 
-import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.log4j.Logger;
 import org.mule.api.MuleMessage;
 import org.mule.api.transformer.TransformerException;
@@ -138,6 +137,8 @@ public class FetchUserTable extends AbstractMessageTransformer {
 			if (roleResult.get("U_HHRecepcion").equals("Y")) {
 				response.put("recepcion", true);
 			}
+			// Include user role
+			response.put("rol", userResult.get("U_HHRol"));
 
 			if (true)
 				return response;

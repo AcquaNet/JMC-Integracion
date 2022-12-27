@@ -20,8 +20,8 @@ flowVars.codigo = payload.codigo;]]></expression-component>
                 <transformer ref="BuildConteoInventario" doc:name="Build Conteo Inventario"/>
                 <expression-component doc:name="save data"><![CDATA[flowVars.documentSaved = acqua.util.JSONUtil.javaToJSONToString(payload);
 flowVars.destination = flowVars.sociedad;]]></expression-component>
-                <flow-ref name="b1_hh_loginToSAP" doc:name="login to SAP"/>
-                <flow-ref name="b1_hh_entradaMercancia_SendDocument" doc:name="Send Document"/>
+                <flow-ref name="b1_hh_loginToSAP" doc:name="b1_hh_loginToSAP"/>
+                <flow-ref name="b1_hh_entradaMercancia_SendDocument" doc:name="b1_hh_entradaMercancia_SendDocument"/>
                 <logger message="#[payload]" level="INFO" doc:name="Logger" category="jmc_hh"/>
             </when>
             <otherwise>
@@ -55,7 +55,7 @@ flowVars.requestURL = "POST";]]></expression-component>
                         <expression-component doc:name="Convert to hash"><![CDATA[payload = acqua.util.JSONUtil.stringToMap(message.payloadAs(java.lang.String));]]></expression-component>
                         <set-payload value="{&quot;resultado&quot; : false, &quot;mensaje&quot;:&quot;#[acqua.util.WorkUtils.replaceAll(payload.error.message.value)]&quot;}" doc:name="Set Payload"/>
                         <expression-component doc:name="save payload"><![CDATA[flowVars.savePayloadForAnswer = payload;]]></expression-component>
-                        <flow-ref name="B1_Sync_EmailReportingFlow" doc:name="Email report"/>
+                        <flow-ref name="B1_Sync_EmailReportingFlow" doc:name="B1_Sync_EmailReportingFlow"/>
                         <expression-component doc:name="re-set payload"><![CDATA[payload = flowVars.savePayloadForAnswer;]]></expression-component>
                         <logger message="Devolver confirmarEntradaMercancia: #[payload]" level="INFO" category="jmc.log" doc:name="Logger"/>
                     </when>
@@ -66,7 +66,7 @@ flowVars.payloadSent = flowVars.documentSaved;
 flowVars.responseRecived = message.payloadAs(java.lang.String);
 flowVars.method = "ConfirmEntradaMercancia";
 flowVars.requestURL = "POST";]]></expression-component>
-                        <flow-ref name="B1_Sync_EmailReportingFlow" doc:name="Email Report"/>
+                        <flow-ref name="B1_Sync_EmailReportingFlow" doc:name="B1_Sync_EmailReportingFlow"/>
                         <set-payload value="{&quot;resultado&quot; : false, &quot;mensaje&quot;:&quot;#[acqua.util.WorkUtils.replaceAll(message.payloadAs(java.lang.String))]&quot;}" doc:name="Set Payload"/>
                     </otherwise>
                 </choice>

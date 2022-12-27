@@ -15,12 +15,16 @@ flowVars.sociedad = flowVars.inputData.sociedad;
 flowVars.codigoInterno = flowVars.inputData.codigoInterno;
 flowVars.AbsEntry = flowVars.inputData.codigoubicacion;
 flowVars.articulos = flowVars.inputData.articulos;
-flowVars.BinCode = flowVars.inputData.ubicacion;]]></expression-component>
+flowVars.BinCode = flowVars.inputData.ubicacion;
+flowVars.codigo = flowVars.inputData.codigo;]]></expression-component>
         <flow-ref name="b1_hh_global_setDBInfo" doc:name="Copy_of_set DB info "/>
 
         <enricher source="#[payload]" target="#[flowVars.articulos]" doc:name="Message Enricher">
             <flow-ref name="b1_hh_updateRecuentoInventario_FillUoMCode" doc:name="Fill UoM Data"/>
         </enricher>
+		<enricher source="#[payload]" target="#[flowVars.codigoInterno]" doc:name="Message Enricher">
+			<transformer ref="fetchRecuperaNroDocInternoRecuento" doc:name="Recupera DocInterno"/>
+		</enricher>
         <enricher source="#[payload]" target="#[flowVars.existentes]" doc:name="Message Enricher">
             <transformer ref="fetchLineasOrdenRecuento" doc:name="Get Lineas Orden Recuento"/>
         </enricher>
@@ -38,7 +42,7 @@ flowVars.destination = flowVars.sociedad;]]></expression-component>
         <choice doc:name="Choice">
             <when expression="#[flowVars.loginResult.equals(&quot;OK&quot;)]">
                 <set-payload value="#[flowVars.documentSaved]" doc:name="Set saved document as payload"/>
-                <http:request config-ref="HTTP_Request_Configuration" path="InventoryCountings(#[flowVars.inputData.codigoInterno])" method="PUT" doc:name="Update inventory counting">
+                <http:request config-ref="HTTP_Request_Configuration" path="InventoryCountings(#[flowVars.codigoInterno])" method="PUT" doc:name="Update inventory counting">
                     <http:success-status-code-validator values="200..299,404,400"/>
                 </http:request>
                 <choice doc:name="Choice">

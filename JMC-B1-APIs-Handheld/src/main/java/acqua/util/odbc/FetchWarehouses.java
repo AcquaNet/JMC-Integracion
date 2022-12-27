@@ -17,6 +17,8 @@ import acqua.util.ODBCManager;
 public class FetchWarehouses extends AbstractMessageTransformer {
 	private static final Logger LOG = Logger.getLogger("jmc_java.log");
 
+	//Remove for debug
+	@SuppressWarnings("unchecked")
 	@Override
 	public Object transformMessage(MuleMessage message, String outputEncoding) throws TransformerException {
 
@@ -24,10 +26,8 @@ public class FetchWarehouses extends AbstractMessageTransformer {
 		String user = message.getInvocationProperty("DBUser");
 		String password = message.getInvocationProperty("DBPass");
 		String connectionString = message.getInvocationProperty("DBConnection");
-		String DBInfo = message.getInvocationProperty("DBInfo");
-		HashMap<String, Object> input = message.getInvocationProperty("input");
 
-		String sociedad = (String) input.get("sociedad");
+		String sociedad = (String) message.getInvocationProperty("DBInfo");
 		// Create a connection manager with all the info
 		ODBCManager manager = new ODBCManager(user, password, connectionString);
 		// Connect to DB
@@ -43,16 +43,17 @@ public class FetchWarehouses extends AbstractMessageTransformer {
 		try {
 			// Create a statement to call
 			manager.createStatement();
-
+			
 			// Query
-			String Query = "SELECT \"WhsCode\", \"WhsName\" FROM "+sociedad+".OWHS";
-			System.out.println("Query: " + Query);
-			ResultSet querySet = manager.executeQuery(Query);
-
-			HashMap<String, Object> queryResult = parseQuery(querySet);
+			String QueryRol = "SELECT \"U_Rol\", \"U_Almacen\" FROM "+sociedad+".\"@ZHHALMACEN\"";
+			System.out.println("Query: " + QueryRol);
+			ResultSet querySetRole = manager.executeQuery(QueryRol);
+			
+			HashMap<String, Object> roleWResult = parseRoleWarehouses(querySetRole);
+			
 			LOG.info("Parsing done!");
 
-			response.put("result", queryResult.get("result"));
+			response.put("result", roleWResult.get("Warehouses"));
 			return response;
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -65,11 +66,11 @@ public class FetchWarehouses extends AbstractMessageTransformer {
 		return null;
 	}
 
-	@SuppressWarnings("unchecked")
-	public HashMap<String, Object> parseQuery(ResultSet set) throws SQLException {
+
+	public HashMap<String, Object> parseRoleWarehouses(ResultSet set) throws SQLException {
 		int rows = 0;
-		HashMap<String, Object> map = new HashMap<String, Object>();
-		ArrayList<HashMap<String,String>> warehouses = new ArrayList<HashMap<String,String>>();
+		HashMap<String, Object> queryResult = new HashMap<String, Object>();
+		ArrayList<HashMap<String, Object>> response = new ArrayList<HashMap<String, Object>>();
 		
 		while (set.next() != false) {
 			ResultSetMetaData rsmd = set.getMetaData();
@@ -78,22 +79,25 @@ public class FetchWarehouses extends AbstractMessageTransformer {
 			for (int i = 1; i <= columnsNumber; i++) {
 				String result = set.getString(i);
 				String column = rsmd.getColumnName(i);
-				map.put(column, result);
+				queryResult.put(column, result);
 				rowResult = rowResult + "|" + column + ":" + result;
+				
 			}
-			HashMap<String, String> whs = new HashMap<String,String>();
+			HashMap<String, Object> whs = new HashMap<String,Object>();
 			whs.put("WhsCode", set.getString(1));
-			whs.put("WhsName", set.getString(2));
-			warehouses.add(whs);
+			whs.put("WhsRol", set.getString(2));
+			response.add(whs);
 			System.out.println(rowResult);
 			rows++;
 		}
-			if (rows == 0) {
-			map = new HashMap<String, Object>();
-			map.put("Error", true);
-			map.put("ErrorMessage", "No existen ubicaciones para este almacen");
+		if (rows == 0) {
+			queryResult = new HashMap<String, Object>();
+			queryResult.put("Error", true);
+			queryResult.put("ErrorMessage", "No existen ubicaciones para este almacen");
 		}
-		map.put("result", warehouses);
-		return map;
+		queryResult.put("Warehouses", response);
+		return queryResult;
 	}
+		
+
 }

@@ -24,7 +24,7 @@ public class FetchPickingOrder extends AbstractMessageTransformer {
 		String user = message.getInvocationProperty("DBUser");
 		String password = message.getInvocationProperty("DBPass");
 		String connectionString = message.getInvocationProperty("DBConnection");
-		String DBInfo = message.getInvocationProperty("DBInfo");
+		//String DBInfo = message.getInvocationProperty("DBInfo");
 		String pickingId = message.getInvocationProperty("pickCode");
 		String sociedad = message.getInvocationProperty("sociedad");
 		

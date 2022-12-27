@@ -12,7 +12,7 @@ http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/htt
 payload = acqua.util.WorkUtils.newHashMap();
 payload.value = flowVars.input;
 payload.response = "The input data is return in value.";]]></expression-component>
-        <flow-ref name="b1_hh_global_setDBInfo" doc:name="Copy_of_set DB info "/>
+        <flow-ref name="b1_hh_global_setDBInfo" doc:name="b1_hh_global_setDBInfo"/>
 
 		<transformer ref="fetchUserTable" doc:name="fetchUserTable"/>
             

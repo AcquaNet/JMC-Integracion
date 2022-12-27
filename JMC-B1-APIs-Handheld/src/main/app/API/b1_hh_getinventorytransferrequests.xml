@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:metadata="http://www.mulesoft.org/schema/mule/metadata" xmlns:dw="http://www.mulesoft.org/schema/mule/ee/dw" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:spring="http://www.springframework.org/schema/beans" 
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee/dw/current/dw.xsd">
+	<flow name="b1_hh_getinventorytransferrequestsFlow">
+		<http:listener config-ref="HTTP_Listener_Configuration" path="InventoryTransferRequests/{orderEntry}" allowedMethods="POST" doc:name="HTTP"/>
+		<logger message="Inicio - InventoryTransferRequests" level="INFO" category="jmc_hh" doc:name="Logger"/>
+		<expression-component doc:name="Convert and save data"><![CDATA[flowVars.inputData = acqua.util.JSONUtil.stringToMap(message.payloadAs(java.lang.String));
+payload = flowVars.inputData;
+flowVars.socID = payload.sociedad;
+flowVars.entorno = payload.entorno;]]></expression-component>
+		<dw:transform-message doc:name="orderEntry">
+			<dw:set-variable variableName="orderEntry"><![CDATA[%dw 1.0
+%output application/java
+---
+inboundProperties.'http.uri.params'[0].orderEntry
+]]></dw:set-variable>
+		</dw:transform-message>
+		<set-variable variableName="customMap" value="#[{'orderEntry': flowVars.orderEntry}]" doc:name="Variable"/>
+		<flow-ref name="b1_hh_global_setDBInfo" doc:name="set DB info "/>
+		<enricher source="#[payload]" target="#[flowVars.sociedad]" doc:name="Fetch Sociedad">
+			<transformer ref="fetchSocietyID" doc:name="Fetch Society Code"/>
+		</enricher>
+		<expression-component doc:name="set login to SAP "><![CDATA[flowVars.destination = flowVars.socID;]]></expression-component>
+		<flow-ref name="b1_hh_loginToSAP" doc:name="login to SAP"/>
+
+		<http:request config-ref="HTTP_Request_Configuration" path="InventoryTransferRequests({orderEntry})" method="GET" doc:name="InventoryTransferRequests">
+			<http:request-builder>
+				<http:uri-params expression="#[flowVars.customMap]"/>
+			</http:request-builder>
+
+		</http:request>
+		<dw:transform-message doc:name="Transform Message" metadata:id="f5bd3850-d0c0-4f52-a4cb-b99b21b95a55">
+			<dw:input-payload mimeType="application/json"/>
+			<dw:set-payload><![CDATA[%dw 1.0
+%output application/json
+---
+{
+	FromWarehouse: payload.FromWarehouse,
+	StockTransferLines: payload.StockTransferLines map ((stockTransferLine , indexOfStockTransferLine) -> {
+		LineNum: stockTransferLine.LineNum,
+		DocEntry: stockTransferLine.DocEntry,
+		ItemCode: stockTransferLine.ItemCode,
+		ItemDescription: stockTransferLine.ItemDescription,
+		Quantity: stockTransferLine.Quantity,
+		BatchNumbers: stockTransferLine.BatchNumbers map ((batchNumber , indexOfBatchNumber) -> {
+			BatchNumber: batchNumber.BatchNumber,
+			SystemSerialNumber: batchNumber.SystemSerialNumber
+		})
+	})
+}]]></dw:set-payload>
+		</dw:transform-message>
+		<logger message="Fin - InventoryTransferRequests" level="INFO" category="jmc_hh" doc:name="Logger"/>
+	</flow>
+</mule>

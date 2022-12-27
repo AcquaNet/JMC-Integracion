@@ -2,11 +2,9 @@ package acqua.util.odbc;
 
 import java.sql.Connection;
 import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 
 import org.apache.log4j.Logger;
 import org.mule.api.MuleMessage;
@@ -53,7 +51,7 @@ public class FetchWarehouseSublevels extends AbstractMessageTransformer {
 			
 			for (String society : socList) {
 			// Query
-			String Query = "SELECT \"BinCode\", \"WhsCode\", \"SL1Code\", \"SL2Code\", \"SL3Code\", \"SL4Code\", \"AbsEntry\" FROM "+society+".OBIN WHERE \"Disabled\" <> 'Y'";
+			String Query = "SELECT \"BinCode\", \"WhsCode\", \"SL1Code\", \"SL2Code\", \"SL3Code\", \"SL4Code\", \"AbsEntry\" FROM " + society + ".OBIN WHERE \"Disabled\" <> 'Y'";
 			System.out.println("Query: " + Query);
 			ResultSet querySet = manager.executeQuery(Query);
 

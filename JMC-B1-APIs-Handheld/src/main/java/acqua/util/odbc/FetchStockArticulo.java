@@ -23,7 +23,7 @@ public class FetchStockArticulo extends AbstractMessageTransformer {
 		String user = message.getInvocationProperty("DBUser");
 		String password = message.getInvocationProperty("DBPass");
 		String connectionString = message.getInvocationProperty("DBConnection");
-		String DBInfo = message.getInvocationProperty("DBInfo");
+		//String DBInfo = message.getInvocationProperty("DBInfo");
 		String codigo =  message.getInvocationProperty("codigo");
 		String sociedad = message.getInvocationProperty("sociedad");
 		

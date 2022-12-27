@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:spring="http://www.springframework.org/schema/beans" 
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd">
+    <sub-flow name="b1_hh_utils-include-curva-items-subflow">
+        <logger message="Start b1_hh_utils-include-curvas-subflow..." level="INFO" category="jmc_hh" doc:name="Start"/>
+        <expression-component doc:name="Expression"><![CDATA[flowVars.itemCodes = acqua.util.CurvasUtils.getItemCodes(payload);
+
+if(payload.dataType == "HashMap") {
+}else {};
+
+
+
+]]></expression-component>
+        <expression-component doc:name="Expression"/>
+        <logger message="End b1_hh_utils-include-curvas-subflow..." level="INFO" category="jmc_hh" doc:name="End"/>
+    </sub-flow>
+</mule>

@@ -1,0 +1,18 @@
+{
+   "FromWarehouse" : "104",
+   "StockTransferLines" : [
+      {
+         "LineNum" : 0,
+         "DocEntry" : 26,
+         "ItemCode" : "NB.C.LF.M.LI.V.0101.NGGR.075",
+         "ItemDescription" : "CM997HFI",
+         "Quantity" : 216.0,
+         "BatchNumbers" : [
+            {
+               "BatchNumber" : "TEST SI JOF126",
+               "SystemSerialNumber" : 1			   
+            }
+         ]
+      }
+   ]
+}

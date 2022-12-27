@@ -44,8 +44,9 @@ flowVars.newMd5 = acqua.util.MD5Util.StringToMD5(payload);]]></expression-compon
         <logger message="Respuesta a HH: #[payload]" level="INFO" doc:name="Logger" category="jmc_hh"/>
     </flow>
     <flow name="b1_hh_updateListaPicking_settings">
-        <expression-component doc:name="Convert and save payload"><![CDATA[flowVars.inputData = acqua.util.JSONUtil.stringToMap(message.payloadAs(java.lang.String));
+        <expression-component doc:name="Convert and save data"><![CDATA[flowVars.inputData = acqua.util.JSONUtil.stringToMap(message.payloadAs(java.lang.String));
 payload = flowVars.inputData;
+flowVars.cantBulto = payload.nroBultos;
 flowVars.entorno = payload.entorno;]]></expression-component>
         <expression-component doc:name="Split"><![CDATA[flowVars.id = acqua.util.PickListParser.parseString(payload.codigobarra);
 flowVars.socID = flowVars.id.id;

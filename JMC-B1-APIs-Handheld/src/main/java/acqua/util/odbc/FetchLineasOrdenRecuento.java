@@ -26,6 +26,7 @@ public class FetchLineasOrdenRecuento extends AbstractMessageTransformer {
 		String DBInfo = message.getInvocationProperty("DBInfo");
 		String sociedad = message.getInvocationProperty("sociedad");
 		String codigoInterno = ""+message.getInvocationProperty("codigoInterno");
+		String codigo = ""+message.getInvocationProperty("codigo");
 
 		// Create a connection manager with all the info
 		ODBCManager manager = new ODBCManager(user, password, connectionString);
@@ -43,8 +44,14 @@ public class FetchLineasOrdenRecuento extends AbstractMessageTransformer {
 			// Create a statement to call
 			manager.createStatement();
 
+			String Query = "";
+			// si la consulta es offline - no recupera doc interno - debo buscarlo
+			if(codigoInterno.equals("0")) {
+				codigoInterno = getNumeroInterno(codigo, sociedad, manager);
+			}
+
 			// Query
-			String Query = "SELECT \"LineNum\", \"ItemCode\", \"Counted\", \"CountQty\", \"WhsCode\", \"BinEntry\", \"UomCode\"  FROM "+sociedad+".INC1 where \"DocEntry\" = '"+codigoInterno+"'";
+			Query = "SELECT  T0.\"LineNum\",  T0.\"ItemCode\",  T0.\"Counted\",  T0.\"CountQty\",  T0.\"WhsCode\",  T0.\"BinEntry\",  T0.\"UomCode\"  FROM "+sociedad+".INC1 T0 where  T0.\"DocEntry\" = '"+codigoInterno+"'";
 			System.out.println("Query: " + Query);
 			ResultSet querySet = manager.executeQuery(Query);
 
@@ -101,4 +108,28 @@ public class FetchLineasOrdenRecuento extends AbstractMessageTransformer {
 		}
 		return answer;
 	}
+	
+	private String getNumeroInterno(String nroOrden, String sociedad, ODBCManager manager) throws SQLException {
+		
+		String Query = "SELECT  T0.\"DocEntry\" FROM "+sociedad+".OINC T0 INNER JOIN " +sociedad+ ".INC1 T1 ON T0.\"DocEntry\" = T1.\"DocEntry\" WHERE T0.\"DocNum\" = '"+nroOrden + "'";
+		System.out.println("Query: " + Query);
+		ResultSet querySet = manager.executeQuery(Query);
+
+		LOG.info("Parsing done!");
+
+		return  parseQuery2(querySet);
+		
+	}
+	
+	
+	@SuppressWarnings("unchecked")
+	public String parseQuery2(ResultSet set) throws SQLException {
+
+		if (set.next() != false) {
+			return set.getString(1);
+		}
+		else {
+			return "";
+		}
+	}	
 }

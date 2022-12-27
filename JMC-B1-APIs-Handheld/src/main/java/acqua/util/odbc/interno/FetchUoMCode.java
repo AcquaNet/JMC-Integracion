@@ -2,7 +2,6 @@ package acqua.util.odbc.interno;
 
 import java.sql.Connection;
 import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -24,7 +23,7 @@ public class FetchUoMCode extends AbstractMessageTransformer {
 		String user = message.getInvocationProperty("DBUser");
 		String password = message.getInvocationProperty("DBPass");
 		String connectionString = message.getInvocationProperty("DBConnection");
-		String DBInfo = message.getInvocationProperty("DBInfo");
+		//String DBInfo = message.getInvocationProperty("DBInfo");
 		
 		ArrayList<HashMap<String,Object>> articulosList = (ArrayList<HashMap<String, Object>>) message.getInvocationProperty("articulos");;
 		ArrayList<HashMap<String,Object>> replacementArticulos = new ArrayList<>();

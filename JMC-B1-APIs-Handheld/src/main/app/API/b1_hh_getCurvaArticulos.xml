@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:spring="http://www.springframework.org/schema/beans" 
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd">
+    <flow name="b1_hh_get-curva-articulos-flow">
+        <http:listener config-ref="HTTP_Listener_Configuration" path="/getCurvaArticulos" doc:name="HTTP"/>
+        <logger message="Flow get-curva-articulas-flow started." level="INFO" category="jmc_hh" doc:name="Logger"/>
+        <expression-component doc:name="Save input information"><![CDATA[payload = acqua.util.JSONUtil.stringToMap(message.payloadAs(String));
+flowVars.input = payload;
+flowVars.sociedad = payload.sociedad;
+flowVars.codigo = payload.codigo.replaceAll(",","','");]]></expression-component>
+        <flow-ref name="b1_hh_global_setDBInfo" doc:name="b1_hh_global_setDBInfo"/>
+        <transformer ref="fetchCurvaArticulos" doc:name="Fetch Curva Articulos"/>
+        <expression-component doc:name="Convert answer to JSON"><![CDATA[payload = acqua.util.JSONUtil.javaToJSONToString(payload);]]></expression-component>
+        <logger message="Flow get-curva-articulas-flow ended." level="INFO" doc:name="Logger" category="jmc_hh"/>
+    </flow>
+</mule>

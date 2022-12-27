@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:spring="http://www.springframework.org/schema/beans" 
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd">
+    <flow name="b1_hh_testConsolidacionCurvas-flow">
+        <http:listener config-ref="HTTP_Listener_Configuration" path="/testConsolidacionCurvas" doc:name="HTTP"/>
+        <logger message="Flow b1_hh_testConsolidacionCurvas-flow started..." level="INFO" doc:name="Logger"/>
+        <expression-component doc:name="Save input data"><![CDATA[payload = acqua.util.JSONUtil.stringToMap(message.payloadAs(String));
+flowVars.input = payload.listaArticulos;]]></expression-component>
+        <flow-ref name="b1_hh_global_setDBInfo" doc:name="b1_hh_global_setDBInfo"/>
+        <expression-component doc:name="Recuperar datos curva"><![CDATA[flowVars.curvasArticulos = acqua.util.Transform.ConsolidarCurvasArticulos.recuperarCurvasArticulos(flowVars.input);
+flowVars.codigosCurvas = acqua.util.Transform.ConsolidarCurvasArticulos.armarCodigosCurvas(flowVars.curvasArticulos.listaCurvas);
+
+flowVars.inputPayload = new HashMap();
+flowVars.inputPayload.put("sociedad","KA_DEV8");
+flowVars.inputPayload.put("codigo",flowVars.codigosCurvas);
+
+payload = acqua.util.JSONUtil.javaToJSONToString(flowVars.inputPayload);
+
+
+
+
+]]></expression-component>
+        <flow-ref name="b1_hh_get-curva-articulos-flow" doc:name="get-curva-articulos-flow"/>
+        <expression-component doc:name="Consolidar curvas"><![CDATA[flowVars.itemsCurva = acqua.util.JSONUtil.stringToMap(payload);
+flowVars.itemsCurva = flowVars.itemsCurva.articulos;
+
+payload = acqua.util.Transform.ConsolidarCurvasArticulos.consolidarCurvas(flowVars.itemsCurva, flowVars.curvasArticulos.listaArticulos, flowVars.curvasArticulos.listaCurvas);
+
+payload = acqua.util.JSONUtil.javaToJSONToString(payload)]]></expression-component>
+        <logger message="Flow b1_hh_testConsolidacionCurvas-flow ended..." level="INFO" doc:name="Logger"/>
+    </flow>
+</mule>

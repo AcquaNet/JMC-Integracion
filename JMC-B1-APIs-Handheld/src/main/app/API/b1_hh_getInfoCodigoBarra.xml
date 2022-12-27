@@ -8,6 +8,7 @@ http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/cor
 http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd">
     <flow name="b1_hh_getInfoCodigoBarraFlow">
         <http:listener config-ref="HTTP_Listener_Configuration" path="getInfoCodigoBarra" allowedMethods="POST" doc:name="HTTP"/>
+        <logger message="Input getInfoCodigoBarra: #[message.payloadAs(String)]" level="INFO" doc:name="Logger"/>
         <expression-component doc:name="Convert Payload"><![CDATA[payload = acqua.util.JSONUtil.stringToMap(message.payloadAs(java.lang.String));
 flowVars.codigo = payload.codigo;
 flowVars.sociedad = payload.sociedad;]]></expression-component>

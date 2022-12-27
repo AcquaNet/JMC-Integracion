@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:spring="http://www.springframework.org/schema/beans" 
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd">
+    <flow name="b1_hh_getRecepcion1Flow">
+        <http:listener config-ref="HTTP_Listener_Configuration" path="getRecepcion1" allowedMethods="POST" doc:name="HTTP"/>
+		<flow-ref name="b1_hh_getRecepcion1_settings" doc:name="Set up everything"/>
+		<flow-ref name="b1_hh_loginToSAP" doc:name="login to SAP"/>
+        <expression-component doc:name="set variables from input"><![CDATA[payload = acqua.util.JSONUtil.stringToMap(message.payloadAs(java.lang.String));
+flowVars.codigo = payload.codigo;
+flowVars.sociedad = payload.sociedad;]]></expression-component>
+		<http:request config-ref="HTTP_Request_Configuration" path="PurchaseOrders" method="GET" doc:name="HTTP">
+			<http:request-builder>
+				<http:query-param paramName="$filter" value="DocNum eq 48"/>
+			</http:request-builder>
+		</http:request>
+
+        <logger message="getOperacion respuesta: #[payload]" level="INFO" category="jmc_hh" doc:name="Logger"/>
+    </flow>
+    
+    <flow name="b1_hh_getRecepcion1_settings">
+        <expression-component doc:name="Convert and save data"><![CDATA[flowVars.inputData = acqua.util.JSONUtil.stringToMap(message.payloadAs(java.lang.String));
+payload = flowVars.inputData;
+flowVars.entorno = payload.entorno;
+flowVars.sociedad = payload.sociedad;]]></expression-component>
+
+        <flow-ref name="b1_hh_global_setDBInfo" doc:name="set DB info "/>
+
+        <expression-component doc:name="set login to SAP "><![CDATA[flowVars.destination = flowVars.sociedad;]]></expression-component>
+    </flow>    
+</mule>

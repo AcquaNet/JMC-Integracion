@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:spring="http://www.springframework.org/schema/beans" 
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd">
+    <flow name="b1_hh_getUbicaciones-main-flow">
+        <http:listener config-ref="HTTP_Listener_Configuration" path="/getUbicacionesLocal" allowedMethods="GET" doc:name="HTTP"/>
+        <expression-component doc:name="Save and transform input data"><![CDATA[payload = acqua.util.JSONUtil.stringToMap(message.payloadAs(String));
+flowVars.input = payload;
+flowVars.sociedad = payload.sociedad;]]></expression-component>
+        <flow-ref name="b1_hh_global_setDBInfo" doc:name="b1_hh_global_setDBInfo"/>
+        <transformer ref="fetchUbicacionesLocal" doc:name="fetchUbicacionesLocal"/>
+        <expression-component doc:name="Convert Java Map to Json"><![CDATA[payload = acqua.util.JSONUtil.javaToJSONToString(payload)]]></expression-component>
+        <logger message="getUbicacionesLocal response: #[payload]" level="INFO" doc:name="Logger"/>
+    </flow>
+</mule>

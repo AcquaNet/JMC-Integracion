@@ -23,7 +23,7 @@ public class FetchOrdenesRecuento extends AbstractMessageTransformer {
 		String user = message.getInvocationProperty("DBUser");
 		String password = message.getInvocationProperty("DBPass");
 		String connectionString = message.getInvocationProperty("DBConnection");
-		String DBInfo = message.getInvocationProperty("DBInfo");
+		//String DBInfo = message.getInvocationProperty("DBInfo");
 		String sociedad = message.getInvocationProperty("sociedad");
 
 		// Create a connection manager with all the info

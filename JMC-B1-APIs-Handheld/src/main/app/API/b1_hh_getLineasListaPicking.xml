@@ -9,6 +9,7 @@ http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/htt
 http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd">
     <flow name="b1_hh_getLineasListaPickingFlow">
         <http:listener config-ref="HTTP_Listener_Configuration" path="getLineasListaPicking" allowedMethods="POST" doc:name="HTTP"/>
+        <logger message="Input getLineasListaPicking: #[message.payloadAs(String)]" level="INFO" doc:name="Logger"/>
         <expression-component doc:name="save info"><![CDATA[payload = acqua.util.JSONUtil.stringToMap(message.payloadAs(java.lang.String));
 flowVars.entorno = payload.entorno;]]></expression-component>
         <expression-component doc:name="Parse ID"><![CDATA[flowVars.id = acqua.util.PickListParser.parseString(payload.codigobarra);

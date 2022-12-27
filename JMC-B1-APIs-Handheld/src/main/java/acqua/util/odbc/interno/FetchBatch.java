@@ -2,12 +2,11 @@ package acqua.util.odbc.interno;
 
 import java.sql.Connection;
 import java.sql.ResultSet;
-import java.sql.ResultSetMetaData;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
 
-import org.apache.log4j.Logger;
+//import org.apache.log4j.Logger;
 import org.mule.api.MuleMessage;
 import org.mule.api.transformer.TransformerException;
 import org.mule.transformer.AbstractMessageTransformer;
@@ -15,7 +14,7 @@ import org.mule.transformer.AbstractMessageTransformer;
 import acqua.util.ODBCManager;
 
 public class FetchBatch extends AbstractMessageTransformer {
-	private static final Logger LOG = Logger.getLogger("jmc_java.log");
+	//private static final Logger LOG = Logger.getLogger("jmc_java.log");
 
 	@Override
 	public Object transformMessage(MuleMessage message, String outputEncoding) throws TransformerException {

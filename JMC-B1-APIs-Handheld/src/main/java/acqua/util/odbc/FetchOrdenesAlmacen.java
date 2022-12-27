@@ -3,7 +3,6 @@ package acqua.util.odbc;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.ArrayList;
 import java.util.HashMap;
 
 import org.apache.log4j.Logger;
@@ -23,8 +22,8 @@ public class FetchOrdenesAlmacen extends AbstractMessageTransformer {
 		String user = message.getInvocationProperty("DBUser");
 		String password = message.getInvocationProperty("DBPass");
 		String connectionString = message.getInvocationProperty("DBConnection");
-		String DBInfo = message.getInvocationProperty("DBInfo");
-		String codigo = message.getInvocationProperty("codigo");
+		//String DBInfo = message.getInvocationProperty("DBInfo");
+		//String codigo = message.getInvocationProperty("codigo");
 		String sociedad = message.getInvocationProperty("sociedad");
 		String almacen = message.getInvocationProperty("almacen");
 		

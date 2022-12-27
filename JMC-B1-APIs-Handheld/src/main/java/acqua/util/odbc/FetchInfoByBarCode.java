@@ -43,7 +43,7 @@ public class FetchInfoByBarCode extends AbstractMessageTransformer {
 			manager.createStatement();
 
 			// Query
-			String Query = "SELECT \"ItemCode\", \"ItemName\", \"CodeBars\", \"SWW\" FROM "+sociedad+".OITM Where \"CodeBars\" = '"+ codigo + "'";
+			String Query = "SELECT \"ItemCode\", \"ItemName\", \"CodeBars\", \"SWW\", \"U_ARGNS_ITYPE\" FROM "+sociedad+".OITM Where \"CodeBars\" = '"+ codigo + "'";
 			System.out.println("Query: " + Query);
 			ResultSet querySet = manager.executeQuery(Query);
 

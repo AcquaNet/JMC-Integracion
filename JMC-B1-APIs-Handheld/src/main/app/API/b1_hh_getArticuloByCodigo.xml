@@ -12,7 +12,7 @@ http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/m
         <expression-component doc:name="Convert Payload"><![CDATA[payload = acqua.util.JSONUtil.stringToMap(message.payloadAs(java.lang.String));
 flowVars.codigo = payload.codigo;
 flowVars.sociedad = payload.sociedad;]]></expression-component>
-        <flow-ref name="b1_hh_global_setDBInfo" doc:name="Copy_of_set DB info "/>
+        <flow-ref name="b1_hh_global_setDBInfo" doc:name="b1_hh_global_setDBInfo"/>
         <transformer ref="fetchArticuloByCode" doc:name="Fetch Info"/>
         <expression-component doc:name="Convert result to JSON"><![CDATA[payload = acqua.util.JSONUtil.javaToJSONToString(payload);]]></expression-component>
         <logger message="getArticuloByCodigo Devuelto: #[payload]" level="INFO" doc:name="Logger" category="jmc_hh"/>

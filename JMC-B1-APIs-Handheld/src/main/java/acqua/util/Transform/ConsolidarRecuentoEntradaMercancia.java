@@ -2,7 +2,6 @@ package acqua.util.Transform;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -13,7 +12,6 @@ import org.mule.api.MuleMessage;
 import org.mule.api.transformer.TransformerException;
 import org.mule.transformer.AbstractMessageTransformer;
 
-import acqua.util.JSONUtil;
 
 public class ConsolidarRecuentoEntradaMercancia extends AbstractMessageTransformer {
 	@SuppressWarnings("unused")

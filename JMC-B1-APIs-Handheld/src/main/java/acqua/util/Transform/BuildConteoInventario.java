@@ -8,8 +8,6 @@ import org.mule.api.MuleMessage;
 import org.mule.api.transformer.TransformerException;
 import org.mule.transformer.AbstractMessageTransformer;
 
-import acqua.util.JSONUtil;
-
 public class BuildConteoInventario extends AbstractMessageTransformer {
 	@SuppressWarnings("unused")
 	private static final Logger LOG = Logger.getLogger("jmc_hh.log");

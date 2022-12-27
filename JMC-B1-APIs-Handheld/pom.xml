@@ -13,7 +13,7 @@
 		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
 		<maven.compiler.source>1.8</maven.compiler.source>
 		<maven.compiler.target>1.8</maven.compiler.target>
-		<mule.version>3.9.2</mule.version>
+		<mule.version>3.9.2-20210120</mule.version>
 		<mule.tools.version>1.7</mule.tools.version>
 		<munit.version>1.3.8</munit.version>
 		<mule.munit.support.version>3.9.1</mule.munit.support.version>
@@ -105,7 +105,15 @@
 
 
 	<dependencies>
-
+				
+		<!-- https://mvnrepository.com/artifact/com.fasterxml.jackson.dataformat/jackson-dataformat-csv -->
+		<dependency>
+		    <groupId>com.fasterxml.jackson.dataformat</groupId>
+		    <artifactId>jackson-dataformat-csv</artifactId>
+		    <version>2.8.9</version>
+		</dependency>	
+				
+		
 		<!-- https://mvnrepository.com/artifact/com.google.code.gson/gson -->
 		<dependency>
 			<groupId>com.google.code.gson</groupId>
@@ -118,6 +126,14 @@
 			<artifactId>sap-jdbc</artifactId>
 			<version>1.0</version>
 		</dependency>
+		
+       <!-- https://mvnrepository.com/artifact/com.opencsv/opencsv -->
+		<dependency>
+		    <groupId>com.opencsv</groupId>
+		    <artifactId>opencsv</artifactId>
+		    <version>5.5.2</version>
+		</dependency>
+		
 		<!-- https://mvnrepository.com/artifact/commons-codec/commons-codec -->
 		<dependency>
 			<groupId>commons-codec</groupId>
@@ -200,6 +216,7 @@
             <version>${mule.version}</version>
             <scope>provided</scope>
         </dependency>
+
     </dependencies>
 
 	<repositories>

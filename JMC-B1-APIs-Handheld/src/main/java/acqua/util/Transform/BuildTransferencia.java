@@ -8,7 +8,6 @@ import org.mule.api.MuleMessage;
 import org.mule.api.transformer.TransformerException;
 import org.mule.transformer.AbstractMessageTransformer;
 
-import acqua.util.JSONUtil;
 
 public class BuildTransferencia extends AbstractMessageTransformer {
 	@SuppressWarnings("unused")
@@ -40,7 +39,6 @@ public class BuildTransferencia extends AbstractMessageTransformer {
 			newMap.put("FromWarehouseCode", almacenOrigen);
 			newMap.put("WarehouseCode", almacenDestino);
 			
-			// Asignación de Lotes
 			Double cantidad = (Double) map.get("cantidad");
 			ArrayList<HashMap<String,Object>> BatchNumbers = new ArrayList<>();
 			
@@ -140,7 +138,8 @@ public class BuildTransferencia extends AbstractMessageTransformer {
 		
 		HashMap<String,Object> DocumentoRecuentoInventario = new HashMap<>();
 		DocumentoRecuentoInventario.put("StockTransferLines", result);
-		DocumentoRecuentoInventario.put("PointOfIssueCode", "9999");
+		//DocumentoRecuentoInventario.put("PointOfIssueCode", "9999");
+		DocumentoRecuentoInventario.put("PointOfIssueCode", "00028");
 		
 		return DocumentoRecuentoInventario;
 	}
