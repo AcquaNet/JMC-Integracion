@@ -22,17 +22,17 @@ flowVars.foliohasta = payload.foliohasta;]]></expression-component>
         <expression-component doc:name="save consolidado"><![CDATA[flowVars.consolidado = payload;]]></expression-component>
         <choice doc:name="Choice">
             <when expression="#[payload != null]">
+				<flow-ref name="b1_hh_global_setDBInfo" doc:name="set DB info "/>
 				<expression-component doc:name="set login to SAP "><![CDATA[flowVars.destination = flowVars.sociedad;]]></expression-component>
                 <flow-ref name="b1_hh_loginToSAP" doc:name="b1_hh_loginToSAP"/>
-				<set-variable variableName="filtro" value="#[&quot;DocNum%20eq%20&quot;  + flowVars.codigo]" doc:name="Set Filtro"/>
-				<logger message="Log de Test" level="INFO" doc:name="Logger"/>
+				<set-variable variableName="filtro" value="DocNum eq #[flowVars.codigo]" doc:name="Set Filtro"/>
                 <http:request config-ref="HTTP_Request_Configuration" path="PurchaseOrders" method="GET" doc:name="HTTP - Get Purshase Orden">
                     <http:request-builder>
 						<http:query-param paramName="$filter" value="#[flowVars.filtro]"/>
 
                     </http:request-builder>
                 </http:request>
-                <expression-component doc:name="save PUR"><![CDATA[flowVars.purchaseOrder = acqua.util.JSONUtil.stringToMap(payload);]]></expression-component>
+                <expression-component doc:name="save PUR"><![CDATA[flowVars.purchaseOrder = acqua.util.JSONUtil.stringToMap(message.payloadAs(java.lang.String));]]></expression-component>
                 <transformer ref="BuildConteoInventario" doc:name="Build Conteo Inventario"/>
                 <expression-component doc:name="save data"><![CDATA[flowVars.documentSaved = acqua.util.JSONUtil.javaToJSONToString(payload);
 flowVars.destination = flowVars.sociedad;]]></expression-component>

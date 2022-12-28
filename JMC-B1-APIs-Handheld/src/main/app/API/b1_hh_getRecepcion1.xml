@@ -14,7 +14,7 @@ http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/m
         <expression-component doc:name="set variables from input"><![CDATA[payload = acqua.util.JSONUtil.stringToMap(message.payloadAs(java.lang.String));
 flowVars.codigo = payload.codigo;
 flowVars.sociedad = payload.sociedad;]]></expression-component>
-		<set-variable variableName="filtro" value="#[&quot;DocNum%20eq%20&quot;  + flowVars.inputData.codigo]" doc:name="Set Filtro"/>
+		<set-variable variableName="filtro" value="DocNum eq #[flowVars.inputData.codigo]" doc:name="Set Filtro"/>
 		<http:request config-ref="HTTP_Request_Configuration" path="PurchaseOrders" method="GET" doc:name="HTTP">
 			<http:request-builder>
 				<http:query-param paramName="$filter" value="#[flowVars.filtro]"/>

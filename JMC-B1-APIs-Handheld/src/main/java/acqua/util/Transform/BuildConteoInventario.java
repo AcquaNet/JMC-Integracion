@@ -1,5 +1,8 @@
 package acqua.util.Transform;
 
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -11,6 +14,8 @@ import org.apache.log4j.Logger;
 import org.mule.api.MuleMessage;
 import org.mule.api.transformer.TransformerException;
 import org.mule.transformer.AbstractMessageTransformer;
+
+import acqua.util.ODBCManager;
 
 public class BuildConteoInventario extends AbstractMessageTransformer {
 	@SuppressWarnings("unused")
@@ -34,8 +39,8 @@ public class BuildConteoInventario extends AbstractMessageTransformer {
 		String letra = (String) message.getInvocationProperty("letra");
 		String foliodesde = (String) message.getInvocationProperty("foliodesde");
 		String foliohasta = (String) message.getInvocationProperty("foliohasta"); 
-		Object systemSerialNumber = 1;
-		Object binAbsEntry = 1;
+		//Object systemSerialNumber = 1;
+		//Object binAbsEntry = 1;
   
 		HashMap<String,Object> documento = new HashMap<>(); 
 		
@@ -90,8 +95,8 @@ public class BuildConteoInventario extends AbstractMessageTransformer {
 							batchNumber.put("BaseLineNumber", nuevaLinea.get("LineNum"));
 							batchNumber.put("BatchNumber", valor.get("NumAtCard"));
 							batchNumber.put("Quantity", articulosHM.get(linea.get("ItemCode")));
+							String systemSerialNumber =  getSystemSerialNumber(message, valor.get("NumAtCard").toString());							
 							batchNumber.put("SystemSerialNumber", systemSerialNumber);
-							
 							nuevaLinea.replace("BatchNumbers", new ArrayList<HashMap<String,Object>>());
 							((ArrayList<HashMap<String,Object>>) nuevaLinea.get("BatchNumbers")).add(batchNumber);
 
@@ -102,6 +107,7 @@ public class BuildConteoInventario extends AbstractMessageTransformer {
 							documentLinesBinAllocations.put("BaseLineNumber", 0);
 							documentLinesBinAllocations.put("SerialAndBatchNumbersBaseLine", 0);
 							documentLinesBinAllocations.put("Quantity", articulosHM.get(linea.get("ItemCode")));
+							String binAbsEntry = getBinAbsEntry(message, valor.get("NumAtCard").toString());
 							documentLinesBinAllocations.put("BinAbsEntry", binAbsEntry);
 							
 							nuevaLinea.put("DocumentLinesBinAllocations", new ArrayList<HashMap<String,Object>>());
@@ -150,6 +156,79 @@ public class BuildConteoInventario extends AbstractMessageTransformer {
 		return documento;
 	}
 	
+	private String getSystemSerialNumber(MuleMessage message, String numAtCard){
+		String user = message.getInvocationProperty("DBUser");
+		String password = message.getInvocationProperty("DBPass");
+		String connectionString = message.getInvocationProperty("DBConnection");		
+		String sociedad = message.getInvocationProperty("sociedad");
+
+		ODBCManager manager = new ODBCManager(user, password, connectionString);
+		Object connect = manager.connect();
+		if (!connect.getClass().equals(Connection.class) && !connect.getClass().equals(com.sap.db.jdbc.HanaConnectionFinalize.class)) {
+			System.out.println("Fallo conexion a BD");
+			return null;
+		}
+		try {
+			manager.createStatement();
+			String Query = "SELECT T0.\"SysNumber\" FROM "+sociedad+".OBTN T0 " + " WHERE T0.\"DistNumber\" = '"+numAtCard+"'";
+			System.out.println("Query: " + Query);
+			ResultSet querySet = manager.executeQuery(Query);
+			HashMap<String, Object> queryResult = parseQuerySystemSerialNumber(querySet);
+			LOG.info("Parsing done!");
+			return (String) queryResult.get("AbsEntry");
+		} catch (Exception e) {
+			e.printStackTrace();
+			if (e.getClass().getName().contains("SQLException")) {
+				System.out.println("Fallo sql");
+				return null;
+			}
+		}				
+		return null;
+	}
+
+	public HashMap<String, Object> parseQuerySystemSerialNumber(ResultSet set) throws SQLException {
+		HashMap<String, Object> answer = new HashMap<>();
+		while (set.next() != false) {
+			answer.put("sysNumber", (set.getString("SysNumber")));
+		}
+		return answer;
+	}	
 	
+	private String getBinAbsEntry(MuleMessage message, String whsCode){
+		String user = message.getInvocationProperty("DBUser");
+		String password = message.getInvocationProperty("DBPass");
+		String connectionString = message.getInvocationProperty("DBConnection");		
+		String sociedad = message.getInvocationProperty("sociedad");
+
+		ODBCManager manager = new ODBCManager(user, password, connectionString);
+		Object connect = manager.connect();
+		if (!connect.getClass().equals(Connection.class) && !connect.getClass().equals(com.sap.db.jdbc.HanaConnectionFinalize.class)) {
+			System.out.println("Fallo conexion a BD");
+			return null;
+		}
+		try {
+			manager.createStatement();
+			String Query = "SELECT T0.\"AbsEntry\" FROM "+sociedad+".OBIN T0 " + " WHERE T0.\"WhsCode\" = '" + whsCode + "' AND T0.\"SysBin\" = 'Y' ";
+			System.out.println("Query: " + Query);
+			ResultSet querySet = manager.executeQuery(Query);
+			HashMap<String, Object> queryResult = parseQueryBinsAbsEntry(querySet);
+			LOG.info("Parsing done!");
+			return (String) queryResult.get("AbsEntry");
+		} catch (Exception e) {
+			e.printStackTrace();
+			if (e.getClass().getName().contains("SQLException")) {
+				System.out.println("Fallo sql");
+				return null;
+			}
+		}				
+		return null;
+	}	
 	
+	public HashMap<String, Object> parseQueryBinsAbsEntry(ResultSet set) throws SQLException {
+		HashMap<String, Object> answer = new HashMap<>();
+		while (set.next() != false) {
+			answer.put("absEntry", (set.getString("AbsEntry")));
+		}
+		return answer;
+	}	
 }
