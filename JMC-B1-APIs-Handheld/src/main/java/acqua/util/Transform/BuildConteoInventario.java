@@ -35,6 +35,8 @@ public class BuildConteoInventario extends AbstractMessageTransformer {
 		String letra = (String) message.getInvocationProperty("letra");
 		String foliodesde = (String) message.getInvocationProperty("foliodesde");
 		String foliohasta = (String) message.getInvocationProperty("foliohasta"); 
+		Object systemSerialNumber = 1;
+		Object binAbsEntry = 1;
   
 		HashMap<String,Object> documento = new HashMap<>(); 
 		
@@ -75,6 +77,37 @@ public class BuildConteoInventario extends AbstractMessageTransformer {
 								nuevaLinea.put(keyLineaValue, lineaValue);
 								
 							}
+							
+							nuevaLinea.replace("BaseLine", nuevaLinea.get("LineNum"));
+							nuevaLinea.replace("BaseOpenQuantity", articulosHM.get(linea.get("ItemCode")));
+							nuevaLinea.replace("DocEntry", valor.get("DocEntry"));
+							nuevaLinea.replace("BaseOpenQuantity", articulosHM.get(linea.get("ItemCode")));
+							nuevaLinea.replace("ActualDeliveryDate", dateToday);
+							
+							// Batch Number
+							
+							HashMap<String,Object> batchNumber = new HashMap<>();
+							
+							batchNumber.put("BaseLineNumber", nuevaLinea.get("LineNum"));
+							batchNumber.put("BatchNumber", valor.get("NumAtCard"));
+							batchNumber.put("Quantity", articulosHM.get(linea.get("ItemCode")));
+							batchNumber.put("SystemSerialNumber", systemSerialNumber);
+							
+							nuevaLinea.replace("BatchNumbers", new ArrayList<HashMap<String,Object>>());
+							((ArrayList<HashMap<String,Object>>) nuevaLinea.get("BatchNumbers")).add(batchNumber);
+
+							
+							// DocumentLinesBinAllocations
+							
+							HashMap<String,Object> documentLinesBinAllocations = new HashMap<>();
+							documentLinesBinAllocations.put("BaseLineNumber", 0);
+							documentLinesBinAllocations.put("SerialAndBatchNumbersBaseLine", 0);
+							documentLinesBinAllocations.put("Quantity", articulosHM.get(linea.get("ItemCode")));
+							documentLinesBinAllocations.put("BinAbsEntry", binAbsEntry);
+							
+							nuevaLinea.put("DocumentLinesBinAllocations", new ArrayList<HashMap<String,Object>>());
+							((ArrayList<HashMap<String,Object>>) nuevaLinea.get("DocumentLinesBinAllocations")).add(documentLinesBinAllocations);
+							
 							 
 							((ArrayList<HashMap<String,Object>>) documento.get("DocumentLines")).add(nuevaLinea); 
 							
@@ -105,8 +138,8 @@ public class BuildConteoInventario extends AbstractMessageTransformer {
 			documento.replace("TaxDate",dateToday);
 			documento.replace("CreationDate",dateToday);
 			documento.replace("UpdateDate",dateToday);
-			documento.replace("Series","17");
-			documento.replace("FinancialPeriod","11");
+			documento.replace("Series",17);
+			documento.replace("FinancialPeriod",11);
 			documento.replace("WareHouseUpdateType","dwh_OrdersFromVendors");
 			documento.replace("U_NroCompEsp","");
 			
