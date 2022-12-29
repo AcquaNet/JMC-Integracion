@@ -104,7 +104,7 @@ public class BuildConteoInventario extends AbstractMessageTransformer {
 							// DocumentLinesBinAllocations
 							
 							HashMap<String,Object> documentLinesBinAllocations = new HashMap<>();
-							documentLinesBinAllocations.put("BaseLineNumber", 0);
+							documentLinesBinAllocations.put("BaseLineNumber", nuevaLinea.get("LineNum"));
 							documentLinesBinAllocations.put("SerialAndBatchNumbersBaseLine", 0);
 							documentLinesBinAllocations.put("Quantity", articulosHM.get(linea.get("ItemCode")));
 							String binAbsEntry = getBinAbsEntry(message, linea.get("WarehouseCode").toString());
