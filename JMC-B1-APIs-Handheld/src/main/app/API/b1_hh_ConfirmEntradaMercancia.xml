@@ -36,6 +36,7 @@ flowVars.foliohasta = payload.foliohasta;]]></expression-component>
                 <transformer ref="BuildConteoInventario" doc:name="Build Conteo Inventario"/>
                 <expression-component doc:name="save data"><![CDATA[flowVars.documentSaved = acqua.util.JSONUtil.javaToJSONToString(payload);
 flowVars.destination = flowVars.sociedad;]]></expression-component>
+				<logger message="#[flowVars.documentSaved]" level="INFO" category="jmc_hh" doc:name="Logger"/>
 
                 <flow-ref name="b1_hh_entradaMercancia_SendDocument" doc:name="b1_hh_entradaMercancia_SendDocument"/>
                 <logger message="#[payload]" level="INFO" doc:name="Logger" category="jmc_hh"/>
@@ -52,6 +53,7 @@ flowVars.destination = flowVars.sociedad;]]></expression-component>
         <choice doc:name="Choice">
             <when expression="#[flowVars.loginResult.equals(&quot;OK&quot;)]">
                 <set-payload value="#[flowVars.documentSaved]" doc:name="Set saved document as payload"/>
+				<logger message="#[flowVars.documentSaved]" level="INFO" category="jmc_hh" doc:name="Logger"/>
                 <http:request config-ref="HTTP_Request_Configuration" path="InventoryCountings" method="POST" doc:name="Update inventory counting">
                     <http:success-status-code-validator values="200..299,404,400"/>
                 </http:request>

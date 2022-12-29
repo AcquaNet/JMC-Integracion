@@ -39,8 +39,6 @@ public class BuildConteoInventario extends AbstractMessageTransformer {
 		String letra = (String) message.getInvocationProperty("letra");
 		String foliodesde = (String) message.getInvocationProperty("foliodesde");
 		String foliohasta = (String) message.getInvocationProperty("foliohasta"); 
-		//Object systemSerialNumber = 1;
-		//Object binAbsEntry = 1;
   
 		HashMap<String,Object> documento = new HashMap<>(); 
 		
@@ -95,7 +93,7 @@ public class BuildConteoInventario extends AbstractMessageTransformer {
 							batchNumber.put("BaseLineNumber", nuevaLinea.get("LineNum"));
 							batchNumber.put("BatchNumber", valor.get("NumAtCard"));
 							batchNumber.put("Quantity", articulosHM.get(linea.get("ItemCode")));
-							String systemSerialNumber =  getSystemSerialNumber(message, valor.get("NumAtCard").toString());							
+							String systemSerialNumber =  getSystemSerialNumber(message, valor.get("DocNum").toString());							
 							batchNumber.put("SystemSerialNumber", systemSerialNumber);
 							nuevaLinea.replace("BatchNumbers", new ArrayList<HashMap<String,Object>>());
 							((ArrayList<HashMap<String,Object>>) nuevaLinea.get("BatchNumbers")).add(batchNumber);
@@ -107,7 +105,7 @@ public class BuildConteoInventario extends AbstractMessageTransformer {
 							documentLinesBinAllocations.put("BaseLineNumber", 0);
 							documentLinesBinAllocations.put("SerialAndBatchNumbersBaseLine", 0);
 							documentLinesBinAllocations.put("Quantity", articulosHM.get(linea.get("ItemCode")));
-							String binAbsEntry = getBinAbsEntry(message, valor.get("NumAtCard").toString());
+							String binAbsEntry = getBinAbsEntry(message, linea.get("WarehouseCode").toString());
 							documentLinesBinAllocations.put("BinAbsEntry", binAbsEntry);
 							
 							nuevaLinea.put("DocumentLinesBinAllocations", new ArrayList<HashMap<String,Object>>());
@@ -135,7 +133,7 @@ public class BuildConteoInventario extends AbstractMessageTransformer {
 			documento.remove("DocObjectCode");
 			documento.remove("DocTotal");
 			documento.replace("PointOfIssueCode",puntoventa);
-			documento.replace("Letter",puntoventa);
+			documento.replace("Letter",letra);
 			documento.replace("FolioNumberFrom",foliodesde);
 			documento.replace("FolioNumberTo",foliohasta);
 			documento.replace("DocDate",dateToday);
@@ -156,7 +154,7 @@ public class BuildConteoInventario extends AbstractMessageTransformer {
 		return documento;
 	}
 	
-	private String getSystemSerialNumber(MuleMessage message, String numAtCard){
+	private String getSystemSerialNumber(MuleMessage message, String docNum){
 		String user = message.getInvocationProperty("DBUser");
 		String password = message.getInvocationProperty("DBPass");
 		String connectionString = message.getInvocationProperty("DBConnection");		
@@ -170,12 +168,12 @@ public class BuildConteoInventario extends AbstractMessageTransformer {
 		}
 		try {
 			manager.createStatement();
-			String Query = "SELECT T0.\"SysNumber\" FROM "+sociedad+".OBTN T0 " + " WHERE T0.\"DistNumber\" = '"+numAtCard+"'";
+			String Query = "SELECT T0.\"NumAtCard\" FROM "+sociedad+".OPOR T0 " + " WHERE T0.\"DocNum\" = '"+ docNum +"'";
 			System.out.println("Query: " + Query);
 			ResultSet querySet = manager.executeQuery(Query);
 			HashMap<String, Object> queryResult = parseQuerySystemSerialNumber(querySet);
 			LOG.info("Parsing done!");
-			return (String) queryResult.get("AbsEntry");
+			return (String) queryResult.get("numAtCard");
 		} catch (Exception e) {
 			e.printStackTrace();
 			if (e.getClass().getName().contains("SQLException")) {
@@ -189,7 +187,7 @@ public class BuildConteoInventario extends AbstractMessageTransformer {
 	public HashMap<String, Object> parseQuerySystemSerialNumber(ResultSet set) throws SQLException {
 		HashMap<String, Object> answer = new HashMap<>();
 		while (set.next() != false) {
-			answer.put("sysNumber", (set.getString("SysNumber")));
+			answer.put("numAtCard", (set.getString("NumAtCard")));
 		}
 		return answer;
 	}	
@@ -213,7 +211,7 @@ public class BuildConteoInventario extends AbstractMessageTransformer {
 			ResultSet querySet = manager.executeQuery(Query);
 			HashMap<String, Object> queryResult = parseQueryBinsAbsEntry(querySet);
 			LOG.info("Parsing done!");
-			return (String) queryResult.get("AbsEntry");
+			return (String) queryResult.get("absEntry");
 		} catch (Exception e) {
 			e.printStackTrace();
 			if (e.getClass().getName().contains("SQLException")) {
