@@ -88,7 +88,7 @@ public class BuildConteoInventario extends AbstractMessageTransformer {
 							if(nuevaLinea.containsKey("RemainingOpenQuantity"))
 							{
 								Long qtyRemaningOpenQty = (Long) nuevaLinea.get("RemainingOpenQuantity");
-								Long qty = (Long) articulosHM.get(linea.get("ItemCode");
+								Long qty = (Long) articulosHM.get(linea.get("ItemCode"));
 								if(qty>qtyRemaningOpenQty)
 								{
 									qtyToSplit = qty - qtyRemaningOpenQty;
