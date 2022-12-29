@@ -143,8 +143,7 @@ public class BuildConteoInventario extends AbstractMessageTransformer {
 			documento.replace("UpdateDate",dateToday);
 			documento.replace("Series",17);
 			documento.replace("FinancialPeriod",11);
-			documento.replace("WareHouseUpdateType","dwh_OrdersFromVendors");
-			documento.replace("U_NroCompEsp","");
+			documento.replace("WareHouseUpdateType","dwh_OrdersFromVendors"); 
 			
 			((HashMap<String, Object>) documento.get("TaxExtension")).replace("NFRef", "Basado en Pedidos " + codigo);
 			
