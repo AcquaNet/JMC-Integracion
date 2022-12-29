@@ -85,6 +85,7 @@ public class BuildConteoInventario extends AbstractMessageTransformer {
 							nuevaLinea.replace("DocEntry", valor.get("DocEntry"));
 							nuevaLinea.replace("BaseOpenQuantity", articulosHM.get(linea.get("ItemCode")));
 							nuevaLinea.replace("ActualDeliveryDate", dateToday);
+							nuevaLinea.replace("BaseType", 22);
 							
 							// Batch Number
 							
