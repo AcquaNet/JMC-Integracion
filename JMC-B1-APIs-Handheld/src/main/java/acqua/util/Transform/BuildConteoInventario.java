@@ -80,6 +80,23 @@ public class BuildConteoInventario extends AbstractMessageTransformer {
 								
 							}
 							
+							// Calcular Excedente de lo solicitado
+							//
+							
+							Long qtyToSplit = 0L;
+							
+							if(nuevaLinea.containsKey("RemainingOpenQuantity"))
+							{
+								Long qtyRemaningOpenQty = (Long) nuevaLinea.get("RemainingOpenQuantity");
+								Long qty = (Long) articulosHM.get(linea.get("ItemCode");
+								if(qty>qtyRemaningOpenQty)
+								{
+									qtyToSplit = qty - qtyRemaningOpenQty;
+									System.out.println("Qty pendiente a procesar " + qtyToSplit);
+								}
+							}
+							
+							
 							nuevaLinea.replace("BaseLine", nuevaLinea.get("LineNum"));
 							nuevaLinea.replace("BaseOpenQuantity", articulosHM.get(linea.get("ItemCode")));
 							nuevaLinea.replace("DocEntry", valor.get("DocEntry"));
