@@ -88,6 +88,17 @@ public class BuildConteoInventario extends AbstractMessageTransformer {
 							nuevaLinea.replace("BaseType", 22);
 							nuevaLinea.replace("BaseEntry", valor.get("DocEntry"));
 							
+							// Cantidades Adicionales
+							nuevaLinea.replace("Quantity", articulosHM.get(linea.get("ItemCode"))); 
+							nuevaLinea.replace("PackageQuantity", articulosHM.get(linea.get("ItemCode"))); 
+							nuevaLinea.replace("RemainingOpenQuantity", articulosHM.get(linea.get("ItemCode"))); 
+							nuevaLinea.replace("InventoryQuantity", articulosHM.get(linea.get("ItemCode"))); 
+							if(nuevaLinea.containsKey("RemainingOpenInventoryQuantity"))
+							{
+								nuevaLinea.replace("RemainingOpenInventoryQuantity", articulosHM.get(linea.get("ItemCode"))); 
+							}
+							
+							
 							// Batch Number
 							
 							HashMap<String,Object> batchNumber = new HashMap<>();
