@@ -114,10 +114,20 @@ public class BuildConteoInventario extends AbstractMessageTransformer {
 							((ArrayList<HashMap<String,Object>>) nuevaLinea.get("DocumentLinesBinAllocations")).add(documentLinesBinAllocations);
 							
 							 
-							((ArrayList<HashMap<String,Object>>) documento.get("DocumentLines")).add(nuevaLinea); 
+							((ArrayList<HashMap<String,Object>>) documento.get("DocumentLines")).add(nuevaLinea);
+							
+							articulosHM.remove(linea.get("ItemCode")); // Remover el articulo procesado
 							
 						} 
 						
+					}
+					
+					// Procesar Lineas notificadas que no existen en la orden.
+					
+					for(Entry<String, Object> lineasPendientes: articulosHM.entrySet())
+					{
+						System.out.println("Codigo pendiente a procesar " + lineasPendientes.getKey());
+						System.out.println("                   Cantidad " + lineasPendientes.getValue());
 					}
 					
 					
