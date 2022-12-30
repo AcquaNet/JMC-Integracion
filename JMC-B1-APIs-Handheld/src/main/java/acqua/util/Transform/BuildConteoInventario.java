@@ -219,6 +219,12 @@ public class BuildConteoInventario extends AbstractMessageTransformer {
 			documento.remove("FinancialPeriod");
 			documento.replace("WareHouseUpdateType","dwh_Stock"); 
 			
+			if(documento.containsKey("ATDocumentType") && documento.get("ATDocumentType") == null)
+			{
+				documento.replace("ATDocumentType",new HashMap<>());
+			}
+			
+			
 			((HashMap<String, Object>) documento.get("TaxExtension")).replace("NFRef", "Basado en Pedidos " + codigo);
 			
 			
