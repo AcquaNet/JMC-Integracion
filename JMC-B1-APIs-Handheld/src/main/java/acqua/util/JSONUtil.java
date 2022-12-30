@@ -1,16 +1,17 @@
 package acqua.util;
 
-import java.util.ArrayList;
+import java.util.ArrayList; 
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-
+ 
 import org.apache.log4j.Logger;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+ 
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 
@@ -26,6 +27,13 @@ public class JSONUtil {
 		String json = gson.toJson(map); 
 		return json;
 	}
+	
+	public static String javaToJSONToStringWithNull(HashMap<String,Object> map) {
+		LOG.info("JAVA.StringToJSON.22: javaToJSONToStringWithNull Called"); 
+		Gson gson =  new GsonBuilder().serializeNulls().setPrettyPrinting().create(); 
+		String json = gson.toJson(map); 
+		return json;
+	} 
 	
 	// Input a ArrayList and return a JSON String
 	public static String javaListToJSONToString(ArrayList<Object> list) {
@@ -69,10 +77,14 @@ public class JSONUtil {
 	        if(value instanceof JSONArray) {
 	            value = toList((JSONArray) value);
 	        }
+	        
+	        else if(value.getClass().getName().equals("org.json.JSONObject$Null")) {
+	            value = null;
+	        }
 
 	        else if(value instanceof JSONObject) {
 	            value = toMap((JSONObject) value);
-	        }
+	        } 
 	        map.put(key, value);
 	    }
 	    return map;

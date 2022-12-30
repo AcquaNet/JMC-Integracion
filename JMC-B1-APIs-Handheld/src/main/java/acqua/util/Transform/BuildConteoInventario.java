@@ -83,12 +83,12 @@ public class BuildConteoInventario extends AbstractMessageTransformer {
 							// Calcular Excedente de lo solicitado
 							//
 							
-							Long qtyToSplit = 0L;
+							Double qtyToSplit = 0.0;
 							
 							if(nuevaLinea.containsKey("RemainingOpenQuantity"))
 							{
-								Long qtyRemaningOpenQty = (Long) nuevaLinea.get("RemainingOpenQuantity");
-								Long qty = (Long) articulosHM.get(linea.get("ItemCode"));
+								Double qtyRemaningOpenQty = (Double) nuevaLinea.get("RemainingOpenQuantity");
+								Double qty = (Double) articulosHM.get(linea.get("ItemCode"));
 								if(qty>qtyRemaningOpenQty)
 								{
 									qtyToSplit = qty - qtyRemaningOpenQty;
@@ -99,8 +99,7 @@ public class BuildConteoInventario extends AbstractMessageTransformer {
 							
 							nuevaLinea.replace("BaseLine", nuevaLinea.get("LineNum"));
 							nuevaLinea.replace("BaseOpenQuantity", articulosHM.get(linea.get("ItemCode")));
-							nuevaLinea.replace("DocEntry", valor.get("DocEntry"));
-							nuevaLinea.replace("BaseOpenQuantity", articulosHM.get(linea.get("ItemCode")));
+							nuevaLinea.replace("DocEntry", valor.get("DocEntry")); 
 							nuevaLinea.replace("ActualDeliveryDate", dateToday);
 							nuevaLinea.replace("BaseType", 22);
 							nuevaLinea.replace("BaseEntry", valor.get("DocEntry"));
@@ -144,6 +143,30 @@ public class BuildConteoInventario extends AbstractMessageTransformer {
 							 
 							((ArrayList<HashMap<String,Object>>) documento.get("DocumentLines")).add(nuevaLinea);
 							
+							// Genera la nueva linea spliteada
+							
+							HashMap<String,Object> nuevaLineaSplit = new HashMap<>();
+							nuevaLineaSplit = (HashMap<String, Object>) nuevaLinea.clone();
+							nuevaLineaSplit.replace("BaseLine", 0);
+							nuevaLineaSplit.replace("BaseOpenQuantity", qtyToSplit);    
+							nuevaLineaSplit.replace("Quantity", qtyToSplit); 
+							nuevaLineaSplit.replace("PackageQuantity", qtyToSplit); 
+							nuevaLineaSplit.replace("RemainingOpenQuantity", qtyToSplit); 
+							nuevaLineaSplit.replace("InventoryQuantity", qtyToSplit); 
+							if(nuevaLineaSplit.containsKey("RemainingOpenInventoryQuantity"))
+							{
+								nuevaLineaSplit.replace("RemainingOpenInventoryQuantity", qtyToSplit); 
+							} 
+							
+							HashMap<String,Object> batchNumberSplit = new HashMap<>();
+							((ArrayList<HashMap<String,Object>>) nuevaLineaSplit.get("BatchNumbers")).add(batchNumberSplit);
+							
+							HashMap<String,Object> documentLinesBinAllocationsSplit = new HashMap<>();
+							((ArrayList<HashMap<String,Object>>) nuevaLineaSplit.get("DocumentLinesBinAllocations")).add(documentLinesBinAllocationsSplit);
+							 
+							((ArrayList<HashMap<String,Object>>) documento.get("DocumentLines")).add(nuevaLineaSplit);
+							 
+							
 							articulosHM.remove(linea.get("ItemCode")); // Remover el articulo procesado
 							
 						} 
@@ -156,6 +179,14 @@ public class BuildConteoInventario extends AbstractMessageTransformer {
 					{
 						System.out.println("Codigo pendiente a procesar " + lineasPendientes.getKey());
 						System.out.println("                   Cantidad " + lineasPendientes.getValue());
+						
+						HashMap<String,Object> nuevaLinea = new HashMap<>();
+						nuevaLinea.put("LineNum", 0); 
+						nuevaLinea.put("Quantity", lineasPendientes.getValue()); 
+						nuevaLinea.put("ItemCode", lineasPendientes.getKey()); 
+						
+						((ArrayList<HashMap<String,Object>>) documento.get("DocumentLines")).add(nuevaLinea);
+						
 					}
 					
 					

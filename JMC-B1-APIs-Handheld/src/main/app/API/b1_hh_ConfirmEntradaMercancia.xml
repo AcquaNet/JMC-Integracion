@@ -34,7 +34,7 @@ flowVars.foliohasta = payload.foliohasta;]]></expression-component>
                 </http:request>
                 <expression-component doc:name="save PUR"><![CDATA[flowVars.purchaseOrder = acqua.util.JSONUtil.stringToMap(message.payloadAs(java.lang.String));]]></expression-component>
                 <transformer ref="BuildConteoInventario" doc:name="Build Conteo Inventario"/>
-                <expression-component doc:name="save data"><![CDATA[flowVars.documentSaved = acqua.util.JSONUtil.javaToJSONToString(payload);
+                <expression-component doc:name="save data"><![CDATA[flowVars.documentSaved = acqua.util.JSONUtil.javaToJSONToStringWithNull(payload);
 flowVars.destination = flowVars.sociedad;]]></expression-component>
 				<logger message="#[flowVars.documentSaved]" level="INFO" category="jmc_hh" doc:name="Logger"/>
 
