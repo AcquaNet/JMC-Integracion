@@ -33,6 +33,7 @@ public class BuildConteoInventario extends AbstractMessageTransformer {
 		}
 		 
 		HashMap<String,Object> purchaseOrder = (HashMap<String, Object>) message.getInvocationProperty("purchaseOrder");
+		 
 		String sociedad = (String) message.getInvocationProperty("sociedad");
 		String codigo = (String) message.getInvocationProperty("codigo");
 		String puntoventa = (String) message.getInvocationProperty("puntoventa");
@@ -55,6 +56,26 @@ public class BuildConteoInventario extends AbstractMessageTransformer {
 		{
 			
 			HashMap<String, Object> valor = values.get(0);
+			
+			Integer lineaMax = 0;
+			
+			// Get Max Line Number
+			
+			if(valor.containsKey("DocumentLines"))
+			{
+				 
+				ArrayList<HashMap<String,Object>> lineas = (ArrayList<HashMap<String, Object>>) valor.get("DocumentLines");
+				
+				for(HashMap<String,Object> linea:lineas)
+				{
+					if(((Integer) linea.get("LineNum"))>lineaMax)
+					{
+						lineaMax = (Integer) linea.get("LineNum");
+					}
+				}
+				
+			}
+			
 			 
 			for (Entry<String, Object> val : valor.entrySet()) {
 				
@@ -148,25 +169,43 @@ public class BuildConteoInventario extends AbstractMessageTransformer {
 							if(qtyToSplit>0)
 							{
 								
+								lineaMax = lineaMax +1;
 								HashMap<String,Object> nuevaLineaSplit = new HashMap<>();
-								nuevaLineaSplit = (HashMap<String, Object>) nuevaLinea.clone();
-								nuevaLineaSplit.replace("BaseLine", 0);
-								nuevaLineaSplit.replace("BaseOpenQuantity", qtyToSplit);    
-								nuevaLineaSplit.replace("Quantity", qtyToSplit); 
-								nuevaLineaSplit.replace("PackageQuantity", qtyToSplit); 
-								nuevaLineaSplit.replace("RemainingOpenQuantity", qtyToSplit); 
-								nuevaLineaSplit.replace("InventoryQuantity", qtyToSplit); 
-								if(nuevaLineaSplit.containsKey("RemainingOpenInventoryQuantity"))
-								{
-									nuevaLineaSplit.replace("RemainingOpenInventoryQuantity", qtyToSplit); 
-								} 
+								nuevaLineaSplit.put("ItemCode", nuevaLinea.get("ItemCode"));
+								nuevaLineaSplit.put("Price", nuevaLinea.get("Price"));
+								nuevaLineaSplit.put("CostingCode", nuevaLinea.get("CostingCode"));
+								nuevaLineaSplit.put("ProjectCode", nuevaLinea.get("ProjectCode"));
+								nuevaLineaSplit.put("Quantity", qtyToSplit);
+								nuevaLineaSplit.put("LineNum", lineaMax); 
 								
-								HashMap<String,Object> batchNumberSplit = new HashMap<>();
-								((ArrayList<HashMap<String,Object>>) nuevaLineaSplit.get("BatchNumbers")).add(batchNumberSplit);
 								
-								HashMap<String,Object> documentLinesBinAllocationsSplit = new HashMap<>();
-								((ArrayList<HashMap<String,Object>>) nuevaLineaSplit.get("DocumentLinesBinAllocations")).add(documentLinesBinAllocationsSplit);
+								// DocumentLinesBinAllocations
+								
+								HashMap<String, Object> documentLinesBinAllocationsSplit = (HashMap<String, Object>) new HashMap<String, Object>();
+								documentLinesBinAllocationsSplit.put("BaseLineNumber", lineaMax);
+								documentLinesBinAllocationsSplit.put("SerialAndBatchNumbersBaseLine", 0);
+								documentLinesBinAllocationsSplit.put("Quantity", qtyToSplit);
+								documentLinesBinAllocationsSplit.put("BinAbsEntry", "1");
+								
+								ArrayList<HashMap<String, Object>> elementdocumentLinesBinAllocationsSplit = new ArrayList<HashMap<String, Object>>();
+								elementdocumentLinesBinAllocationsSplit.add(documentLinesBinAllocationsSplit);
+								
+								nuevaLineaSplit.put("DocumentLinesBinAllocations", elementdocumentLinesBinAllocationsSplit);
 								 
+								// BatchNumbers
+								
+								HashMap<String, Object> batchNumbersSplit = (HashMap<String, Object>) new HashMap<String, Object>();
+								batchNumbersSplit.put("BaseLineNumber", lineaMax);
+								batchNumbersSplit.put("SystemSerialNumber", 1);
+								batchNumbersSplit.put("Quantity", qtyToSplit);
+								batchNumbersSplit.put("BatchNumber", nuevaLinea.get("ProjectCode"));
+								
+								ArrayList<HashMap<String, Object>> elementBatchNumbersSplit = new ArrayList<HashMap<String, Object>>();
+								elementBatchNumbersSplit.add(batchNumbersSplit);
+								
+								nuevaLineaSplit.put("BatchNumbers", elementBatchNumbersSplit);
+								
+								  
 								((ArrayList<HashMap<String,Object>>) documento.get("DocumentLines")).add(nuevaLineaSplit);
 							
 							}
@@ -183,11 +222,42 @@ public class BuildConteoInventario extends AbstractMessageTransformer {
 					for(Entry<String, Object> lineasPendientes: articulosHM.entrySet())
 					{
 						
+						lineaMax = lineaMax +1;
 						HashMap<String,Object> nuevaLinea = new HashMap<>();
-						nuevaLinea.put("LineNum", 0); 
-						nuevaLinea.put("Quantity", lineasPendientes.getValue()); 
-						nuevaLinea.put("ItemCode", lineasPendientes.getKey()); 
+				 
+						nuevaLinea.put("ItemCode", lineasPendientes.getKey());
+						nuevaLinea.put("Price", new Double("9999"));
+						nuevaLinea.put("CostingCode", "MA");
+						nuevaLinea.put("ProjectCode", documento.get("Project"));
+						nuevaLinea.put("Quantity", lineasPendientes.getValue());
+						nuevaLinea.put("LineNum", lineaMax); 
 						
+						// DocumentLinesBinAllocations
+						
+						HashMap<String, Object> documentLinesBinAllocationsSplit = (HashMap<String, Object>) new HashMap<String, Object>();
+						documentLinesBinAllocationsSplit.put("BaseLineNumber", lineaMax);
+						documentLinesBinAllocationsSplit.put("SerialAndBatchNumbersBaseLine", 0);
+						documentLinesBinAllocationsSplit.put("Quantity", lineasPendientes.getValue());
+						documentLinesBinAllocationsSplit.put("BinAbsEntry", "1");
+						
+						ArrayList<HashMap<String, Object>> elementdocumentLinesBinAllocationsSplit = new ArrayList<HashMap<String, Object>>();
+						elementdocumentLinesBinAllocationsSplit.add(documentLinesBinAllocationsSplit);
+						
+						nuevaLinea.put("DocumentLinesBinAllocations", elementdocumentLinesBinAllocationsSplit);
+						 
+						// BatchNumbers
+						
+						HashMap<String, Object> batchNumbersSplit = (HashMap<String, Object>) new HashMap<String, Object>();
+						batchNumbersSplit.put("BaseLineNumber", lineaMax);
+						batchNumbersSplit.put("SystemSerialNumber", 1);
+						batchNumbersSplit.put("Quantity", lineasPendientes.getValue());
+						batchNumbersSplit.put("BatchNumber", documento.get("Project"));
+						
+						ArrayList<HashMap<String, Object>> elementBatchNumbersSplit = new ArrayList<HashMap<String, Object>>();
+						elementBatchNumbersSplit.add(batchNumbersSplit);
+						
+						nuevaLinea.put("BatchNumbers", elementBatchNumbersSplit); 
+						 
 						((ArrayList<HashMap<String,Object>>) documento.get("DocumentLines")).add(nuevaLinea);
 						
 					}
