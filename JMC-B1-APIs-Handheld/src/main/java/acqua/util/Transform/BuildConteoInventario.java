@@ -8,8 +8,9 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap; 
-import java.util.Map.Entry; 
- 
+import java.util.Map.Entry;
+import java.util.Set;
+
 import org.apache.log4j.Logger;
 import org.mule.api.MuleMessage;
 import org.mule.api.transformer.TransformerException;
@@ -105,10 +106,17 @@ public class BuildConteoInventario extends AbstractMessageTransformer {
 								String keyLineaValue = lin.getKey();
 								Object lineaValue = lin.getValue();
 								
-								if(lineaValue != null && excludeNulls)
+								if(excludeNulls)
+								{
+									if(lineaValue != null)
+									{
+										nuevaLinea.put(keyLineaValue, lineaValue);
+									}
+									
+								} else
 								{
 									nuevaLinea.put(keyLineaValue, lineaValue);
-								}
+								} 
 								
 							}
 							
@@ -274,12 +282,86 @@ public class BuildConteoInventario extends AbstractMessageTransformer {
 					}
 					
 					
-				} else
-				{
-					if(vale != null && excludeNulls)
+				} else if (keyValue.equals("AddressExtension")){ 
+					
+					HashMap<String,Object> addressExtension = (HashMap<String, Object>) valor.get("AddressExtension");
+					HashMap<String,Object> addressExtensionNew = new HashMap<String, Object>();
+					
+					
+					Set<Entry<String, Object>> valuesAE = addressExtension.entrySet();
+					
+					for (Entry<String, Object> valAE : valuesAE) {
+						
+						String keyValueAE = valAE.getKey();
+						Object valueAE = valAE.getValue();
+						
+						if(excludeNulls)
+						{
+							if(valueAE != null)
+							{
+								addressExtensionNew.put(keyValueAE,valueAE);
+							}
+							
+						} else
+						{
+							addressExtensionNew.put(keyValueAE,valueAE);
+						}
+						 
+						
+					}
+					
+				    documento.replace("AddressExtension",addressExtensionNew);
+					
+					
+				} else if (keyValue.equals("TaxExtension")){ 
+					
+					HashMap<String,Object> taxExtension = (HashMap<String, Object>) valor.get("TaxExtension");
+					HashMap<String,Object> addressExtensionNew = new HashMap<String, Object>();
+					
+					Set<Entry<String, Object>> valuesTE = taxExtension.entrySet();
+					
+					for (Entry<String, Object> valTE : valuesTE) {
+						
+						String keyValueTE = valTE.getKey();
+						Object valueTE = valTE.getValue();
+						
+						if(excludeNulls)
+						{
+							if(valueTE != null)
+							{
+								addressExtensionNew.put(keyValueTE,valueTE);
+							}
+							
+						} else
+						{
+							addressExtensionNew.put(keyValueTE,valueTE);
+						}
+						
+					}
+					
+					if(addressExtensionNew.containsKey("NFRef"))
 					{
+						addressExtensionNew.replace("NFRef", "Basado en Pedidos " + codigo);
+					} else
+					{
+						addressExtensionNew.put("NFRef", "Basado en Pedidos " + codigo);
+					}
+					
+					documento.replace("TaxExtension",addressExtensionNew);
+					
+				}
+				else
+				{
+					if (excludeNulls) {
+
+						if (vale != null) {
+							documento.put(keyValue, vale);
+						}
+
+					} else {
 						documento.put(keyValue, vale);
 					}
+					 
 				}
 				  
 			}
@@ -302,10 +384,7 @@ public class BuildConteoInventario extends AbstractMessageTransformer {
 			documento.replace("Series",17);
 			documento.remove("FinancialPeriod");
 			documento.replace("WareHouseUpdateType","dwh_Stock"); 
-			
-			
-			((HashMap<String, Object>) documento.get("TaxExtension")).replace("NFRef", "Basado en Pedidos " + codigo);
-			
+			  
 			
 		} 
 		
