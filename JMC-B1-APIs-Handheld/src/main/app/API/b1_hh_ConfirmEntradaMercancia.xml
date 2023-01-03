@@ -1,12 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
-<mule xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+<mule xmlns:json="http://www.mulesoft.org/schema/mule/json" xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
 	xmlns:spring="http://www.springframework.org/schema/beans" 
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
 http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
 http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
-http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd">
+http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd
+http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/json/current/mule-json.xsd">
     <flow name="b1_hh_entradaMercanciaInventarioFlow">
         <http:listener config-ref="HTTP_Listener_Configuration" path="ConfirmEntradaMercancia" allowedMethods="POST" doc:name="HTTP"/>
         <logger message="ConfirmEntradaMercancia recibido: #[message.payloadAs(java.lang.String)]" level="INFO" doc:name="Logger" category="jmc_hh"/>
@@ -54,9 +55,15 @@ flowVars.destination = flowVars.sociedad;]]></expression-component>
             <when expression="#[flowVars.loginResult.equals(&quot;OK&quot;)]">
                 <set-payload value="#[flowVars.documentSaved]" doc:name="Set saved document as payload"/>
 				<logger message="#[flowVars.documentSaved]" level="INFO" category="jmc_hh" doc:name="Logger"/>
-                <http:request config-ref="HTTP_Request_Configuration" path="InventoryCountings" method="POST" doc:name="Update inventory counting">
+				<json:object-to-json-transformer encoding="UTF-8" mimeType="application/json" doc:name="Object to JSON"/>
+
+
+   				<http:request config-ref="HTTP_Request_Configuration" path="InventoryCountings" method="POST" doc:name="Update inventory counting" requestStreamingMode="NEVER" sendBodyMode="ALWAYS">
+
                     <http:success-status-code-validator values="200..299,404,400"/>
                 </http:request>
+                        
+            
                 <choice doc:name="Choice">
                     <when expression="#[message.inboundProperties['http.status'] &lt; 300]">
                         <expression-component doc:name="Answer"><![CDATA[payload = acqua.util.JSONUtil.stringToMap(message.payloadAs(java.lang.String));]]></expression-component>

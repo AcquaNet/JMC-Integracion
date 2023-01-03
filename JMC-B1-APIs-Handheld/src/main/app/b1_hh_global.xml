@@ -57,10 +57,11 @@ http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/m
 	
 	<http:request-config name="HTTP_Request_Configuration"
 		host="${sapB1.host}" port="${sapB1.port}" basePath="/b1s/v1/"
-		enableCookies="true" doc:name="HTTP Request Configuration" protocol="HTTPS" responseTimeout="120000">
-        <tls:context enabledProtocols="TLSv1,TLSv1.1,TLSv1.2">
-            <tls:trust-store path="trust.jks" password="12345" type="jks" insecure="true"/>
-        </tls:context>
+		enableCookies="true" doc:name="HTTP Request Configuration" protocol="HTTPS" responseTimeout="12000000" connectionIdleTimeout="3000000">
+		<tls:context enabledProtocols="TLSv1,TLSv1.1,TLSv1.2">
+			<tls:trust-store path="trust.jks" password="12345" type="jks" insecure="true"/>
+		</tls:context>
+
 	</http:request-config>
     <custom-transformer class="acqua.util.odbc.FetchUbicacionesLocal" name="fetchUbicacionesLocal" doc:name="Java"/>
     <custom-transformer class="acqua.util.odbc.FetchUserRoles" name="fetchUserRoles" doc:name="Java"/>
