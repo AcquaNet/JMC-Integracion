@@ -226,7 +226,8 @@ public class BuildConteoInventario extends AbstractMessageTransformer {
 						HashMap<String,Object> nuevaLinea = new HashMap<>();
 				 
 						nuevaLinea.put("ItemCode", lineasPendientes.getKey());
-						nuevaLinea.put("Price", new Double("9999"));
+						Double price = new Double(getBinAbsEntry(message, lineasPendientes.getKey().toString()));						
+						nuevaLinea.put("Price", price);
 						nuevaLinea.put("CostingCode", "MA");
 						nuevaLinea.put("ProjectCode", documento.get("Project"));
 						nuevaLinea.put("Quantity", lineasPendientes.getValue());
@@ -373,4 +374,42 @@ public class BuildConteoInventario extends AbstractMessageTransformer {
 		}
 		return answer;
 	}	
+	
+	private String getPrice(MuleMessage message, String itemCode){
+		String user = message.getInvocationProperty("DBUser");
+		String password = message.getInvocationProperty("DBPass");
+		String connectionString = message.getInvocationProperty("DBConnection");		
+		String sociedad = message.getInvocationProperty("sociedad");
+
+		ODBCManager manager = new ODBCManager(user, password, connectionString);
+		Object connect = manager.connect();
+		if (!connect.getClass().equals(Connection.class) && !connect.getClass().equals(com.sap.db.jdbc.HanaConnectionFinalize.class)) {
+			System.out.println("Fallo conexion a BD");
+			return null;
+		}
+		try {
+			manager.createStatement();
+			String Query = "SELECT T2.\"LastPurPrc\" FROM "+sociedad+".OPCH T0 INNER JOIN " +sociedad+".PCH1 T1 ON T0.\"DocEntry\" = T1.\"DocEntry\" INNER JOIN OITM T2 ON T1.\"ItemCode\" = T2.\"ItemCode\" WHERE T0.\"ItemCode\" = '" + itemCode + "'";
+			System.out.println("Query: " + Query);
+			ResultSet querySet = manager.executeQuery(Query);
+			HashMap<String, Object> queryResult = parseQueryPrice(querySet);
+			LOG.info("Parsing done!");
+			return (String) queryResult.get("lastPurPrc");
+		} catch (Exception e) {
+			e.printStackTrace();
+			if (e.getClass().getName().contains("SQLException")) {
+				System.out.println("Fallo sql");
+				return null;
+			}
+		}				
+		return null;
+	}	
+	
+	public HashMap<String, Object> parseQueryPrice(ResultSet set) throws SQLException {
+		HashMap<String, Object> answer = new HashMap<>();
+		while (set.next() != false) {
+			answer.put("lastPurPrc", (set.getString("LastPurPrc")));
+		}
+		return answer;
+	}		
 }
