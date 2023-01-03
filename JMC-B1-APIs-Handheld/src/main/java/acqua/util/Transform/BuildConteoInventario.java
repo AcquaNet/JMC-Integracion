@@ -8,8 +8,12 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Objects;
 
+import org.apache.commons.collections4.CollectionUtils;
+import org.apache.commons.collections4.PredicateUtils;
 import org.apache.log4j.Logger;
 import org.mule.api.MuleMessage;
 import org.mule.api.transformer.TransformerException;
@@ -168,6 +172,9 @@ public class BuildConteoInventario extends AbstractMessageTransformer {
 							((ArrayList<HashMap<String,Object>>) nuevaLinea.get("DocumentLinesBinAllocations")).add(documentLinesBinAllocations);
 							
 							 
+							CollectionUtils.filter(nuevaLinea.values(),
+					                PredicateUtils.notNullPredicate());
+							
 							((ArrayList<HashMap<String,Object>>) documento.get("DocumentLines")).add(nuevaLinea);
 							
 							// Genera la nueva linea spliteada
@@ -211,6 +218,8 @@ public class BuildConteoInventario extends AbstractMessageTransformer {
 								
 								nuevaLineaSplit.put("BatchNumbers", elementBatchNumbersSplit);
 								
+								CollectionUtils.filter(nuevaLineaSplit.values(),
+						                PredicateUtils.notNullPredicate());
 								  
 								((ArrayList<HashMap<String,Object>>) documento.get("DocumentLines")).add(nuevaLineaSplit);
 							
@@ -264,6 +273,9 @@ public class BuildConteoInventario extends AbstractMessageTransformer {
 						elementBatchNumbersSplit.add(batchNumbersSplit);
 						
 						nuevaLinea.put("BatchNumbers", elementBatchNumbersSplit); 
+						
+						CollectionUtils.filter(nuevaLinea.values(),
+				                PredicateUtils.notNullPredicate());
 						 
 						((ArrayList<HashMap<String,Object>>) documento.get("DocumentLines")).add(nuevaLinea);
 						
@@ -301,38 +313,16 @@ public class BuildConteoInventario extends AbstractMessageTransformer {
 			
 			
 		}
-		  
+		
+		CollectionUtils.filter(documento.values(),
+                PredicateUtils.notNullPredicate());
+		
 		return documento;
 	}
 	
 	private String getSystemSerialNumber(MuleMessage message, String docNum){
-		String user = message.getInvocationProperty("DBUser");
-		String password = message.getInvocationProperty("DBPass");
-		String connectionString = message.getInvocationProperty("DBConnection");		
-		String sociedad = message.getInvocationProperty("sociedad");
-
-		ODBCManager manager = new ODBCManager(user, password, connectionString);
-		Object connect = manager.connect();
-		if (!connect.getClass().equals(Connection.class) && !connect.getClass().equals(com.sap.db.jdbc.HanaConnectionFinalize.class)) {
-			System.out.println("Fallo conexion a BD");
-			return null;
-		}
-		try {
-			manager.createStatement();
-			String Query = "SELECT T0.\"NumAtCard\" FROM "+sociedad+".OPOR T0 " + " WHERE T0.\"DocNum\" = '"+ docNum +"'";
-			System.out.println("Query: " + Query);
-			ResultSet querySet = manager.executeQuery(Query);
-			HashMap<String, Object> queryResult = parseQuerySystemSerialNumber(querySet);
-			LOG.info("Parsing done!");
-			return (String) queryResult.get("numAtCard");
-		} catch (Exception e) {
-			e.printStackTrace();
-			if (e.getClass().getName().contains("SQLException")) {
-				System.out.println("Fallo sql");
-				return null;
-			}
-		}				
-		return null;
+		 
+		return "CCCC";
 	}
 
 	public HashMap<String, Object> parseQuerySystemSerialNumber(ResultSet set) throws SQLException {
@@ -344,33 +334,8 @@ public class BuildConteoInventario extends AbstractMessageTransformer {
 	}	
 	
 	private String getBinAbsEntry(MuleMessage message, String whsCode){
-		String user = message.getInvocationProperty("DBUser");
-		String password = message.getInvocationProperty("DBPass");
-		String connectionString = message.getInvocationProperty("DBConnection");		
-		String sociedad = message.getInvocationProperty("sociedad");
-
-		ODBCManager manager = new ODBCManager(user, password, connectionString);
-		Object connect = manager.connect();
-		if (!connect.getClass().equals(Connection.class) && !connect.getClass().equals(com.sap.db.jdbc.HanaConnectionFinalize.class)) {
-			System.out.println("Fallo conexion a BD");
-			return null;
-		}
-		try {
-			manager.createStatement();
-			String Query = "SELECT T0.\"AbsEntry\" FROM "+sociedad+".OBIN T0 " + " WHERE T0.\"WhsCode\" = '" + whsCode + "' AND T0.\"SysBin\" = 'Y' ";
-			System.out.println("Query: " + Query);
-			ResultSet querySet = manager.executeQuery(Query);
-			HashMap<String, Object> queryResult = parseQueryBinsAbsEntry(querySet);
-			LOG.info("Parsing done!");
-			return (String) queryResult.get("absEntry");
-		} catch (Exception e) {
-			e.printStackTrace();
-			if (e.getClass().getName().contains("SQLException")) {
-				System.out.println("Fallo sql");
-				return null;
-			}
-		}				
-		return null;
+		 				
+		return  "1.0";
 	}	
 	
 	public HashMap<String, Object> parseQueryBinsAbsEntry(ResultSet set) throws SQLException {
@@ -382,33 +347,8 @@ public class BuildConteoInventario extends AbstractMessageTransformer {
 	}	
 	
 	private String getPrice(MuleMessage message, String itemCode){
-		String user = message.getInvocationProperty("DBUser");
-		String password = message.getInvocationProperty("DBPass");
-		String connectionString = message.getInvocationProperty("DBConnection");		
-		String sociedad = message.getInvocationProperty("sociedad");
-
-		ODBCManager manager = new ODBCManager(user, password, connectionString);
-		Object connect = manager.connect();
-		if (!connect.getClass().equals(Connection.class) && !connect.getClass().equals(com.sap.db.jdbc.HanaConnectionFinalize.class)) {
-			System.out.println("Fallo conexion a BD");
-			return null;
-		}
-		try {
-			manager.createStatement();
-			String Query = "SELECT T2.\"LastPurPrc\" FROM "+sociedad+".OPCH T0 INNER JOIN " +sociedad+".PCH1 T1 ON T0.\"DocEntry\" = T1.\"DocEntry\" INNER JOIN OITM T2 ON T1.\"ItemCode\" = T2.\"ItemCode\" WHERE T0.\"ItemCode\" = '" + itemCode + "'";
-			System.out.println("Query: " + Query);
-			ResultSet querySet = manager.executeQuery(Query);
-			HashMap<String, Object> queryResult = parseQueryPrice(querySet);
-			LOG.info("Parsing done!");
-			return (String) queryResult.get("lastPurPrc");
-		} catch (Exception e) {
-			e.printStackTrace();
-			if (e.getClass().getName().contains("SQLException")) {
-				System.out.println("Fallo sql");
-				return null;
-			}
-		}				
-		return null;
+		 	
+		return "1000";
 	}	
 	
 	public HashMap<String, Object> parseQueryPrice(ResultSet set) throws SQLException {
