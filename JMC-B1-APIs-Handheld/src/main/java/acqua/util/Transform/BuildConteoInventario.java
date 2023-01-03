@@ -18,7 +18,7 @@ import org.mule.transformer.AbstractMessageTransformer;
 import acqua.util.ODBCManager;
 
 public class BuildConteoInventario extends AbstractMessageTransformer {
-	@SuppressWarnings("unused")
+	 
 	private static final Logger LOG = Logger.getLogger("jmc_hh.log");
 	@SuppressWarnings("unchecked")
 	@Override
@@ -34,7 +34,7 @@ public class BuildConteoInventario extends AbstractMessageTransformer {
 		 
 		HashMap<String,Object> purchaseOrder = (HashMap<String, Object>) message.getInvocationProperty("purchaseOrder");
 		 
-		String sociedad = (String) message.getInvocationProperty("sociedad");
+		//String sociedad = (String) message.getInvocationProperty("sociedad");
 		String codigo = (String) message.getInvocationProperty("codigo");
 		String puntoventa = (String) message.getInvocationProperty("puntoventa");
 		String letra = (String) message.getInvocationProperty("letra");
@@ -46,7 +46,7 @@ public class BuildConteoInventario extends AbstractMessageTransformer {
 		DateFormat df = new SimpleDateFormat("yyyy-MM-dd");
 		String dateToday = df.format(new Date());
 		
-		documento.put("odata.etag", purchaseOrder.get("odata.metadata"));
+		// documento.put("odata.etag", purchaseOrder.get("odata.metadata"));
 		
 		documento.put("DocumentLines", new ArrayList<HashMap<String,Object>>());
 		
@@ -81,6 +81,12 @@ public class BuildConteoInventario extends AbstractMessageTransformer {
 				
 				String keyValue = val.getKey();
 				Object vale = val.getValue();
+				
+				if(vale instanceof java.lang.String)
+				{
+					vale = ((java.lang.String) vale).replaceAll("\r", " ");
+					
+				}
 				
 				if(keyValue.equals("DocumentLines"))
 				{
