@@ -7,13 +7,9 @@ import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Map.Entry;
-import java.util.Objects;
-
-import org.apache.commons.collections4.CollectionUtils;
-import org.apache.commons.collections4.PredicateUtils;
+import java.util.HashMap; 
+import java.util.Map.Entry; 
+ 
 import org.apache.log4j.Logger;
 import org.mule.api.MuleMessage;
 import org.mule.api.transformer.TransformerException;
@@ -30,6 +26,8 @@ public class BuildConteoInventario extends AbstractMessageTransformer {
 		
 		ArrayList<HashMap<String,Object>> articulos = (ArrayList<HashMap<String, Object>>) message.getInvocationProperty("consolidado");
 		HashMap<String,Object> articulosHM = new HashMap<String,Object>();
+		
+		Boolean excludeNulls = true;
 		 
 		for(HashMap<String,Object> articulo: articulos)
 		{
@@ -107,7 +105,10 @@ public class BuildConteoInventario extends AbstractMessageTransformer {
 								String keyLineaValue = lin.getKey();
 								Object lineaValue = lin.getValue();
 								
-								nuevaLinea.put(keyLineaValue, lineaValue);
+								if(lineaValue != null && excludeNulls)
+								{
+									nuevaLinea.put(keyLineaValue, lineaValue);
+								}
 								
 							}
 							
@@ -170,11 +171,7 @@ public class BuildConteoInventario extends AbstractMessageTransformer {
 							
 							nuevaLinea.put("DocumentLinesBinAllocations", new ArrayList<HashMap<String,Object>>());
 							((ArrayList<HashMap<String,Object>>) nuevaLinea.get("DocumentLinesBinAllocations")).add(documentLinesBinAllocations);
-							
-							 
-							CollectionUtils.filter(nuevaLinea.values(),
-					                PredicateUtils.notNullPredicate());
-							
+							  
 							((ArrayList<HashMap<String,Object>>) documento.get("DocumentLines")).add(nuevaLinea);
 							
 							// Genera la nueva linea spliteada
@@ -217,9 +214,7 @@ public class BuildConteoInventario extends AbstractMessageTransformer {
 								elementBatchNumbersSplit.add(batchNumbersSplit);
 								
 								nuevaLineaSplit.put("BatchNumbers", elementBatchNumbersSplit);
-								
-								CollectionUtils.filter(nuevaLineaSplit.values(),
-						                PredicateUtils.notNullPredicate());
+								 
 								  
 								((ArrayList<HashMap<String,Object>>) documento.get("DocumentLines")).add(nuevaLineaSplit);
 							
@@ -273,9 +268,6 @@ public class BuildConteoInventario extends AbstractMessageTransformer {
 						elementBatchNumbersSplit.add(batchNumbersSplit);
 						
 						nuevaLinea.put("BatchNumbers", elementBatchNumbersSplit); 
-						
-						CollectionUtils.filter(nuevaLinea.values(),
-				                PredicateUtils.notNullPredicate());
 						 
 						((ArrayList<HashMap<String,Object>>) documento.get("DocumentLines")).add(nuevaLinea);
 						
@@ -284,7 +276,10 @@ public class BuildConteoInventario extends AbstractMessageTransformer {
 					
 				} else
 				{
-					documento.put(keyValue, vale);
+					if(vale != null && excludeNulls)
+					{
+						documento.put(keyValue, vale);
+					}
 				}
 				  
 			}
@@ -312,10 +307,7 @@ public class BuildConteoInventario extends AbstractMessageTransformer {
 			((HashMap<String, Object>) documento.get("TaxExtension")).replace("NFRef", "Basado en Pedidos " + codigo);
 			
 			
-		}
-		
-		CollectionUtils.filter(documento.values(),
-                PredicateUtils.notNullPredicate());
+		} 
 		
 		return documento;
 	}
