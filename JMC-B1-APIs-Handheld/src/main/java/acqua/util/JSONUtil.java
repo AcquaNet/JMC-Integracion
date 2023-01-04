@@ -85,6 +85,14 @@ public class JSONUtil {
 	        else if(value instanceof JSONObject) {
 	            value = toMap((JSONObject) value);
 	        } 
+	        if(value instanceof java.lang.String)
+	        {
+	        	
+	        	value =  ((java.lang.String) value).replaceAll("\\r\\n", " "); 
+	        	value =  ((java.lang.String) value).replaceAll("\r\n", " "); 
+	        	value =  ((java.lang.String) value).replaceAll("\\n", " "); 
+	        	value =  ((java.lang.String) value).replaceAll("\\r", " "); 
+	        }
 	        map.put(key, value);
 	    }
 	    return map;
