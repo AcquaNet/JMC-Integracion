@@ -86,10 +86,7 @@ public class JSONUtil {
 	            value = toMap((JSONObject) value);
 	        } 
 	        if(value instanceof java.lang.String)
-	        {
-	        	
-	        	value =  ((java.lang.String) value).replaceAll("\\r\\n", " "); 
-	        	value =  ((java.lang.String) value).replaceAll("\r\n", " "); 
+	        { 
 	        	value =  ((java.lang.String) value).replaceAll("\\n", " "); 
 	        	value =  ((java.lang.String) value).replaceAll("\\r", " "); 
 	        }
