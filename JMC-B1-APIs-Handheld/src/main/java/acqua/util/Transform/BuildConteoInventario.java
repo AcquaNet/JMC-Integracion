@@ -76,6 +76,7 @@ public class BuildConteoInventario extends AbstractMessageTransformer {
 				
 			}
 			
+			valor.remove("odata.etag");
 			 
 			for (Entry<String, Object> val : valor.entrySet()) {
 				

@@ -1,11 +1,15 @@
 package acqua.util;
 
+import java.io.File;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList; 
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
- 
+
+import org.apache.commons.io.FileUtils;
 import org.apache.log4j.Logger;
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -19,6 +23,15 @@ public class JSONUtil {
 	private static final Logger LOG = Logger.getLogger("jmc_java.log");
 	
 	// Actual utility methods
+	
+	public static boolean saveRequest(String request) throws IOException {
+		LOG.info("JAVA.StringToJSON.22: javaToJSONToString Called");
+		String path = "/tmp/request.log";
+		FileUtils.writeStringToFile(new File(path), request, StandardCharsets.UTF_8); 
+		
+		return true;
+	}
+	
 	
 	// Input a HashMap<String,Object> and return a JSON String
 	public static String javaToJSONToString(HashMap<String,Object> map) {
@@ -47,7 +60,7 @@ public class JSONUtil {
 	public static Map<String, Object> stringToMap(String str){
 		if (str.equals("")) {
 			return new HashMap<String,Object>();
-		}
+		} 
 		LOG.info("JAVA.StringToJSON.32: stringToMap Called");
 
 		return jsonToMap(new JSONObject(str));
