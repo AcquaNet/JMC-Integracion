@@ -81,13 +81,7 @@ public class BuildConteoInventario extends AbstractMessageTransformer {
 				
 				String keyValue = val.getKey();
 				Object vale = val.getValue();
-				
-				if(vale instanceof java.lang.String)
-				{
-					vale = ((java.lang.String) vale).replaceAll("\r", " ");
-					
-				}
-				
+				 
 				if(keyValue.equals("DocumentLines"))
 				{
 					ArrayList<HashMap<String,Object>> lineas =  (ArrayList<HashMap<String, Object>>) vale;
