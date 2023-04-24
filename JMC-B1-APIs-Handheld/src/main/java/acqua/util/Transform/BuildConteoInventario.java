@@ -40,11 +40,16 @@ public class BuildConteoInventario extends AbstractMessageTransformer {
 		String letra = (String) message.getInvocationProperty("letra");
 		String foliodesde = (String) message.getInvocationProperty("foliodesde");
 		String foliohasta = (String) message.getInvocationProperty("foliohasta"); 
+		String tipoRecepcion = (String) message.getInvocationProperty("tiporecepcion"); 
   
 		HashMap<String,Object> documento = new HashMap<>(); 
 		
 		DateFormat df = new SimpleDateFormat("yyyy-MM-dd");
 		String dateToday = df.format(new Date());
+		
+		/* begin fernando */
+		String systemSerialNumber = "";
+		/* end fernando */
 		
 		// documento.put("odata.etag", purchaseOrder.get("odata.metadata"));
 		
@@ -123,18 +128,33 @@ public class BuildConteoInventario extends AbstractMessageTransformer {
 							nuevaLinea.replace("BaseOpenQuantity", articulosHM.get(linea.get("ItemCode")));
 							nuevaLinea.replace("DocEntry", valor.get("DocEntry")); 
 							nuevaLinea.replace("ActualDeliveryDate", dateToday);
-							nuevaLinea.replace("BaseType", 22);
+							if (tipoRecepcion.equals("oc")) 
+								nuevaLinea.replace("BaseType", 22);
+							else
+								nuevaLinea.replace("BaseType", 18);
 							nuevaLinea.replace("BaseEntry", valor.get("DocEntry"));
 							
 							// Cantidades Adicionales
-							nuevaLinea.replace("Quantity", articulosHM.get(linea.get("ItemCode"))); 
-							nuevaLinea.replace("PackageQuantity", articulosHM.get(linea.get("ItemCode"))); 
-							nuevaLinea.replace("RemainingOpenQuantity", articulosHM.get(linea.get("ItemCode"))); 
-							nuevaLinea.replace("InventoryQuantity", articulosHM.get(linea.get("ItemCode"))); 
+							/* begin Fernando */
+							if(qtyToSplit>0) {
+								nuevaLinea.replace("Quantity", (Double) nuevaLinea.get("RemainingOpenQuantity")); 
+								nuevaLinea.replace("PackageQuantity", nuevaLinea.get("RemainingOpenQuantity")); 
+								nuevaLinea.replace("InventoryQuantity", nuevaLinea.get("RemainingOpenQuantity"));
+							}
+							else {
+								nuevaLinea.replace("Quantity", articulosHM.get(linea.get("ItemCode")));
+								nuevaLinea.replace("PackageQuantity", articulosHM.get(linea.get("ItemCode"))); 
+								nuevaLinea.replace("InventoryQuantity", articulosHM.get(linea.get("ItemCode")));
+							}
+							
 							if(nuevaLinea.containsKey("RemainingOpenInventoryQuantity"))
 							{
-								nuevaLinea.replace("RemainingOpenInventoryQuantity", articulosHM.get(linea.get("ItemCode"))); 
+								if(qtyToSplit>0) 
+									nuevaLinea.replace("RemainingOpenInventoryQuantity", nuevaLinea.get("RemainingOpenQuantity")); 
+								else
+									nuevaLinea.replace("RemainingOpenInventoryQuantity", articulosHM.get(linea.get("ItemCode")));
 							}
+							/* end Fernando */
 							
 							
 							// Batch Number
@@ -143,8 +163,13 @@ public class BuildConteoInventario extends AbstractMessageTransformer {
 							
 							batchNumber.put("BaseLineNumber", nuevaLinea.get("LineNum"));
 							batchNumber.put("BatchNumber", valor.get("NumAtCard"));
-							batchNumber.put("Quantity", articulosHM.get(linea.get("ItemCode")));
-							String systemSerialNumber =  getSystemSerialNumber(message, valor.get("DocNum").toString());							
+							/* begin Fernando */
+							if(qtyToSplit>0) 
+								batchNumber.put("Quantity", nuevaLinea.get("RemainingOpenQuantity"));
+							else
+								batchNumber.put("Quantity", articulosHM.get(linea.get("ItemCode")));
+							/* end Fernando */
+							systemSerialNumber =  getSystemSerialNumber(message, valor.get("DocNum").toString(), tipoRecepcion);							
 							batchNumber.put("SystemSerialNumber", systemSerialNumber);
 							nuevaLinea.replace("BatchNumbers", new ArrayList<HashMap<String,Object>>());
 							((ArrayList<HashMap<String,Object>>) nuevaLinea.get("BatchNumbers")).add(batchNumber);
@@ -155,7 +180,12 @@ public class BuildConteoInventario extends AbstractMessageTransformer {
 							HashMap<String,Object> documentLinesBinAllocations = new HashMap<>();
 							documentLinesBinAllocations.put("BaseLineNumber", nuevaLinea.get("LineNum"));
 							documentLinesBinAllocations.put("SerialAndBatchNumbersBaseLine", 0);
-							documentLinesBinAllocations.put("Quantity", articulosHM.get(linea.get("ItemCode")));
+							/* begin Fernando */
+							if(qtyToSplit>0) 
+								documentLinesBinAllocations.put("Quantity", nuevaLinea.get("RemainingOpenQuantity"));
+							else 
+								documentLinesBinAllocations.put("Quantity", articulosHM.get(linea.get("ItemCode")));
+							/* end Fernando */
 							String binAbsEntry = getBinAbsEntry(message, linea.get("WarehouseCode").toString());
 							documentLinesBinAllocations.put("BinAbsEntry", binAbsEntry);
 							
@@ -164,6 +194,8 @@ public class BuildConteoInventario extends AbstractMessageTransformer {
 							
 							 
 							((ArrayList<HashMap<String,Object>>) documento.get("DocumentLines")).add(nuevaLinea);
+							
+							nuevaLinea.remove("COGSAccountCode");
 							
 							// Genera la nueva linea spliteada
 							
@@ -197,9 +229,15 @@ public class BuildConteoInventario extends AbstractMessageTransformer {
 								
 								HashMap<String, Object> batchNumbersSplit = (HashMap<String, Object>) new HashMap<String, Object>();
 								batchNumbersSplit.put("BaseLineNumber", lineaMax);
-								batchNumbersSplit.put("SystemSerialNumber", 1);
+								/* Begin Fernando */
+								//batchNumbersSplit.put("SystemSerialNumber", 1);
+								batchNumbersSplit.put("SystemSerialNumber", systemSerialNumber);
+								/* End Fernando */
 								batchNumbersSplit.put("Quantity", qtyToSplit);
-								batchNumbersSplit.put("BatchNumber", nuevaLinea.get("ProjectCode"));
+								/* Begin Fernando */
+								//batchNumbersSplit.put("BatchNumber", nuevaLinea.get("ProjectCode"));
+								batchNumbersSplit.put("BatchNumber", valor.get("NumAtCard"));
+								/* End Fernando */
 								
 								ArrayList<HashMap<String, Object>> elementBatchNumbersSplit = new ArrayList<HashMap<String, Object>>();
 								elementBatchNumbersSplit.add(batchNumbersSplit);
@@ -227,7 +265,8 @@ public class BuildConteoInventario extends AbstractMessageTransformer {
 						HashMap<String,Object> nuevaLinea = new HashMap<>();
 				 
 						nuevaLinea.put("ItemCode", lineasPendientes.getKey());
-						Double price = new Double(getBinAbsEntry(message, lineasPendientes.getKey().toString()));						
+						//Double price = new Double(getBinAbsEntry(message, lineasPendientes.getKey().toString()));
+						Double price = new Double(0.00);
 						nuevaLinea.put("Price", price);
 						nuevaLinea.put("CostingCode", "MA");
 						nuevaLinea.put("ProjectCode", documento.get("Project"));
@@ -251,7 +290,13 @@ public class BuildConteoInventario extends AbstractMessageTransformer {
 						
 						HashMap<String, Object> batchNumbersSplit = (HashMap<String, Object>) new HashMap<String, Object>();
 						batchNumbersSplit.put("BaseLineNumber", lineaMax);
-						batchNumbersSplit.put("SystemSerialNumber", 1);
+						/* Begin Fernando */
+						if(systemSerialNumber.isEmpty()) {
+							systemSerialNumber =  getSystemSerialNumber(message, valor.get("DocNum").toString(), tipoRecepcion);	
+						}
+						//batchNumbersSplit.put("SystemSerialNumber", 1);
+						batchNumbersSplit.put("SystemSerialNumber", systemSerialNumber);
+						/* End Fernando */
 						batchNumbersSplit.put("Quantity", lineasPendientes.getValue());
 						batchNumbersSplit.put("BatchNumber", documento.get("Project"));
 						
@@ -289,7 +334,11 @@ public class BuildConteoInventario extends AbstractMessageTransformer {
 			documento.replace("UpdateDate",dateToday);
 			documento.replace("Series",17);
 			documento.remove("FinancialPeriod");
-			documento.replace("WareHouseUpdateType","dwh_Stock"); 
+			documento.replace("WareHouseUpdateType","dwh_Stock");
+			if(tipoRecepcion.equals("importacion")) {
+				documento.replace("ReserveInvoice","tNO");
+			}
+	
 			
 			
 			((HashMap<String, Object>) documento.get("TaxExtension")).replace("NFRef", "Basado en Pedidos " + codigo);
@@ -300,7 +349,7 @@ public class BuildConteoInventario extends AbstractMessageTransformer {
 		return documento;
 	}
 	
-	private String getSystemSerialNumber(MuleMessage message, String docNum){
+	private String getSystemSerialNumber(MuleMessage message, String docNum, String tipoRecepcion){
 		String user = message.getInvocationProperty("DBUser");
 		String password = message.getInvocationProperty("DBPass");
 		String connectionString = message.getInvocationProperty("DBConnection");		
@@ -314,7 +363,12 @@ public class BuildConteoInventario extends AbstractMessageTransformer {
 		}
 		try {
 			manager.createStatement();
-			String Query = "SELECT T0.\"NumAtCard\" FROM "+sociedad+".OPOR T0 " + " WHERE T0.\"DocNum\" = '"+ docNum +"'";
+			String szTabla = "";
+			if (tipoRecepcion.equals("oc")) 
+				szTabla = "OPOR";
+			else 
+				szTabla = "OPCH";
+			String Query = "SELECT T0.\"NumAtCard\" FROM "+sociedad+"." + szTabla + " T0 " + " WHERE T0.\"DocNum\" = '"+ docNum +"'";
 			System.out.println("Query: " + Query);
 			ResultSet querySet = manager.executeQuery(Query);
 			HashMap<String, Object> queryResult = parseQuerySystemSerialNumber(querySet);

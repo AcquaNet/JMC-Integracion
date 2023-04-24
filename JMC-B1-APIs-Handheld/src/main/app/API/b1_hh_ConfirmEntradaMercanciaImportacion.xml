@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:json="http://www.mulesoft.org/schema/mule/json" xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:spring="http://www.springframework.org/schema/beans" 
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd
+http://www.mulesoft.org/schema/mule/json http://www.mulesoft.org/schema/mule/json/current/mule-json.xsd">
+	<http:request-config name="HTTP_Request_Configuration3" port="8082" doc:name="HTTP Request Configuration" host="localhost"/>
+    <flow name="b1_hh_entradaMercanciaInventarioImportacionFlow">
+        <http:listener config-ref="HTTP_Listener_Configuration" path="ConfirmEntradaMercanciaImportacion" allowedMethods="POST" doc:name="HTTP"/>
+        <logger message="ConfirmEntradaMercanciaImportacion recibido: #[message.payloadAs(java.lang.String)]" level="INFO" doc:name="Logger" category="jmc_hh"/>
+        <expression-component doc:name="Convert and save payload"><![CDATA[payload = acqua.util.JSONUtil.stringToMap(message.payloadAs(java.lang.String));
+flowVars.inputData = payload;
+flowVars.sociedad = payload.sociedad;
+flowVars.codigo = payload.codigo;
+flowVars.puntoventa = payload.puntoventa;
+flowVars.letra = payload.letra;
+flowVars.foliodesde = payload.foliodesde;
+flowVars.foliohasta = payload.foliohasta;]]></expression-component>
+        <transformer ref="LeerRecuentoEntradaMercancia" doc:name="Leer datos entrada"/>
+        <expression-component doc:name="save consolidado"><![CDATA[flowVars.consolidado = payload;]]></expression-component>
+        <choice doc:name="Choice">
+            <when expression="#[payload != null]">
+				<flow-ref name="b1_hh_global_setDBInfo" doc:name="b1_hh_global_setDBInfo"/>
+				<expression-component doc:name="set login to SAP "><![CDATA[flowVars.destination = flowVars.sociedad;]]></expression-component>
+                <flow-ref name="b1_hh_loginToSAP" doc:name="b1_hh_loginToSAP"/>
+				<set-variable variableName="filtro" value="DocNum eq #[flowVars.codigo]" doc:name="Set Filtro"/>
+                <http:request config-ref="HTTP_Request_Configuration" path="PurchaseInvoices" method="GET" doc:name="HTTP - Get Purshase Invoices">
+                    <http:request-builder>
+						<http:query-param paramName="$filter" value="#[flowVars.filtro]"/>
+
+                    </http:request-builder>
+                </http:request>
+                <expression-component doc:name="save PUR"><![CDATA[flowVars.purchaseOrder = acqua.util.JSONUtil.stringToMap(message.payloadAs(java.lang.String));]]></expression-component>
+				<expression-component doc:name="save Tipo Recepcion"><![CDATA[flowVars.tiporecepcion = "importacion";]]></expression-component>
+                <transformer ref="BuildConteoInventario" doc:name="Build Conteo Inventario"/>
+                <expression-component doc:name="save data"><![CDATA[flowVars.documentSaved = acqua.util.JSONUtil.javaToJSONToStringWithNull(payload);
+flowVars.destination = flowVars.sociedad;]]></expression-component>
+				<logger message="#[flowVars.documentSaved]" level="INFO" category="jmc_hh" doc:name="Logger"/>
+
+                <flow-ref name="b1_hh_entradaMercancia_SendDocument" doc:name="b1_hh_entradaMercancia_SendDocument"/>
+                <logger message="#[payload]" level="INFO" doc:name="Logger" category="jmc_hh"/>
+            </when>
+            <otherwise>
+                <logger message="ConfirmEntradaMercancia - No hay datos para mandar " level="INFO" doc:name="Logger" category="jmc_hh"/>
+                <set-payload value="{&quot;resultado&quot;: false, &quot;mensaje&quot;:&quot;No hay articulos para mandar&quot;}" doc:name="Set Payload"/>
+            </otherwise>
+        </choice>
+		<catch-exception-strategy doc:name="Catch Exception Strategy">
+			<logger message="#[payload]" level="INFO" doc:name="Logger"/>
+		</catch-exception-strategy>
+
+    </flow>
+
+    <flow name="b1_hh_entradaMercanciaImportacion_SendDocument">
+        <choice doc:name="Choice">
+            <when expression="#[flowVars.loginResult.equals(&quot;OK&quot;)]">
+                <set-payload value="#[flowVars.documentSaved]" doc:name="Set saved document as payload"/>
+				<logger message="#[flowVars.documentSaved]" level="INFO" category="jmc_hh" doc:name="Logger"/>
+				<json:object-to-json-transformer encoding="UTF-8" mimeType="application/json" doc:name="Object to JSON"/>
+
+				<expression-component doc:name="Expression"><![CDATA[flowVars.documentSaved = acqua.util.JSONUtil.saveRequest(payload);]]></expression-component>
+				<http:request config-ref="HTTP_Request_Configuration" path="PurchaseDeliveryNotes" method="POST" doc:name="HTTP POST"/>
+
+                        
+            
+                <choice doc:name="Choice">
+                    <when expression="#[message.inboundProperties['http.status'] &lt; 300]">
+                        <expression-component doc:name="Answer"><![CDATA[payload = acqua.util.JSONUtil.stringToMap(message.payloadAs(java.lang.String));]]></expression-component>
+                        <transformer ref="BorrarRecuentoEntradaMercancia" doc:name="OK, borrar recuentro"/>
+                        <set-payload value="{&quot;resultado&quot;:true}" doc:name="Set Payload"/>
+                    </when>
+                    <when expression="#[message.inboundProperties['http.status'] == 400]">
+                        <expression-component doc:name="Set variables for report"><![CDATA[flowVars.status = message.inboundProperties["http.status"];
+flowVars.reason = message.inboundProperties["http.reason"];
+flowVars.payloadSent = flowVars.documentSaved;
+flowVars.responseRecived = message.payloadAs(java.lang.String);
+flowVars.method = "ConfirmEntradaMercancia";
+flowVars.requestURL = "POST";]]></expression-component>
+                        <expression-component doc:name="Convert to hash"><![CDATA[payload = acqua.util.JSONUtil.stringToMap(message.payloadAs(java.lang.String));]]></expression-component>
+                        <set-payload value="{&quot;resultado&quot; : false, &quot;mensaje&quot;:&quot;#[acqua.util.WorkUtils.replaceAll(payload.error.message.value)]&quot;}" doc:name="Set Payload"/>
+                        <expression-component doc:name="save payload"><![CDATA[flowVars.savePayloadForAnswer = payload;]]></expression-component>
+                        <flow-ref name="B1_Sync_EmailReportingFlow" doc:name="B1_Sync_EmailReportingFlow"/>
+                        <expression-component doc:name="re-set payload"><![CDATA[payload = flowVars.savePayloadForAnswer;]]></expression-component>
+                        <logger message="Devolver confirmarEntradaMercancia: #[payload]" level="INFO" category="jmc.log" doc:name="Logger"/>
+                    </when>
+                    <otherwise>
+                        <expression-component doc:name="Set variables for report"><![CDATA[flowVars.status = message.inboundProperties["http.status"];
+flowVars.reason = message.inboundProperties["http.reason"];
+flowVars.payloadSent = flowVars.documentSaved;
+flowVars.responseRecived = message.payloadAs(java.lang.String);
+flowVars.method = "ConfirmEntradaMercancia";
+flowVars.requestURL = "POST";]]></expression-component>
+                        <flow-ref name="B1_Sync_EmailReportingFlow" doc:name="B1_Sync_EmailReportingFlow"/>
+                        <set-payload value="{&quot;resultado&quot; : false, &quot;mensaje&quot;:&quot;#[acqua.util.WorkUtils.replaceAll(message.payloadAs(java.lang.String))]&quot;}" doc:name="Set Payload"/>
+                    </otherwise>
+                </choice>
+            </when>
+            <otherwise>
+                <set-payload value="{  &quot;resultado&quot;:false,&quot;mensaje&quot;:&quot;Fallo el login. Checkear logs.&quot; } " doc:name="Set answer for failure"/>
+            </otherwise>
+        </choice>
+		<catch-exception-strategy doc:name="Catch Exception Strategy">
+			<logger message="#[payload]" level="INFO" doc:name="Logger"/>
+		</catch-exception-strategy>
+    </flow>
+</mule>

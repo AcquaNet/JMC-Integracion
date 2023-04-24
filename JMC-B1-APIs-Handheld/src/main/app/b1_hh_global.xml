@@ -20,6 +20,7 @@ http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/m
 	<custom-transformer name="fetchOrdenesRecuento" class="acqua.util.odbc.FetchOrdenesRecuento" doc:name="Java"/>
 	<custom-transformer name="fetchInfoByBarCode" class="acqua.util.odbc.FetchInfoByBarCode" doc:name="Java"/>
 	<custom-transformer name="fetchArticuloByCode" class="acqua.util.odbc.FetchArticuloByCode" doc:name="Java"/>
+	<custom-transformer name="fetchArticuloBySKU" class="acqua.util.odbc.FetchArticuloBySKU" doc:name="Java"/>
     <custom-transformer name="fetchLineasOrdenRecuento" class="acqua.util.odbc.FetchLineasOrdenRecuento" doc:name="Java"/>
 	<custom-transformer name="fetchPickingOrder" class="acqua.util.odbc.FetchPickingOrder" doc:name="Java"/>
 	<custom-transformer name="fetchPickingOrderLines" class="acqua.util.odbc.FetchPickingOrderLines" doc:name="Java"/>
@@ -38,11 +39,13 @@ http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/m
 	
 	<!-- Transformadores de Body para armar ordenes -->
 	<custom-transformer name="BuildRecuentoInventario" class="acqua.util.Transform.BuildRecuentoInventario" doc:name="Java"/>
+	<custom-transformer name="BuildRecuentoInventarioOffLine" class="acqua.util.Transform.BuildRecuentoInventarioOffLine" doc:name="Java"/>
 	<custom-transformer name="BuildConteoInventario" class="acqua.util.Transform.BuildConteoInventario" doc:name="Java"/>
 	<custom-transformer name="BuildTransferencia" class="acqua.util.Transform.BuildTransferencia" doc:name="Java"/>
 	
 	<!-- Transformadores de Datos -->
 	<custom-transformer name="UpdatePickList" class="acqua.util.Transform.UpdatePickList" doc:name="Java"/>
+	<custom-transformer name="InsertBultosPicking" class="acqua.util.Transform.InsertBultosPicking" doc:name="Java"/>
 
 	
 	<!-- Especiales -->

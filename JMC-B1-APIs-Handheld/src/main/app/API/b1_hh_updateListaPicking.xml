@@ -10,6 +10,7 @@ http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/m
     <flow name="b1_hh_updatePickListFlow">
         <http:listener config-ref="HTTP_Listener_Configuration" path="updateListaPicking" allowedMethods="POST" doc:name="HTTP"/>
         <logger message="updateListaPicking recibido: #[message.payloadAs(java.lang.String)]" level="INFO" doc:name="Logger" category="jmc_hh"/>
+		<expression-component doc:name="Expression"><![CDATA[flowVars.payloadInicial = acqua.util.JSONUtil.stringToMap(message.payloadAs(java.lang.String));]]></expression-component>
         <flow-ref name="b1_hh_updateListaPicking_settings" doc:name="Set up everything"/>
         <flow-ref name="b1_hh_loginToSAP" doc:name="login to SAP"/>
         <flow-ref name="b1_hh_updateListaPicking_FetchDocument" doc:name="Fetch Document to Update"/>
@@ -25,17 +26,7 @@ flowVars.pickListMd5 = acqua.util.MD5Util.StringToMD5(payload);]]></expression-c
         <choice doc:name="check if result was true">
             <when expression="#[flowVars.resultado == true]">
                 <expression-component doc:name="Expression"><![CDATA[flowVars.answerFromSAP = payload;]]></expression-component>
-                <flow-ref name="b1_hh_updateListaPicking_FetchDocument" doc:name="fetch changed doc"/>
-                <expression-component doc:name="Expression"><![CDATA[payload = acqua.util.JSONUtil.stringToMap(message.payloadAs(java.lang.String));
-flowVars.newMd5 = acqua.util.MD5Util.StringToMD5(payload);]]></expression-component>
-                <choice doc:name="check if pick list changed">
-                    <when expression="#[flowVars.pickListMd5 == flowVars.newMd5]">
-                        <set-payload value="{&quot;resultado&quot; : false, &quot;mensaje&quot; : &quot;la picklist no fue actualizada&quot;}" doc:name="Set Payload"/>
-                    </when>
-                    <otherwise>
-                        <expression-component doc:name="Expression"><![CDATA[payload = flowVars.answerFromSAP;]]></expression-component>
-                    </otherwise>
-                </choice>
+
             </when>
             <otherwise>
                 <logger message="empty" level="DEBUG" doc:name="Logger" category="jmc_hh"/>
@@ -69,14 +60,26 @@ flowVars.id = null;]]></expression-component>
         <choice doc:name="Choice">
             <when expression="#[flowVars.loginResult.equals(&quot;OK&quot;)]">
                 <set-payload value="#[payload]" doc:name="Set saved document as payload"/>
-                <http:request config-ref="HTTP_Request_Configuration" path="PickLists(#[flowVars.pickCode])" method="PUT" doc:name="Update inventory counting">
+				<logger message="Picking - Se invoca update del picking - Body:" level="INFO" doc:name="Logger"/>
+				<logger level="INFO" doc:name="Logger"/>
+                <http:request config-ref="HTTP_Request_Configuration" path="PickLists(#[flowVars.pickCode])" method="PATCH" doc:name="Update inventory counting">
+					<http:request-builder>
+						<http:header headerName="B1S-ReplaceCollectionsOnPatch" value="true"/>
+					</http:request-builder>
                     <http:success-status-code-validator values="200..299,400"/>
                 </http:request>
                 <choice doc:name="Choice">
                     <when expression="#[message.inboundProperties['http.status'] == 200 || message.inboundProperties['http.status'] == 204]">
+						<foreach collection="#[flowVars.payloadInicial.detalleBultos]" doc:name="For Each">
+							<set-payload value="{  &quot;U_Picking&quot;: #[flowVars.pickcode],     &quot;U_Bulto&quot;: #[payload.nrobulto],     &quot;U_Cantidad&quot;: #[payload.listaarticulos.size()], &quot;Code&quot;:  &quot;#[flowVars.pickcode] #[payload.nrobulto] #[server.dateTime]&quot; }" doc:name="Set Payload"/>
+							<http:request config-ref="HTTP_Request_Configuration" path="Bultos" method="POST" doc:name="Insert Bultos"/>
+							<logger level="INFO" doc:name="Logger"/>
+						</foreach>
+
                         <expression-component doc:name="Answer"><![CDATA[payload = acqua.util.JSONUtil.stringToMap(message.payloadAs(java.lang.String));
 flowVars.resultado = true;]]></expression-component>
                         <set-payload value="{&quot;resultado&quot;:true}" doc:name="Set Payload"/>
+
                     </when>
                     <when expression="#[message.inboundProperties['http.status'] == 400]">
                         <expression-component doc:name="Set variables for report"><![CDATA[flowVars.status = message.inboundProperties["http.status"];

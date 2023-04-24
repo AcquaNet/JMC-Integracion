@@ -44,8 +44,14 @@ public class FetchPickingOrderLines extends AbstractMessageTransformer {
 			manager.createStatement();
 
 			// Order Query
+			/*
 			String OrderQuery = "SELECT \"AbsEntry\", \"PickEntry\", \"ItemCode\", \"RelQtty\", \"PickQtty\" FROM "
 					+ sociedad + ".PKL2 WHERE \"AbsEntry\" = '"+pickingId+"'";
+			*/
+			String OrderQuery = "SELECT T0.\"AbsEntry\", T0.\"PickEntry\", T0.\"ItemCode\", T0.\"RelQtty\", T0.\"PickQtty\", T2.\"DistNumber\", T2.\"SysNumber\", T1.\"CodeBars\" FROM "
+					+ sociedad + ".PKL2 T0 INNER JOIN " + sociedad +".OITM T1 ON T0.\"ItemCode\" = T1.\"ItemCode\" "
+					           + "INNER JOIN " + sociedad +".OBTN T2 ON T0.\"SnBEntry\" = T2.\"AbsEntry\" "
+							   + "WHERE T0.\"AbsEntry\" = '"+pickingId+"'";			
 			System.out.println("Query: " + OrderQuery);
 			ResultSet OrderQuerySet = manager.executeQuery(OrderQuery);
 			ArrayList<HashMap<String, Object>> OrderQueryResult = parseQuery(OrderQuerySet);
@@ -84,6 +90,9 @@ public class FetchPickingOrderLines extends AbstractMessageTransformer {
 			answer.put("pickeado", Double.valueOf(set.getString("PickQtty")));
 			answer.put("picklist", Double.valueOf(set.getString("AbsEntry")));
 			answer.put("codigo", (set.getString("ItemCode")));
+			answer.put("DistNumber", (set.getString("DistNumber")));
+			answer.put("SysNumber", (set.getString("SysNumber")));
+			answer.put("codigobarra", (set.getString("CodeBars")));
 			orderLines.add(answer);
 			
 		}

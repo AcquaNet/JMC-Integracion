@@ -5,9 +5,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Map;
-import java.util.Iterator;
-import java.util.Set;
+
 
 import org.apache.log4j.Logger;
 import org.mule.api.MuleMessage;
@@ -40,12 +38,19 @@ public class UpdatePickList extends AbstractMessageTransformer implements MuleCo
 		String entorno = (String) message.getInvocationProperty("entorno");
 		HashMap<String, Object> batchNumbers = new HashMap<String, Object>();
 
+		/* begin 03/23 */
+		ArrayList<HashMap<String, Object>> inputArticulosUnificado = consolidarArticulos(inputArticulos);
+		/* end 03/23 */
+		
 		boolean buscarBatch = true;
 		HashMap<String, Object> pickListCopy = new HashMap<>();
 		ArrayList<HashMap<String, Object>> pickLines = (ArrayList<HashMap<String, Object>>) pickList
 				.get("PickListsLines");
 		ArrayList<HashMap<String, Object>> pickLinesCopy = new ArrayList<>();
-		for (HashMap<String, Object> itemLine : inputArticulos) {
+		/* begin 03/23 */
+		//for (HashMap<String, Object> itemLine : inputArticulos) {
+		/* end 03/23 */
+		for (HashMap<String, Object> itemLine : inputArticulosUnificado) {
 			Integer newCount;
 			for (HashMap<String, Object> originalLine : pickLines) {
 				if (itemLine.get("linenum").equals(originalLine.get("LineNumber"))) {
@@ -54,6 +59,7 @@ public class UpdatePickList extends AbstractMessageTransformer implements MuleCo
 						newCount = (int) cantidadRecibida;
 						Integer LineQtty = ((int) ((double) originalLine.get("PickedQuantity"))) + newCount;
 						originalLine.put("PickedQuantity", LineQtty);
+						
 						Integer baseObjectType = (Integer) originalLine.get("BaseObjectType");
 						if(baseObjectType == 1250000001) {
 							if(buscarBatch) {
@@ -63,6 +69,8 @@ public class UpdatePickList extends AbstractMessageTransformer implements MuleCo
 							}
 						}
 						
+						/* begin 03/23 */
+						/*
 						String codigoItem = (String) itemLine.get("codigo");
 						HashMap<String, Object> lotes =  getLotesPickingByItem(message, codigoItem);
 						ArrayList<HashMap<String, Object>> listCopy = new ArrayList<>();
@@ -82,8 +90,23 @@ public class UpdatePickList extends AbstractMessageTransformer implements MuleCo
 							map.put("SystemSerialNumber", (String) lotes.get("sysNumber"));
 						}
 						listCopy.add(map);
+						*/
+						
+						ArrayList<HashMap<String, Object>> listCopy = new ArrayList<>();
+						for (HashMap<String, Object> itemLineUnificado : (ArrayList<HashMap<String, Object>>) itemLine.get("batches")) {
+							HashMap<String, Object> map = new HashMap<String, Object>();
+							map.put("BaseLineNumber", originalLine.get("LineNumber"));
+							map.put("SystemSerialNumber", itemLineUnificado.get("sysnumber"));	
+							map.put("BatchNumber", itemLineUnificado.get("distnumber"));
+							map.put("Quantity", itemLineUnificado.get("cantidad"));
+							listCopy.add(map);
+						}
+						
+						/* end 03/23 */
 									
 						// Update also allocations, only will insert into first
+						/* begin - 03/23 */
+						/*
 						ArrayList<HashMap<String, Object>> AllocationList = (ArrayList<HashMap<String, Object>>) originalLine
 								.get("DocumentLinesBinAllocations");
 						ArrayList<HashMap<String, Object>> AllocationListCopy = new ArrayList<>();
@@ -104,13 +127,55 @@ public class UpdatePickList extends AbstractMessageTransformer implements MuleCo
 
 						backupAbs.put("SerialAndBatchNumbersBaseLine", 0);
 
+						AllocationListCopy.add(backupAbs);					
+						*/
+						
+						ArrayList<HashMap<String, Object>> AllocationListCopy = new ArrayList<>();
+						for (HashMap<String, Object> itemLineUnificado : (ArrayList<HashMap<String, Object>>) itemLine.get("batches")) {
+							HashMap<String, Object> map = new HashMap<String, Object>();
+							map.put("BaseLineNumber", originalLine.get("LineNumber"));
+							map.put("SerialAndBatchNumbersBaseLine", 0);	
+							map.put("Quantity", itemLineUnificado.get("cantidad"));
+							map.put("AllowNegativeQuantity", "tNO");
+							
+							/* begin - 04/23 */
+							Integer orderEntry = (Integer) originalLine.get("OrderEntry");
+							Integer orderRowId = (Integer) originalLine.get("OrderRowID");
+							
+							String pcodigoitem = (String) itemLine.get("codigo");
+							String pbatchnumber = (String) itemLineUnificado.get("distnumber");							
+							/* end - 04/23 */							
+							
+							String absEntry = "";
+							if(baseObjectType == 1250000001) {
+								String warehouse = getFromWarehouse(batchNumbers);
+								absEntry =  getBinAbsEntry(message, pcodigoitem, pbatchnumber, warehouse);
+							}
+							else {
+								/* begin 04/23 */
+								//map.put("BinAbsEntry", "1");
+								String pwarehouse = getWarehouse(message, orderEntry, orderRowId);
+								absEntry =  getBinAbsEntry(message, pcodigoitem, pbatchnumber, pwarehouse);
+								/* end 04/23 */
+							}
+							map.put("BinAbsEntry", absEntry);
+							/* end 04/23 */			
+							
+							AllocationListCopy.add(map);
+						}						
+						
+						/* end - 03/23 */
 
-						AllocationListCopy.add(backupAbs);
+
+
 						originalLine.put("BatchNumbers", listCopy);
 						originalLine.put("DocumentLinesBinAllocations", AllocationListCopy);
 						
 						originalLine.remove("ReleasedQuantity");
 						originalLine.remove("PreviouslyReleasedQuantity");
+						/* Begin Fernando  100223 */
+						originalLine.remove("PickStatus");
+						/* End Fernando  100223 */
 					}
 					pickLinesCopy.add(originalLine);
 				}
@@ -121,7 +186,9 @@ public class UpdatePickList extends AbstractMessageTransformer implements MuleCo
 		pickListCopy.put("PickListsLines", pickLinesCopy);
 		
 		// Nivel 0 - Header
-		pickListCopy.put("Status", pickList.get("Status"));
+		/* Begin Fernando  100223 */
+		//pickListCopy.put("Status", pickList.get("Status"));
+		/* End Fernando  100223 */
 		pickListCopy.put("ObjectType", pickList.get("ObjectType"));
 		pickListCopy.put("Absoluteentry", pickList.get("Absoluteentry"));
 		pickListCopy.put("PickDate", pickList.get("PickDate"));
@@ -134,6 +201,8 @@ public class UpdatePickList extends AbstractMessageTransformer implements MuleCo
 	/*
 	 * getLotesPickingByItem
 	 */
+	/* begin 03/23 */
+	/*
 	private HashMap<String, Object> getLotesPickingByItem(MuleMessage message, String codigoItem){
 		// Define DB Login Information from FlowVars
 		String user = message.getInvocationProperty("DBUser");
@@ -181,11 +250,16 @@ public class UpdatePickList extends AbstractMessageTransformer implements MuleCo
 		
 		return null;
 	}
+	*/
+	/* end 03/23 */
 
 	/*
 	 * getBinAbsEntry
 	 */
-	private String getBinAbsEntry(MuleMessage message, String wareHouse){
+	/* begin 04/23 */
+	//private String getBinAbsEntry(MuleMessage message, String wareHouse){
+	private String getBinAbsEntry(MuleMessage message, String itemCode, String batchNumber, String warehouse){	
+    /* end 04/23 */
 		// Define DB Login Information from FlowVars
 		String user = message.getInvocationProperty("DBUser");
 		String password = message.getInvocationProperty("DBPass");
@@ -213,7 +287,12 @@ public class UpdatePickList extends AbstractMessageTransformer implements MuleCo
 			manager.createStatement();
 
 			// Query
-			String Query = "SELECT T0.\"AbsEntry\" FROM "+sociedad+".OBIN T0 WHERE T0.\"WhsCode\" = '"+wareHouse+"' AND T0.\"SysBin\" = 'Y'";
+			/* begin 04/23 */
+			// String Query = "SELECT T0.\"AbsEntry\" FROM "+sociedad+".OBIN T0 WHERE T0.\"WhsCode\" = '"+wareHouse+"' AND T0.\"SysBin\" = 'Y'";
+			// String Query = "SELECT T0.\"AbsEntry\" FROM "+sociedad+".OBTN T0 WHERE T0.\"ItemCode\" = '"+itemCode+"' AND T0.\"DistNumber\" = '"+ batchNumber + "'";
+			String Query = "SELECT T1.\"BinAbs\" FROM "+sociedad+".OBTN T0 JOIN " + sociedad +".OBBQ T1 ON T0.\"AbsEntry\" = T1.\"SnBMDAbs\" AND T0.\"ItemCode\" = T1.\"ItemCode\" WHERE T0.\"ItemCode\" = '"+itemCode+"' AND T0.\"DistNumber\" = '"+ batchNumber + "' AND T1.\"WhsCode\" = '" + warehouse + "'";
+			
+			/* end 04/23 */
 			System.out.println("Query: " + Query);
 			ResultSet querySet = manager.executeQuery(Query);
 
@@ -235,6 +314,8 @@ public class UpdatePickList extends AbstractMessageTransformer implements MuleCo
 	/*
 	 * parseQueryLotes
 	 */
+	/* begin - 03/23 */
+	/*
 	public HashMap<String, Object> parseQueryLotes(ResultSet set) throws SQLException {
 
 		HashMap<String, Object> answer = new HashMap<>();
@@ -245,7 +326,9 @@ public class UpdatePickList extends AbstractMessageTransformer implements MuleCo
 			answer.put("distNumber", (set.getString("DistNumber")));
 		}
 		return answer;
-	}	
+	}
+	*/
+	/* end - 03/23 */
 	
 	/*
 	 * parseQueryBinAbsEntry
@@ -255,7 +338,10 @@ public class UpdatePickList extends AbstractMessageTransformer implements MuleCo
 		HashMap<String, Object> answer = new HashMap<>();
 
 		while (set.next() != false) {
-			answer.put("AbsEntry", (set.getString("AbsEntry")));
+			/* begin - 04/23 */
+			//answer.put("AbsEntry", (set.getString("AbsEntry")));
+			answer.put("AbsEntry", (set.getString("BinAbs")));
+			/* end - 04/23 */
 		}
 		return answer;
 	}	
@@ -263,6 +349,8 @@ public class UpdatePickList extends AbstractMessageTransformer implements MuleCo
 	/*
 	 * getBatchNumber
 	 */
+	/* begin - 03/23 */
+	/*
 	private String getBatchNumber(HashMap<String, Object> batchLines, Integer LineNumber) {
 		
 		ArrayList map = (ArrayList) batchLines.get("StockTransferLines");
@@ -280,11 +368,15 @@ public class UpdatePickList extends AbstractMessageTransformer implements MuleCo
 		
 		return "";
 	}
+	*/
+	/* end - 03/23 */
 	
 
 	/*
 	 * getSysNumber
 	 */
+	/* begin - 03/23 */
+	/*
 	private String getSysNumber(HashMap<String, Object> batchLines, Integer LineNumber) {
 		
 		ArrayList map = (ArrayList) batchLines.get("StockTransferLines");
@@ -303,6 +395,8 @@ public class UpdatePickList extends AbstractMessageTransformer implements MuleCo
 		
 		return "";
 	}
+	*/
+	/* end - 03/23 */
 
 	/*
 	 * getFromWarehouse
@@ -362,4 +456,107 @@ public class UpdatePickList extends AbstractMessageTransformer implements MuleCo
 		
 	}
 	
+	/* begin 03/23 */
+	/* nueva funcion: consolidarArticulos */
+	private ArrayList<HashMap<String, Object>> consolidarArticulos(ArrayList<HashMap<String, Object>> listaOriginal) {
+		ArrayList<HashMap<String, Object>> listaConsolidada = new ArrayList<>();
+		for (HashMap<String, Object> itemLine : listaOriginal) {
+			boolean existe = false;
+			for (HashMap<String, Object> itemLineConsolidado : listaConsolidada) {
+				if (itemLine.get("linenum").equals(itemLineConsolidado.get("linenum"))) {
+					double cantidadConsolidada = (double) itemLine.get("cantidad") + (double) itemLineConsolidado.get("cantidad");
+					itemLineConsolidado.remove("cantidad");
+					itemLineConsolidado.put("cantidad", cantidadConsolidada);
+					
+					HashMap<String, Object> batchNew = new HashMap<String, Object>();
+					batchNew.put("cantidad", itemLine.get("cantidad"));
+					batchNew.put("distnumber", itemLine.get("distnumber"));
+					batchNew.put("sysnumber", itemLine.get("sysnumber"));
+					
+					ArrayList<HashMap<String, Object>> listaBatches = (ArrayList<HashMap<String, Object>>) itemLineConsolidado.get("batches");
+					listaBatches.add(batchNew);					
+					itemLineConsolidado.remove("batches");
+					itemLineConsolidado.put("batches", listaBatches);
+					
+					existe = true;
+				}
+			}
+			if(!existe) {
+				HashMap<String, Object> itemLineNew = new HashMap<String, Object>();
+				itemLineNew.put("linenum", itemLine.get("linenum"));
+				itemLineNew.put("codigo", itemLine.get("codigo"));
+				itemLineNew.put("cantidad", itemLine.get("cantidad"));
+				ArrayList<HashMap<String, Object>> batches = new ArrayList<>();
+				HashMap<String, Object> batchNew = new HashMap<String, Object>();
+				batchNew.put("cantidad", itemLine.get("cantidad"));
+				batchNew.put("distnumber", itemLine.get("distnumber"));
+				batchNew.put("sysnumber", itemLine.get("sysnumber"));
+				batches.add(batchNew);
+				itemLineNew.put("batches", batches);
+				
+				listaConsolidada.add(itemLineNew);
+			}
+		}
+		return listaConsolidada;
+	}
+	/* end 03/23 */
+	
+	
+	/* begin 04/23 */
+	private String getWarehouse(MuleMessage message, Integer docEntry, Integer linNum){	
+
+			String user = message.getInvocationProperty("DBUser");
+			String password = message.getInvocationProperty("DBPass");
+			String connectionString = message.getInvocationProperty("DBConnection");
+			
+			String sociedad = message.getInvocationProperty("sociedad");
+
+			ODBCManager manager = new ODBCManager(user, password, connectionString);
+			Object connect = manager.connect();
+			if (sociedad == null)
+			{
+				System.out.println("Sociedad no mapeada");
+				return null;
+			}
+			if (!connect.getClass().equals(Connection.class) && !connect.getClass().equals(com.sap.db.jdbc.HanaConnectionFinalize.class)) {
+				System.out.println("Fallo conexion a BD");
+				return null;
+			}
+			System.out.println("Connection to HANA successful!");
+			try {
+				manager.createStatement();
+
+				String Query = "SELECT T0.\"WhsCode\" FROM "+sociedad+".RDR1 T0 WHERE T0.\"DocEntry\" = " + docEntry + " AND T0.\"LineNum\" = "+ linNum;
+				
+				System.out.println("Query: " + Query);
+				ResultSet querySet = manager.executeQuery(Query);
+
+				HashMap<String, Object> queryResult = parseQueryWarehouse(querySet);
+				LOG.info("Parsing done!");
+				return (String) queryResult.get("WhsCode");
+			} catch (Exception e) {
+				e.printStackTrace();
+				if (e.getClass().getName().contains("SQLException")) {
+					System.out.println("Fallo sql");
+					return null;
+				}
+			}		
+			
+			return null;
+		}	
+	
+	
+	/*
+	 * parseQueryWarehouse
+	 */
+	public HashMap<String, Object> parseQueryWarehouse(ResultSet set) throws SQLException {
+
+		HashMap<String, Object> answer = new HashMap<>();
+
+		while (set.next() != false) {
+			answer.put("WhsCode", (set.getString("WhsCode")));
+		}
+		return answer;
+	}		
+	/* end - 04/23 */
 }

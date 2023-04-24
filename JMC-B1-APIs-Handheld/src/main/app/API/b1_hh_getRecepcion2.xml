@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:tracking="http://www.mulesoft.org/schema/mule/ee/tracking" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:spring="http://www.springframework.org/schema/beans" 
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd">
+    <flow name="b1_hh_getRecepcion2Flow">
+        <http:listener config-ref="HTTP_Listener_Configuration" path="getRecepcion2" allowedMethods="POST" doc:name="HTTP"/>
+		<flow-ref name="b1_hh_getRecepcion2_settings" doc:name="Set up everything"/>
+		<flow-ref name="b1_hh_loginToSAP" doc:name="login to SAP"/>
+        <expression-component doc:name="set variables from input"><![CDATA[payload = acqua.util.JSONUtil.stringToMap(message.payloadAs(java.lang.String));
+flowVars.codigo = payload.codigo;
+flowVars.sociedad = payload.sociedad;]]></expression-component>
+		<set-variable variableName="filtro" value="DocNum eq #[flowVars.inputData.codigo] and ReserveInvoice eq 'Y'" doc:name="Set Filtro"/>
+		<http:request config-ref="HTTP_Request_Configuration" path="PurchaseInvoices" method="GET" doc:name="HTTP">
+			<http:request-builder>
+				<http:query-param paramName="$filter" value="#[flowVars.filtro]"/>
+			</http:request-builder>
+		</http:request>
+
+        <logger message="getOperacion respuesta: #[payload]" level="INFO" category="jmc_hh" doc:name="Logger"/>
+		<catch-exception-strategy doc:name="Catch Exception Strategy">
+			<set-payload value="{
+  &quot;existe&quot;: false,
+  &quot;mensaje&quot;: &quot;Documento no encontrado en SB1&quot;
+}" mimeType="application/json" doc:name="Set Payload"/>
+		</catch-exception-strategy>
+    </flow>
+    
+    <flow name="b1_hh_getRecepcion2_settings">
+        <expression-component doc:name="Convert and save data"><![CDATA[flowVars.inputData = acqua.util.JSONUtil.stringToMap(message.payloadAs(java.lang.String));
+payload = flowVars.inputData;
+flowVars.entorno = payload.entorno;
+flowVars.sociedad = payload.sociedad;]]></expression-component>
+
+        <flow-ref name="b1_hh_global_setDBInfo" doc:name="set DB info "/>
+
+        <expression-component doc:name="set login to SAP "><![CDATA[flowVars.destination = flowVars.sociedad;]]></expression-component>
+    </flow>    
+</mule>

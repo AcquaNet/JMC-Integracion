@@ -22,6 +22,12 @@ flowVars.sociedad = payload.sociedad;]]></expression-component>
 		</http:request>
 
         <logger message="getOperacion respuesta: #[payload]" level="INFO" category="jmc_hh" doc:name="Logger"/>
+		<catch-exception-strategy doc:name="Catch Exception Strategy">
+			<set-payload value="{
+  &quot;existe&quot;: false,
+  &quot;mensaje&quot;: &quot;Documento no encontrado en SB1&quot;
+}" mimeType="application/json" doc:name="Set Payload"/>
+		</catch-exception-strategy>
     </flow>
     
     <flow name="b1_hh_getRecepcion1_settings">

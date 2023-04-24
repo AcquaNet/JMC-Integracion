@@ -7,6 +7,12 @@
 http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
 http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
 http://www.mulesoft.org/schema/mule/ee/tracking http://www.mulesoft.org/schema/mule/ee/tracking/current/mule-tracking-ee.xsd">
+	<flow name="b1_hh_updateRecuentoInventarioOffLineFlow">
+		<http:listener config-ref="HTTP_Listener_Configuration" path="/updateRecuentoInventarioOffLine" allowedMethods="POST" doc:name="HTTP"/>
+		<logger message="updateRecuentoInventarioOffLine recibido: #[message.payloadAs(java.lang.String)]" level="INFO" category="jmc_hh" doc:name="Logger"/>
+		<transformer ref="BuildRecuentoInventarioOffLine" doc:name="Build Recuento Inventario OffLine"/>
+		<logger message="#[payload]" level="INFO" category="jmc_hh" doc:name="Logger"/>
+	</flow>
     <flow name="b1_hh_updateRecuentoInventarioFlow">
         <http:listener config-ref="HTTP_Listener_Configuration" path="updateRecuentoInventario" allowedMethods="POST" doc:name="HTTP"/>
         <logger message="updateRecuentoInventario recibido: #[message.payloadAs(java.lang.String)]" level="INFO" doc:name="Logger" category="jmc_hh"/>

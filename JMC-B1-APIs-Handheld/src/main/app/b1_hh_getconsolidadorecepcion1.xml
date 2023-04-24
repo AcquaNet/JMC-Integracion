@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation"
+	xmlns:spring="http://www.springframework.org/schema/beans" 
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-current.xsd
+http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd">
+	<flow name="b1_hh_getconsolidadorecepcion1Flow">
+		<http:listener config-ref="HTTP_Listener_Configuration" path="/getConsolidadoRecepcion" allowedMethods="POST" doc:name="HTTP"/>
+		<logger message="getConsolidadoRecepcion1 recibido: #[message.payloadAs(java.lang.String)]" level="INFO" category="jmc_hh" doc:name="Logger"/>
+		<expression-component doc:name="Convert and save payload"><![CDATA[payload = acqua.util.JSONUtil.stringToMap(message.payloadAs(java.lang.String));
+flowVars.inputData = payload;
+flowVars.sociedad = payload.sociedad;
+flowVars.codigo = payload.codigo;
+]]></expression-component>
+		<transformer ref="LeerRecuentoEntradaMercancia" doc:name="Leer datos entrada"/>
+		<logger level="INFO" category="jmc_hh" doc:name="Logger"/>
+		<choice doc:name="Choice">
+			<when expression="#[payload != null]">
+				<logger message="#[payload]" level="INFO" category="jmc_hh" doc:name="Logger"/>
+				<set-payload value="{&quot;resultado&quot;: true, &quot;mensaje&quot;: #[payload]}" doc:name="Set Payload"/>
+			</when>
+			<otherwise>
+				<logger message="getConsolidadoRecepcion1 - No hay datos para mandar " level="INFO" category="jmc_hh" doc:name="Logger"/>
+				<set-payload value="{&quot;resultado&quot;: false, &quot;mensaje&quot;:&quot;No hay orden consolidada&quot;}" doc:name="Set Payload"/>
+			</otherwise>
+		</choice>
+	</flow>
+</mule>

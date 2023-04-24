@@ -13,14 +13,8 @@ http://www.mulesoft.org/schema/mule/ee/dw http://www.mulesoft.org/schema/mule/ee
 		<expression-component doc:name="Convert and save data"><![CDATA[flowVars.inputData = acqua.util.JSONUtil.stringToMap(message.payloadAs(java.lang.String));
 payload = flowVars.inputData;
 flowVars.socID = payload.sociedad;
-flowVars.entorno = payload.entorno;]]></expression-component>
-		<dw:transform-message doc:name="orderEntry">
-			<dw:set-variable variableName="orderEntry"><![CDATA[%dw 1.0
-%output application/java
----
-inboundProperties.'http.uri.params'[0].orderEntry
-]]></dw:set-variable>
-		</dw:transform-message>
+flowVars.entorno = payload.entorno;
+flowVars.orderEntry = message.inboundProperties['http.uri.params']['orderEntry'];]]></expression-component>
 		<set-variable variableName="customMap" value="#[{'orderEntry': flowVars.orderEntry}]" doc:name="Variable"/>
 		<flow-ref name="b1_hh_global_setDBInfo" doc:name="set DB info "/>
 		<enricher source="#[payload]" target="#[flowVars.sociedad]" doc:name="Fetch Sociedad">
@@ -35,26 +29,24 @@ inboundProperties.'http.uri.params'[0].orderEntry
 			</http:request-builder>
 
 		</http:request>
-		<dw:transform-message doc:name="Transform Message" metadata:id="f5bd3850-d0c0-4f52-a4cb-b99b21b95a55">
-			<dw:input-payload mimeType="application/json"/>
-			<dw:set-payload><![CDATA[%dw 1.0
+		<set-payload value="%dw 1.0
 %output application/json
 ---
 {
 	FromWarehouse: payload.FromWarehouse,
-	StockTransferLines: payload.StockTransferLines map ((stockTransferLine , indexOfStockTransferLine) -> {
+	StockTransferLines: payload.StockTransferLines map ((stockTransferLine , indexOfStockTransferLine) -&gt; {
 		LineNum: stockTransferLine.LineNum,
 		DocEntry: stockTransferLine.DocEntry,
 		ItemCode: stockTransferLine.ItemCode,
 		ItemDescription: stockTransferLine.ItemDescription,
 		Quantity: stockTransferLine.Quantity,
-		BatchNumbers: stockTransferLine.BatchNumbers map ((batchNumber , indexOfBatchNumber) -> {
+		BatchNumbers: stockTransferLine.BatchNumbers map ((batchNumber , indexOfBatchNumber) -&gt; {
 			BatchNumber: batchNumber.BatchNumber,
 			SystemSerialNumber: batchNumber.SystemSerialNumber
 		})
 	})
-}]]></dw:set-payload>
-		</dw:transform-message>
+}" mimeType="application/json" doc:name="Set Payload"/>
+
 		<logger message="Fin - InventoryTransferRequests" level="INFO" category="jmc_hh" doc:name="Logger"/>
 	</flow>
 </mule>
